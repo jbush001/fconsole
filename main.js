@@ -62,6 +62,9 @@ const OP_NEQ = 24;
 const OP_NOT = 25;
 const OP_AND = 26;
 const OP_OR = 27;
+const OP_CLEAR_SCREEN = 28;
+const OP_SET_COLOR = 29;
+const OP_DRAW_LINE = 30;
 
 const BUILTINS =  {
     "drop": OP_DROP,
@@ -85,7 +88,10 @@ const BUILTINS =  {
     "neq": OP_NEQ,
     "not": OP_NOT,
     "and": OP_AND,
-    "or": OP_OR
+    "or": OP_OR,
+    "cls": OP_CLEAR_SCREEN,
+    "setColor": OP_SET_COLOR,
+    "drawLine": OP_DRAW_LINE
 }
 
 class Word {
@@ -116,7 +122,7 @@ class Context {
         }
 
         for (let i = 0; i < 1000; i++) {
-            console.log("execute", pc, this.memory[pc], this.opStack);
+            //console.log("execute", pc, this.memory[pc], this.opStack);
             switch (this.memory[pc++]) {
                 case OP_PUSH:
                     this.opStack.push(this.memory[pc++]);
@@ -158,7 +164,6 @@ class Context {
                 case OP_STORE: {
                     const addr = this.opStack.pop();
                     const value = this.opStack.pop();
-                    console.log("store addr", addr, "value", value);
                     this.memory[addr] =  value;
                     break;
                 }
@@ -180,10 +185,8 @@ class Context {
                     break;
 
                 case OP_CALL:
-                    console.log("enter op call", pc);
                     this.returnStack.push(pc + 1);
                     pc = this.memory[pc];
-                    console.log("calling", pc);
                     break;
 
                 case OP_RET:
@@ -238,7 +241,24 @@ class Context {
                     break;
 
                 case OP_PRINT:
-                    doConsoleOutput(this.opStack.pop().toString() + "\n");
+                    writeConsole(this.opStack.pop().toString() + "\n");
+                    break;
+
+                case OP_CLEAR_SCREEN:
+                    clearScreen(this.opStack.pop());
+                    break;
+
+                case OP_DRAW_LINE: {
+                    const d = this.opStack.pop();
+                    const c = this.opStack.pop();
+                    const b = this.opStack.pop();
+                    const a = this.opStack.pop();
+                    drawLine(a, b, c, d);
+                    break;
+                }
+
+                case OP_SET_COLOR:
+                    setColor(this.opStack.pop());
                     break;
 
                 default:
@@ -262,7 +282,6 @@ class Context {
                 if (!isSpace)
                     currentToken += ch;
                 else if (currentToken != "") {
-                    console.log(currentToken);
                     yield { currentToken, lineNumber };
                     currentToken = "";
                     continue;
@@ -288,7 +307,7 @@ class Context {
             switch (tok) {
                 case "(":
                     while (tokens.next().value.currentToken != ")")
-                        console.log("comment");
+                        ;
                     
                     break;
 
@@ -360,14 +379,48 @@ class Context {
     }
 }
 
+let canvas = null;
+let context = null;
+
 function startup() {
+    canvas = document.getElementById("screen");
+    context = canvas.getContext("2d");
 }
 
-function doConsoleOutput(text) {
-    document.getElementById("output").value += text;
+function writeConsole(text) {
+    document.getElementById("output").textContent += text;
 }
 
-function doCompile() {
+const COLOR_STRS = [
+    "black",
+    "red", 
+    "magenta",
+    "green",
+    "yellow",
+    "blue",
+    "cyan",
+    "white"
+];
+
+function clearScreen(color) {
+    console.log("fill screen", canvas.width, canvas.height);
+    context.fillStyle = COLOR_STRS[color];
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.stroke();
+}
+
+function drawLine(left, top, right, bottom) {
+    context.beginPath();
+    context.moveTo(left, top);
+    context.lineTo(right, bottom);
+    context.stroke();
+}
+
+function setColor(color) {
+    context.strokeStyle = COLOR_STRS[color & 7];
+}
+
+function doRun() {
     console.log("started");
     try {
         const ctx = new Context();
@@ -379,7 +432,7 @@ function doCompile() {
         for (const key in ctx.dictionary)
             console.log(key, ctx.dictionary[key].address);
 
-        document.getElementById("output").value = "";
+        document.getElementById("output").textContent = "";
 
         if ("main" in ctx.dictionary)
             ctx.exec(ctx.dictionary['main'].address);

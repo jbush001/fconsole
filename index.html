@@ -5,22 +5,27 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body onload="startup()">
-        <textarea id="source">
+        <div id="top_container">
+           <textarea id="source">
 
 variable foo
 
 define main
     foo 1 !
+    2 setColor
+    cls
     begin
-        foo @ print
-        foo @ 10 lt
+        foo @ 10 + foo ! ( Increment )
+        0 0 128 foo @ drawLine
+        foo @ 128 lt
     until
 enddef
-        </textarea>
-        <textarea id="output">
-
-        </textarea>
-        <br/>
-        <button onclick="doCompile()">Run</button>
+            </textarea>
+            <canvas id="screen" width="128" height="128"></canvas>
+            <div id="output">
+            </div>
+            <br/>
+            <button onclick="doRun()">Run</button>
+        </div>
     </body>
 </html>

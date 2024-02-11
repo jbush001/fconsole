@@ -1,9 +1,34 @@
 #source {
-    width: 600px;
-    height: 300px;   
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    font-family: monospace;
 }
 
 #output {
-    width: 600px;
-    height: 200px;
+    grid-column: 1 / 3;
+    grid-row: 2;
+    width: 100%;
+    height: 100%;
+    border: 1px black solid;
+    box-sizing: border-box;
+    font-family: monospace;
+    white-space: pre;
+}
+
+#screen {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    image-rendering: pixelated;
+}
+
+#top_container {
+    display: grid;
+    grid-template-columns: 600px 300px;
+    grid-template-rows: 300px 300px;
 }
