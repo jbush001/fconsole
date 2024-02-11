@@ -1,3 +1,16 @@
+// Copyright 2024 Jeff Bush
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 const LIB = `
 
@@ -31,6 +44,23 @@ define until immediate
     7 emit          ( unconditional branch to head )
     emit            ( pop head address off stack and emit as branch addr )
 enddef
+
+define while immediate
+    8 emit          ( create a conditional branch to break out if 0 )
+    here            ( Save new branch address )
+    0 emit          ( dummy offset )
+enddef
+
+( loop_top_addr cond_branch_to_path -- )
+define repeat immediate
+    7 emit        ( branch at end of previous block )
+    swap
+    emit          ( push address of top of loop)
+    
+    ( now patch the previous break out )
+    here swap !
+enddef
+
 `;
 
 
