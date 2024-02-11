@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="main.js"></script>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body onload="startup()">
+        <textarea id="source">
+define foo
+    dup
+    3 gtr if
+        10 +
+    else
+        20 +
+    then
+enddef
+
+define main
+    5 foo print
+    2 foo print
+enddef
+        </textarea>
+        <textarea id="output">
+
+        </textarea>
+        <br/>
+        <button onclick="doCompile()">Run</button>
+    </body>
+</html>
