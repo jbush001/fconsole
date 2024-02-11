@@ -2,7 +2,7 @@
 const LIB = `
 
 define if immediate
-    8 emit        ( 7 is code for 0branch )
+    8 emit        ( 0branch )
     here          ( save on stack )
     0 emit        ( dummy offset )
 enddef
@@ -19,6 +19,17 @@ define else immediate
     ( Now patch previous branch )
     swap
     here swap !
+enddef
+
+define begin immediate
+    here
+enddef
+
+define until immediate
+    8 emit          ( create a conditional branch to break out if 0 )
+    here 3 + emit   ( branch address past unconditional branch )
+    7 emit          ( unconditional branch to head )
+    emit            ( pop head address off stack and emit as branch addr )
 enddef
 `;
 
@@ -37,12 +48,20 @@ const OP_CALL = 9;
 const OP_RET = 10;
 const OP_EMIT = 11;
 const OP_HERE = 12;
-const OP_GTR = 13;
 const OP_OVER = 14;
 const OP_ADD = 15;
 const OP_SUB = 16;
 const OP_MUL = 17;
 const OP_PRINT = 18;
+const OP_GT = 19;
+const OP_GTE = 20;
+const OP_LT = 21;
+const OP_LTE = 22;
+const OP_EQ = 23;
+const OP_NEQ = 24;
+const OP_NOT = 25;
+const OP_AND = 26;
+const OP_OR = 27;
 
 const BUILTINS =  {
     "drop": OP_DROP,
@@ -51,21 +70,28 @@ const BUILTINS =  {
     "!": OP_STORE,
     "@": OP_LOAD,
     "emit": OP_EMIT,
-    "gtr": OP_GTR,
     "over": OP_OVER,
     "+": OP_ADD,
     "-": OP_SUB,
     "*": OP_MUL,
-    ">": OP_GTR,
     "emit": OP_EMIT,
     "here": OP_HERE,
-    "print": OP_PRINT
+    "print": OP_PRINT,
+    "gt": OP_GT,
+    "gte": OP_GTE,
+    "lt": OP_LT,
+    "lte": OP_LTE,
+    "eq": OP_EQ,
+    "neq": OP_NEQ,
+    "not": OP_NOT,
+    "and": OP_AND,
+    "or": OP_OR
 }
 
 class Word {
-    constructor(name, address) {
+    constructor(address) {
         this.immediate = false;
-        this.name = name;
+        this.variable = false;
         this.address = address;
     }
 }
@@ -81,6 +107,14 @@ class Context {
 
     exec(entryAddress) {
         let pc = entryAddress;
+
+        const self = this;
+        function binop(opfunc) {
+            const op2 = self.opStack.pop();
+            const op1 = self.opStack.pop();
+            self.opStack.push(opfunc(op1, op2));
+        }
+
         for (let i = 0; i < 1000; i++) {
             console.log("execute", pc, this.memory[pc], this.opStack);
             switch (this.memory[pc++]) {
@@ -109,26 +143,17 @@ class Context {
                     this.opStack.push(this.opStack[this.opStack.length - 2]);
                     break;
 
-                case OP_ADD: {
-                    const op2 = this.opStack.pop();
-                    const op1 = this.opStack.pop();
-                    this.opStack.push(op1 + op2);
+                case OP_ADD:
+                    binop((a, b) => a + b);
                     break;
-                }
 
-                case OP_SUB: {
-                    const op2 = this.opStack.pop();
-                    const op1 = this.opStack.pop();
-                    this.opStack.push(op1 - op2);
+                case OP_SUB:
+                    binop((a, b) => a - b);
                     break;
-                }
 
-                case OP_MUL: {
-                    const op2 = this.opStack.pop();
-                    const op1 = this.opStack.pop();
-                    this.opStack.push(op1 * op2);
+                case OP_MUL:
+                    binop((a, b) => a * b);
                     break;
-                }
     
                 case OP_STORE: {
                     const addr = this.opStack.pop();
@@ -176,19 +201,48 @@ class Context {
                     this.memory[this.nextCompile++] = this.opStack.pop();
                     break;
 
-                case OP_GTR: {
-                    const op2 = this.opStack.pop();
-                    const op1 = this.opStack.pop();
-                    this.opStack.push(op1 > op2);
+                case OP_GT:
+                    binop((a, b) => a > b);
                     break;
-                }
+
+                case OP_GTE:
+                    binop((a, b) => a >= b);
+                    break;
+
+                case OP_LT:
+                    binop((a, b) => a < b);
+                    break;
+
+                case OP_LTE:
+                    binop((a, b) => a <= b);
+                    break;
+
+                case OP_EQ:
+                    binop((a, b) => a === b);
+                    break;
+
+                case OP_NEQ:
+                    binop((a, b) => a !== b);
+                    break;
+
+                case OP_NOT:
+                    this.opStack.push(~this.opStack.pop());
+                    break;
+
+                case OP_AND:
+                    binop((a, b) => a & b);
+                    break;
+
+                case OP_OR:
+                    unop((a, b) => a | b);
+                    break;
 
                 case OP_PRINT:
                     doConsoleOutput(this.opStack.pop().toString() + "\n");
                     break;
 
                 default:
-                    throw new Error(`Undefined opcode @${pc - 1}`);
+                    throw new Error(`Undefined opcode @${pc - 1} ${this.memory[pc - 1]}`);
             }
         }
 
@@ -243,7 +297,7 @@ class Context {
                         throw new Error(`Line ${lineNumber}: define inside define`);
 
                     const funcName = tokens.next().value.currentToken;
-                    currentWord = new Word(funcName, this.nextCompile);
+                    currentWord = new Word(this.nextCompile);
                     this.dictionary[funcName] = currentWord;
                     break;
 
@@ -260,6 +314,17 @@ class Context {
                         currentWord.immediate = true;
 
                     break;
+
+                case "variable": {
+                    if (currentWord)
+                        throw new Error(`Line ${lineNumber}: variable inside define`);
+
+                    const varName = tokens.next().value.currentToken;
+                    const word = new Word(this.nextCompile++);
+                    word.variable = true;
+                    this.dictionary[varName] = word;
+                    break;
+                }
         
                 default:
                     if (tok in BUILTINS) {
@@ -278,6 +343,9 @@ class Context {
                         const word = this.dictionary[tok];
                         if (word.immediate) {
                             this.exec(word.address);
+                        } else if (word.variable) {
+                            emit(OP_PUSH);
+                            emit(word.address);
                         } else {
                             emit(OP_CALL);
                             emit(word.address);
