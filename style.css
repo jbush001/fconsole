@@ -5,6 +5,8 @@
     height: 100%;
     box-sizing: border-box;
     font-family: monospace;
+    resize: none;
+    overflow-y: scroll;
 }
 
 #output {
@@ -25,6 +27,7 @@
     height: 100%;
     box-sizing: border-box;
     image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 #top_container {

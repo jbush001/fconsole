@@ -122,7 +122,6 @@ class Context {
         }
 
         for (let i = 0; i < 1000; i++) {
-            //console.log("execute", pc, this.memory[pc], this.opStack);
             switch (this.memory[pc++]) {
                 case OP_PUSH:
                     this.opStack.push(this.memory[pc++]);
@@ -306,8 +305,14 @@ class Context {
             const lineNumber = result.value.lineNumber;
             switch (tok) {
                 case "(":
-                    while (tokens.next().value.currentToken != ")")
-                        ;
+                    while (true) {
+                        const next = tokens.next();
+                        if (next.done)
+                            throw new Error(`Line ${lineNumber}: unmatched comment`);    
+
+                        if (next.value.currentToken == ")")
+                            break;
+                    }
                     
                     break;
 
@@ -403,7 +408,6 @@ const COLOR_STRS = [
 ];
 
 function clearScreen(color) {
-    console.log("fill screen", canvas.width, canvas.height);
     context.fillStyle = COLOR_STRS[color];
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.stroke();

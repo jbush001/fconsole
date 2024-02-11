@@ -7,19 +7,28 @@
     <body onload="startup()">
         <div id="top_container">
            <textarea id="source">
-
-variable foo
+variable y
+variable col
 
 define main
-    foo 1 !
-    2 setColor
-    cls
+    y 1 !
+    col 1 !
+    0 cls
     begin
-        foo @ 10 + foo ! ( Increment )
-        0 0 128 foo @ drawLine
-        foo @ 128 lt
+        y @ 10 + y ! ( Increment )
+        col @ 7 eq if  ( If the color is equal to 7, cycle )
+            1 1 col !
+        else
+            col @ 1 + dup col !  ( Increment color )
+        then
+
+        setColor 
+
+        0 0 128 y @ drawLine
+        y @ 128 lt
     until
 enddef
+            
             </textarea>
             <canvas id="screen" width="128" height="128"></canvas>
             <div id="output">
