@@ -22,7 +22,22 @@ limitations under the License.
     </head>
     <body onload="startup()">
         <div id="top_container">
-           <textarea id="source">
+            <div class="tabbar">
+                <button class="tablink" onclick="openPage('outputtab', this)">Output</button>
+                <button class="tablink" onclick="openPage('sourcetab', this)" id="defaultOpen">Source</button>
+                <button class="tablink" onclick="openPage('spritestab', this)">Sprites</button>
+            </div>
+            
+            <div id="outputtab" class="tabcontent">
+                <canvas id="screen" width="128" height="128"></canvas>
+                <div id="output">
+                </div>
+                <br/>
+                <button onclick="doRun()">Run</button>
+            </div>
+            
+            <div id="sourcetab" class="tabcontent">
+                <textarea id="source">
 variable y1
 variable y2
 variable color
@@ -50,13 +65,12 @@ define main
         y1 @ 10 + y1 ! ( Increment )
     repeat
 enddef
-            
-            </textarea>
-            <canvas id="screen" width="128" height="128"></canvas>
-            <div id="output">
+                </textarea>
             </div>
-            <br/>
-            <button onclick="doRun()">Run</button>
+            
+            <div id="spritestab" class="tabcontent">
+                Tbd
+            </div>
         </div>
     </body>
 </html>

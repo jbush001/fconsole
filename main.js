@@ -442,6 +442,9 @@ function startup() {
             document.execCommand("insertText", false, '\t');
         }
     });
+
+    openPage("outputtab", document.getElementsByClassName("tablink")[0]);
+    clearScreen(0);
 }
 
 function writeConsole(text) {
@@ -498,3 +501,13 @@ function doRun() {
     }
 }
 
+function openPage(pageName, element) {
+    for (const tab of document.getElementsByClassName("tabcontent"))
+        tab.style.display = "none";
+
+    for (const tab of document.getElementsByClassName("tablink"))
+        tab.className = tab.className.replace(" active", "");
+
+    document.getElementById(pageName).style.display = "block";
+    element.className += " active";
+}
