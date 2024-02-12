@@ -64,7 +64,7 @@ enddef
 `;
 
 
-const MEMORY_SIZE = 128;
+const MEMORY_SIZE = 256;
 
 const OP_PUSH = 1;
 const OP_DROP = 2;
@@ -151,7 +151,7 @@ class Context {
             self.opStack.push(opfunc(op1, op2));
         }
 
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 10000; i++) {
             switch (this.memory[pc++]) {
                 case OP_PUSH:
                     this.opStack.push(this.memory[pc++]);
@@ -192,14 +192,21 @@ class Context {
     
                 case OP_STORE: {
                     const addr = this.opStack.pop();
+                    if (addr < 0 || addr > MEMORY_SIZE)
+                        throw new Error(`Memory store out of range: ${addr}`);
                     const value = this.opStack.pop();
                     this.memory[addr] =  value;
                     break;
                 }
 
-                case OP_LOAD:
-                    this.opStack.push(this.memory[this.opStack.pop()]);
+                case OP_LOAD: {
+                    const addr = this.opStack.pop();
+                    if (addr < 0 || addr > MEMORY_SIZE)
+                        throw new Error(`Memory load out of range: ${addr}`);
+
+                    this.opStack.push(this.memory[addr]);
                     break;
+                }
 
                 case OP_0BRANCH:
                     if (!this.opStack.pop())
@@ -230,6 +237,9 @@ class Context {
                     break;
 
                 case OP_EMIT:
+                    if (this.nextCompile >= MEMORY_SIZE)
+                        throw new Error("memory exceeded during compilation");
+
                     this.memory[this.nextCompile++] = this.opStack.pop();
                     break;
 
@@ -322,6 +332,9 @@ class Context {
 
         const self = this;
         function emit(value) {
+            if (self.nextCompile >= MEMORY_SIZE)
+                throw new Error("memory exceeded during compilation");
+
             self.memory[self.nextCompile++] = value;
         }
 
@@ -420,6 +433,15 @@ let context = null;
 function startup() {
     canvas = document.getElementById("screen");
     context = canvas.getContext("2d");
+
+    // Intercept tab key so it inserts into the source instead of switching
+    // to a different element in the page.
+    document.getElementById("source").addEventListener("keydown", (evt) => {
+        if (evt.key === 'Tab') {
+            evt.preventDefault();
+            document.execCommand("insertText", false, '\t');
+        }
+    });
 }
 
 function writeConsole(text) {
@@ -475,3 +497,4 @@ function doRun() {
         alert(err);
     }
 }
+

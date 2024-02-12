@@ -23,24 +23,31 @@ limitations under the License.
     <body onload="startup()">
         <div id="top_container">
            <textarea id="source">
-variable y
+variable y1
+variable y2
 variable color
 
 define main
-    y 1 !
-    color 1 !
+    1 y1 !
+    1 color !
     0 cls
     begin
-        y @ 128 lt
+        y1 @ 128 lt
     while
-       color @ setColor 
-        0 0 128 y @ drawLine
-        y @ 10 + y ! ( Increment )
-        color @ 7 eq if  ( If the color is equal to 7, cycle )
-            1 color !
-        else
-            color @ 1 + color !  ( Increment color )
-        then
+        1 y2 !
+        begin
+            y2 @ 128 lt
+        while
+        color @ setColor 
+            0 y1 @ 128 y2 @ drawLine
+            y2 @ 10 + y2 ! ( Increment )
+            color @ 7 eq if  ( If the color is equal to 7, cycle )
+                1 color !
+            else
+                color @ 1 + color !  ( Increment color )
+            then
+        repeat
+        y1 @ 10 + y1 ! ( Increment )
     repeat
 enddef
             
