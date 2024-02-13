@@ -95,6 +95,7 @@ const OP_OR = 27;
 const OP_CLEAR_SCREEN = 28;
 const OP_SET_COLOR = 29;
 const OP_DRAW_LINE = 30;
+const OP_DRAW_SPRITE = 31;
 
 const BUILTINS =  {
     "drop": OP_DROP,
@@ -121,7 +122,8 @@ const BUILTINS =  {
     "or": OP_OR,
     "cls": OP_CLEAR_SCREEN,
     "setColor": OP_SET_COLOR,
-    "drawLine": OP_DRAW_LINE
+    "drawLine": OP_DRAW_LINE,
+    "drawSprite": OP_DRAW_SPRITE
 }
 
 class Word {
@@ -276,7 +278,7 @@ class Context {
                     break;
 
                 case OP_OR:
-                    unop((a, b) => a | b);
+                    binop((a, b) => a | b);
                     break;
 
                 case OP_PRINT:
@@ -299,6 +301,14 @@ class Context {
                 case OP_SET_COLOR:
                     setColor(this.opStack.pop());
                     break;
+
+                case OP_DRAW_SPRITE: {
+                    const c = this.opStack.pop();
+                    const b = this.opStack.pop();
+                    const a = this.opStack.pop();
+                    drawSprite(a, b, c);
+                    break;
+                }
 
                 default:
                     throw new Error(`Undefined opcode @${pc - 1} ${this.memory[pc - 1]}`);
@@ -429,6 +439,7 @@ class Context {
 
 let canvas = null;
 let context = null;
+let sprite = null;
 
 function startup() {
     canvas = document.getElementById("screen");
@@ -445,7 +456,27 @@ function startup() {
 
     openPage("outputtab", document.getElementsByClassName("tablink")[0]);
     clearScreen(0);
+
+    const rawData = [
+        0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000, 
+        0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 
+        0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 
+        0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 
+        0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 
+        0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 
+        0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 
+        0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000, 
+    ];
+
+    sprite = context.createImageData(8, 8);
+    for (let i = 0; i < 64; i++) {
+        sprite.data[i * 4] = rawData[i] & 0xff;
+        sprite.data[i * 4 + 1] = (rawData[i] >> 8) & 0xff;
+        sprite.data[i * 4 + 2] = (rawData[i] >> 16) & 0xff;
+        sprite.data[i * 4 + 3] = (rawData[i] >> 24) & 0xff;
+    }
 }
+
 
 function writeConsole(text) {
     document.getElementById("output").textContent += text;
@@ -479,6 +510,18 @@ function setColor(color) {
     context.strokeStyle = COLOR_STRS[color & 7];
 }
 
+function drawSprite(x, y, index) {
+    context.putImageData(sprite, x, y);
+}
+
+let timer = null;
+let drawFrameAddr = -1;
+
+function drawFrame(ctx) {
+    ctx.exec(drawFrameAddr);
+    timer = setTimeout(()=>{drawFrame(ctx)}, 16);
+}
+
 function doRun() {
     console.log("started");
     try {
@@ -493,9 +536,12 @@ function doRun() {
 
         document.getElementById("output").textContent = "";
 
-        if ("main" in ctx.dictionary)
-            ctx.exec(ctx.dictionary['main'].address);
+        if ("init" in ctx.dictionary)
+            ctx.exec(ctx.dictionary['init'].address);
 
+        drawFrameAddr = ctx.dictionary['drawFrame'].address;
+        clearTimeout(timer);
+        drawFrame(ctx);
     } catch (err) {
         alert(err);
     }
