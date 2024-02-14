@@ -92,29 +92,29 @@ const OP_AND = 26;
 const OP_OR = 27;
 const OP_INVOKE_NATIVE = 32;
 
-const BUILTINS =  {
-    "drop": OP_DROP,
-    "dup": OP_DUP,
-    "swap": OP_SWAP,
-    "!": OP_STORE,
-    "@": OP_LOAD,
-    "emit": OP_EMIT,
-    "over": OP_OVER,
-    "+": OP_ADD,
-    "-": OP_SUB,
-    "*": OP_MUL,
-    "emit": OP_EMIT,
-    "here": OP_HERE,
-    "gt": OP_GT,
-    "gte": OP_GTE,
-    "lt": OP_LT,
-    "lte": OP_LTE,
-    "eq": OP_EQ,
-    "neq": OP_NEQ,
-    "not": OP_NOT,
-    "and": OP_AND,
-    "or": OP_OR,
-}
+const INTRINSICS = [
+    ["drop", OP_DROP],
+    ["dup", OP_DUP],
+    ["swap", OP_SWAP],
+    ["!", OP_STORE],
+    ["@", OP_LOAD],
+    ["emit", OP_EMIT],
+    ["over", OP_OVER],
+    ["+", OP_ADD],
+    ["-", OP_SUB],
+    ["*", OP_MUL],
+    ["emit", OP_EMIT],
+    ["here", OP_HERE],
+    ["gt", OP_GT],
+    ["gte", OP_GTE],
+    ["lt", OP_LT],
+    ["lte", OP_LTE],
+    ["eq", OP_EQ],
+    ["neq", OP_NEQ],
+    ["not", OP_NOT],
+    ["and", OP_AND],
+    ["or", OP_OR]
+]
 
 class Word {
     constructor() {
@@ -122,6 +122,7 @@ class Word {
         this.variable = false;
         this.native = false;
         this.nativeIndex = -1;
+        this.intrinsic = -1;
     }
 }
 
@@ -133,6 +134,12 @@ class Context {
         this.nextCompile = 0;
         this.dictionary = {}
         this.nativeFunctions = [];
+
+        for (const intr of INTRINSICS) {
+            const word = new Word();
+            word.intrinsic = intr[1];
+            this.dictionary[intr[0]] = word;
+        }
 
         this.compile(LIB);
     }
@@ -354,6 +361,33 @@ class Context {
 
             const tok = result.value.currentToken;
             const lineNumber = result.value.lineNumber;
+            const tokVal = parseFloat(tok);
+            if (!Number.isNaN(tokVal)) {
+                emit(OP_PUSH);
+                emit(tokVal);
+                continue;
+            }
+    
+            if (tok in this.dictionary) {
+                const word = this.dictionary[tok];
+                if (word.native) {
+                    emit(OP_INVOKE_NATIVE);
+                    emit(word.nativeIndex);
+                } else if (word.immediate) {
+                    this.exec(word.address);
+                } else if (word.variable) {
+                    emit(OP_PUSH);
+                    emit(word.address);
+                } else if (word.intrinsic >= 0) {
+                    emit(word.intrinsic);
+                } else {
+                    emit(OP_CALL);
+                    emit(word.address);
+                }
+
+                continue;
+            }
+
             switch (tok) {
                 case "(":
                     while (true) {
@@ -404,36 +438,7 @@ class Context {
                 }
         
                 default:
-                    if (tok in BUILTINS) {
-                        emit(BUILTINS[tok]);
-                        break;
-                    }
-
-                    const tokVal = parseFloat(tok);
-                    if (!Number.isNaN(tokVal)) {
-                        emit(OP_PUSH);
-                        emit(tokVal);
-                        break;
-                    }
-            
-                    if (tok in this.dictionary) {
-                        const word = this.dictionary[tok];
-                        if (word.native) {
-                            emit(OP_INVOKE_NATIVE);
-                            emit(word.nativeIndex);
-                        } else if (word.immediate) {
-                            this.exec(word.address);
-                        } else if (word.variable) {
-                            emit(OP_PUSH);
-                            emit(word.address);
-                        } else {
-                            emit(OP_CALL);
-                            emit(word.address);
-                        }
-                    } else
-                        throw new Error(`Line ${lineNumber}: unknown token ${tok}`);
-
-                    break;
+                    throw new Error(`Line ${lineNumber}: unknown token ${tok}`);
             }
         }
     }
