@@ -90,10 +90,6 @@ const OP_NEQ = 24;
 const OP_NOT = 25;
 const OP_AND = 26;
 const OP_OR = 27;
-const OP_CLEAR_SCREEN = 28;
-const OP_SET_COLOR = 29;
-const OP_DRAW_LINE = 30;
-const OP_DRAW_SPRITE = 31;
 const OP_INVOKE_NATIVE = 32;
 
 const BUILTINS =  {
@@ -121,10 +117,9 @@ const BUILTINS =  {
 }
 
 class Word {
-    constructor(address) {
+    constructor() {
         this.immediate = false;
         this.variable = false;
-        this.address = address;
         this.native = false;
         this.nativeIndex = -1;
     }
@@ -143,7 +138,8 @@ class Context {
     }
 
     registerNative(funcName, argCount, callback) {
-        const word = new Word(this.nextCompile);
+        const word = new Word();
+        word.address = this.nextCompile;
         this.dictionary[funcName] = word;
         word.native = true;
         word.nativeIndex = this.nativeFunctions.length;
@@ -260,27 +256,27 @@ class Context {
                     break;
 
                 case OP_GT:
-                    binop((a, b) => a > b);
+                    binop((a, b) => a > b ? 1 : 0);
                     break;
 
                 case OP_GTE:
-                    binop((a, b) => a >= b);
+                    binop((a, b) => a >= b ? 1 : 0);
                     break;
 
                 case OP_LT:
-                    binop((a, b) => a < b);
+                    binop((a, b) => a < b ? 1 : 0);
                     break;
 
                 case OP_LTE:
-                    binop((a, b) => a <= b);
+                    binop((a, b) => a <= b ? 1 : 0);
                     break;
 
                 case OP_EQ:
-                    binop((a, b) => a === b);
+                    binop((a, b) => a === b ? 1 : 0);
                     break;
 
                 case OP_NEQ:
-                    binop((a, b) => a !== b);
+                    binop((a, b) => a !== b ? 1 : 0);
                     break;
 
                 case OP_NOT:
@@ -324,17 +320,16 @@ class Context {
             let currentToken = "";
             
             for (const ch of src) {
-                if (ch == '\n')
-                    lineNumber++;
-
                 const isSpace = /\s/.test(ch);
                 if (!isSpace)
                     currentToken += ch;
                 else if (currentToken != "") {
                     yield { currentToken, lineNumber };
                     currentToken = "";
-                    continue;
                 }
+
+                if (ch == '\n')
+                    lineNumber++;
             }
 
             if (currentToken != "")
@@ -373,16 +368,17 @@ class Context {
                     break;
 
                 case "define":
-                    if (currentWord)
+                    if (currentWord !== null)
                         throw new Error(`Line ${lineNumber}: define inside define`);
 
                     const funcName = tokens.next().value.currentToken;
-                    currentWord = new Word(this.nextCompile);
+                    currentWord = new Word();
+                    currentWord.address = this.nextCompile;
                     this.dictionary[funcName] = currentWord;
                     break;
 
                 case "enddef":
-                    if (!currentWord)
+                    if (currentWord === null)
                         throw new Error(`Line ${lineNumber}: unmatched enddef`);
 
                     emit(OP_RET);
@@ -400,7 +396,8 @@ class Context {
                         throw new Error(`Line ${lineNumber}: variable inside define`);
 
                     const varName = tokens.next().value.currentToken;
-                    const word = new Word(this.nextCompile++);
+                    const word = new Word();
+                    word.address = this.nextCompile++;
                     word.variable = true;
                     this.dictionary[varName] = word;
                     break;
