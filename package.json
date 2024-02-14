@@ -1,0 +1,23 @@
+{
+  "name": "fconsole",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "jest",
+    "serve": "node serve.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbush001/fconsole.git"
+  },
+  "author": "Jeff Bush <jeffbush001@gmail.com>",
+  "license": "Apache",
+  "bugs": {
+    "url": "https://github.com/jbush001/fconsole/issues"
+  },
+  "homepage": "https://github.com/jbush001/fconsole#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
