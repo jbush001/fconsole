@@ -43,24 +43,38 @@ variable x
 variable y
 variable dx
 variable dy
+variable px
 
 define init
     31 x !
     17 y !
     1 dx !
     1 dy !
+    64 px !
 enddef
 
 define drawFrame
     0 cls
-    x @ dx @ + x !
     y @ dy @ + y !
-    x @ 120 eq x @ 0 eq or if
-      0 dx @ - dx !
+
+    y @ 120 gte if
+        0 dy !
+        120 y !
+        buttons 16 and if
+            -10 dy !
+        then
+    else
+        dy @ 1 + dy !
     then
 
-    y @ 120 eq y @ 0 eq or if
-      0 dy @ - dy !
+    buttons 1 and x @ 0 gt and if
+        x @ 1 - x !
+    then
+
+    buttons 2 and if
+        x @ 120 lt if
+            x @ 1 + x !
+        then
     then
 
     x @ y @ 0 drawSprite

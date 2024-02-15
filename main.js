@@ -16,6 +16,26 @@ let canvas = null;
 let context = null;
 let sprite = null;
 
+
+const BUTTON_L = 1;
+const BUTTON_R = 2;
+const BUTTON_U = 4;
+const BUTTON_D = 8;
+const BUTTON_A = 16;
+const BUTTON_B = 32;
+
+const BUTTON_MAP = {
+    'w': BUTTON_U,
+    'a': BUTTON_L,
+    's': BUTTON_D,
+    'd': BUTTON_R,
+    ',': BUTTON_A,
+    '.': BUTTON_B
+};
+
+let buttonMask = 0;
+
+
 function startup() {
     canvas = document.getElementById("screen");
     context = canvas.getContext("2d");
@@ -28,6 +48,17 @@ function startup() {
             document.execCommand("insertText", false, '\t');
         }
     });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key in BUTTON_MAP)
+            buttonMask |= BUTTON_MAP[event.key];
+    });
+
+    document.addEventListener('keyup', function(event) {
+        if (event.key in BUTTON_MAP)
+            buttonMask &= ~BUTTON_MAP[event.key];
+    });
+
 
     openPage("outputtab", document.getElementsByClassName("tablink")[0]);
     clearScreen(0);
@@ -89,6 +120,10 @@ function drawSprite(x, y, index) {
     context.putImageData(sprite, x, y);
 }
 
+function getButtons() {
+    return [ buttonMask ];
+}
+
 let timer = null;
 let drawFrameAddr = -1;
 
@@ -108,6 +143,7 @@ function doRun() {
         ctx.registerNative("print", 1, (val) => {
             writeConsole(val + "\n");
         });
+        ctx.registerNative("buttons", 0, getButtons);
         
         console.log("compiling");
         ctx.compile(LIB);

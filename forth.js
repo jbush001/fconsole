@@ -309,7 +309,11 @@ class Context {
                         args.push(this.opStack[this.opStack.length - argCount + i]);
 
                     this.opStack.length -= argCount;
-                    callback.apply(null, args);
+                    const result = callback.apply(null, args);
+                    if (result) {
+                        for (const elem of result)
+                            this.opStack.push(elem);
+                    }
                     break;
                 }
 
