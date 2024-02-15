@@ -314,7 +314,7 @@ class Context {
             }
         }
 
-        alert("timed out");
+        throw new Error("Exceeded maximum cycles");
     }
 
     compile(src) {

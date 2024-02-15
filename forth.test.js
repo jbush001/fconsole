@@ -232,3 +232,39 @@ test("load out of range 2", () => {
     const t = () => { run_file("define main 9999999 @ enddef") };
     expect(t).toThrow("Memory load out of range: 9999999")
 });
+
+test("invoke native underflow", () => {
+    const ctx = new forth.Context();
+    ctx.registerNative("foo", 1, (val) =>  {});
+    ctx.compile("define main foo enddef");
+
+    const t = () => { 
+        ctx.exec(ctx.dictionary["main"].address);
+    };
+
+    expect(t).toThrow("stack underflow");
+});
+
+
+test("invoke native return", () => {
+    const ctx = new forth.Context();
+    ctx.registerNative("foo", 1, (val) =>  { return [val + 1, val + 2] });
+    let strval = "";
+    ctx.registerNative("print", 1, (val) =>  {
+        strval += val.toString() + "\n";
+    });
+
+    ctx.compile("define main 17 foo print print enddef");
+    ctx.exec(ctx.dictionary["main"].address);
+    expect(strval).toBe("19\n18\n");
+});
+
+test("infinite loop", () => {
+    const t = () => { run_file("define main begin 1 until enddef") };
+    expect(t).toThrow("Exceeded maximum cycles");
+});
+
+test("undefined opcode", () => {
+    const t = () => { run_file("define foo immediate 9999 emit enddef define main foo enddef") };
+    expect(t).toThrow("undefined opcode");
+});
