@@ -62,9 +62,6 @@ enddef
 
 `;
 
-
-const MEMORY_SIZE = 256;
-
 const OP_PUSH = 1;
 const OP_DROP = 2;
 const OP_DUP = 3;
@@ -130,8 +127,7 @@ class Context {
     constructor() {
         this.opStack = [];
         this.returnStack = [];
-        this.memory = new Array(MEMORY_SIZE).fill(0);
-        this.nextCompile = 0;
+        this.memory = [];
         this.dictionary = {}
         this.nativeFunctions = [];
 
@@ -146,7 +142,6 @@ class Context {
 
     registerNative(funcName, argCount, callback) {
         const word = new Word();
-        word.address = this.nextCompile;
         this.dictionary[funcName] = word;
         word.native = true;
         word.nativeIndex = this.nativeFunctions.length;
@@ -211,7 +206,7 @@ class Context {
     
                 case OP_STORE: {
                     const addr = pop();
-                    if (addr < 0 || addr > MEMORY_SIZE)
+                    if (addr < 0 || addr >= this.memory.length)
                         throw new Error(`Memory store out of range: ${addr}`);
                     const value = pop();
                     this.memory[addr] =  value;
@@ -220,7 +215,7 @@ class Context {
 
                 case OP_LOAD: {
                     const addr = pop();
-                    if (addr < 0 || addr > MEMORY_SIZE)
+                    if (addr < 0 || addr >= this.memory.length)
                         throw new Error(`Memory load out of range: ${addr}`);
 
                     this.opStack.push(this.memory[addr]);
@@ -252,14 +247,11 @@ class Context {
                     break;
     
                 case OP_HERE:
-                    this.opStack.push(this.nextCompile);
+                    this.opStack.push(this.memory.length);
                     break;
 
                 case OP_EMIT:
-                    if (this.nextCompile >= MEMORY_SIZE)
-                        throw new Error("memory exceeded during compilation");
-
-                    this.memory[this.nextCompile++] = pop();
+                    this.memory.push(pop());
                     break;
 
                 case OP_GT:
@@ -351,10 +343,7 @@ class Context {
 
         const self = this;
         function emit(value) {
-            if (self.nextCompile >= MEMORY_SIZE)
-                throw new Error("memory exceeded during compilation");
-
-            self.memory[self.nextCompile++] = value;
+            self.memory.push(value);
         }
 
         let currentWord = null;
@@ -411,7 +400,7 @@ class Context {
 
                     const funcName = tokens.next().value.currentToken;
                     currentWord = new Word();
-                    currentWord.address = this.nextCompile;
+                    currentWord.address = this.memory.length;
                     this.dictionary[funcName] = currentWord;
                     break;
 
@@ -435,7 +424,8 @@ class Context {
 
                     const varName = tokens.next().value.currentToken;
                     const word = new Word();
-                    word.address = this.nextCompile++;
+                    word.address = this.memory.length;
+                    this.memory.push(0)
                     word.variable = true;
                     this.dictionary[varName] = word;
                     break;
