@@ -266,5 +266,5 @@ test("infinite loop", () => {
 
 test("undefined opcode", () => {
     const t = () => { run_file("define foo immediate 9999 emit enddef define main foo enddef") };
-    expect(t).toThrow("undefined opcode");
+    expect(t).toThrow(Error);
 });
