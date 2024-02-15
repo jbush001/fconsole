@@ -45,15 +45,15 @@ variable dx
 variable dy
 variable px
 
-define init
+: init
     31 x !
     17 y !
     1 dx !
     1 dy !
     64 px !
-enddef
+;
 
-define drawFrame
+: drawFrame
     0 cls
     y @ dy @ + y !
 
@@ -78,7 +78,7 @@ define drawFrame
     then
 
     x @ y @ 0 drawSprite
-enddef
+;
 
                 </textarea>
             </div>

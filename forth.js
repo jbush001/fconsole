@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// This was heavily inspired by the excellent jonesforth tutorial by 
+// Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
+
 const LIB = `
-define if immediate
+: if immediate
     8 emit        ( 0branch )
     here          ( save on stack )
     0 emit        ( dummy offset )
-enddef
+;
 
-define then immediate
+: then immediate
     here swap !          ( patch branch )
-enddef
+;
 
-define else immediate
+: else immediate
     7 emit        ( branch at end of previous block )
     here          ( Save new branch address )
     0 emit        ( dummy offset )
@@ -31,34 +34,34 @@ define else immediate
     ( Now patch previous branch )
     swap
     here swap !
-enddef
+;
 
-define begin immediate
+: begin immediate
     here
-enddef
+;
 
-define until immediate
+: until immediate
     8 emit          ( create a conditional branch to break out if 0 )
     here 3 + emit   ( branch address past unconditional branch )
     7 emit          ( unconditional branch to head )
     emit            ( pop head address off stack and emit as branch addr )
-enddef
+;
 
-define while immediate
+: while immediate
     8 emit          ( create a conditional branch to break out if 0 )
     here            ( Save new branch address )
     0 emit          ( dummy offset )
-enddef
+;
 
 ( loop_top_addr cond_branch_to_path -- )
-define repeat immediate
+: repeat immediate
     7 emit        ( branch at end of previous block )
     swap
     emit          ( push address of top of loop)
     
     ( now patch the previous break out )
     here swap !
-enddef
+;
 
 `;
 
@@ -394,9 +397,9 @@ class Context {
                     
                     break;
 
-                case "define":
+                case ":":
                     if (currentWord !== null)
-                        throw new Error(`Line ${lineNumber}: define inside define`);
+                        throw new Error(`Line ${lineNumber}: colon inside colon`);
 
                     const funcName = tokens.next().value.currentToken;
                     currentWord = new Word();
@@ -404,9 +407,9 @@ class Context {
                     this.dictionary[funcName] = currentWord;
                     break;
 
-                case "enddef":
+                case ";":
                     if (currentWord === null)
-                        throw new Error(`Line ${lineNumber}: unmatched enddef`);
+                        throw new Error(`Line ${lineNumber}: unmatched ;`);
 
                     emit(OP_RET);
                     currentWord = null;
@@ -420,7 +423,7 @@ class Context {
 
                 case "variable": {
                     if (currentWord)
-                        throw new Error(`Line ${lineNumber}: variable inside define`);
+                        throw new Error(`Line ${lineNumber}: variable inside word def`);
 
                     const varName = tokens.next().value.currentToken;
                     const word = new Word();

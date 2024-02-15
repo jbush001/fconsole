@@ -14,8 +14,3 @@ To run in browser:
     npm run serve
 
 Open a web browser to <http://localhost:3000/index.html>
-
-The FORTH interpreter was heavily inspired by the excellent
-jonesforth tutorial by Richard W.M. Jones:
-<http://git.annexia.org/?p=jonesforth.git;a=tree>
-
