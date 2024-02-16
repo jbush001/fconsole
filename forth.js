@@ -352,10 +352,16 @@ class Context {
         function* tokenize() {
             let lineNumber = 1;
             let currentToken = "";
+            let singleLineComment = false;
             
             for (const ch of src) {
                 const isSpace = /\s/.test(ch);
-                if (!isSpace)
+                if (singleLineComment) {
+                    if (ch == "\n")
+                        singleLineComment = false;
+                } else if (!singleLineComment && ch == "\\")
+                    singleLineComment = true;
+                else if (!isSpace)
                     currentToken += ch;
                 else if (currentToken != "") {
                     yield { currentToken, lineNumber };

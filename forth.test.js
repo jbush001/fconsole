@@ -287,3 +287,30 @@ test("pick", () => {
     expect(run_code(': main 27 28 29 30 31 32 0 pick print 1 pick print 2 pick print 5 pick print ;')).toBe(
         "32\n31\n30\n27");
 });
+
+test("single line comment", () => {
+    expect(run_code(`
+        \\ ignore this it is a comment
+        : main \\ define function
+        42 \\ push a value
+        print
+        ;   
+    `)).toBe("42");
+});
+
+test("paren comment", () =>  {
+    expect(run_code(`
+        ( 
+            this is an example of a 
+            paren comment 
+        )
+        : main ( a single line version )
+        42 \\ ( this should be ignored )
+        ( here's an interesting one \\ )
+        )
+        print
+        ;   
+    `)).toBe("42");
+})
+
+
