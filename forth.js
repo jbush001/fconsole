@@ -87,6 +87,7 @@ const OP_CALL = 9;
 const OP_RET = 10;
 const OP_EMIT = 11;
 const OP_HERE = 12;
+const OP_MOD = 13;
 const OP_OVER = 14;
 const OP_ADD = 15;
 const OP_SUB = 16;
@@ -117,12 +118,13 @@ const INTRINSICS = [
     ["sp", OP_SP],
     ["emit", OP_EMIT],
     ["here", OP_HERE],
-    ["gt", OP_GT],
-    ["gte", OP_GTE],
-    ["lt", OP_LT],
-    ["lte", OP_LTE],
-    ["eq", OP_EQ],
-    ["neq", OP_NEQ],
+    ["mod", OP_MOD],
+    [">", OP_GT],
+    [">=", OP_GTE],
+    ["<", OP_LT],
+    ["<=", OP_LTE],
+    ["=", OP_EQ],
+    ["<>", OP_NEQ],
     ["not", OP_NOT],
     ["and", OP_AND],
     ["or", OP_OR]
@@ -276,6 +278,10 @@ class Context {
     
                 case OP_HERE:
                     this.push(this.nextEmit);
+                    break;
+                
+                case OP_MOD:
+                    binop((a, b) => a % b);
                     break;
 
                 case OP_EMIT:

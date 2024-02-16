@@ -57,7 +57,7 @@ variable px
     0 cls
     y @ dy @ + y !
 
-    y @ 120 gte if
+    y @ 120 >= if
         0 dy !
         120 y !
         buttons 16 and if
@@ -67,12 +67,12 @@ variable px
         dy @ 1 + dy !
     then
 
-    buttons 1 and x @ 0 gt and if
+    buttons 1 and x @ 0 > and if
         x @ 1 - x !
     then
 
     buttons 2 and if
-        x @ 120 lt if
+        x @ 120 < if
             x @ 1 + x !
         then
     then

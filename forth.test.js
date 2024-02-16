@@ -96,7 +96,7 @@ test("while loop", () => {
     : main
     10
     begin
-        dup 0 gt
+        dup 0 >
     while
         dup print
         1 -
@@ -147,20 +147,20 @@ test("2dup", () => {
 
 test("comparisons", () => {
     expect(run_code(`: main
-      12 24 gt print
-      13 9 gt print
-      17 19 lt print
-      19 17 lt print
-      11 11 gte print
-      11 12 gte print
-      12 11 gte print
-      22 23 lte print
-      23 22 lte print
-      22 22 lte print
-      44 44 eq print
-      44 43 eq print
-      55 55 neq print
-      54 53 neq print
+      12 24 > print
+      13 9 > print
+      17 19 < print
+      19 17 < print
+      11 11 >= print
+      11 12 >= print
+      12 11 >= print
+      22 23 <= print
+      23 22 <= print
+      22 22 <= print
+      44 44 = print
+      44 43 = print
+      55 55 <> print
+      54 53 <> print
       ;
     `)).toBe("0\n1\n1\n0\n1\n0\n1\n1\n0\n1\n1\n0\n0\n1");
 });
@@ -314,3 +314,15 @@ test("paren comment", () =>  {
 })
 
 
+test("gcd", () => {
+    expect(run_code(`
+        : gcd ( a b -- n )
+            begin dup while swap over mod repeat drop
+        ;
+
+        : main
+            15 10 gcd print
+            128 96 gcd print
+        ;
+    `)).toBe("5\n32");
+});
