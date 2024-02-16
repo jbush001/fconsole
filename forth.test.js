@@ -14,7 +14,7 @@
 
 const forth = require("./forth");
 
-function run_file(source) {
+function run_code(source) {
     const ctx = new forth.Context();
     let strval = "";
     ctx.registerNative("print", 1, (val) =>  {
@@ -29,7 +29,7 @@ function run_file(source) {
 test("maths", () => {
     const src = ": main 1 2 + print 5 7 * print 10 4 - print ;";
 
-    expect(run_file(src)).toBe("3\n35\n6");
+    expect(run_code(src)).toBe("3\n35\n6");
 });
 
 test("variables", () => {
@@ -49,7 +49,7 @@ test("variables", () => {
     a @ print
     ;
 `
-    expect(run_file(src)).toBe("12\n13\n14\n15")
+    expect(run_code(src)).toBe("12\n13\n14\n15")
 
 
 });
@@ -87,7 +87,7 @@ then
 ;
 `;
 
-    expect(run_file(src)).toBe("17\n20\n21\n23");
+    expect(run_code(src)).toBe("17\n20\n21\n23");
 
 });
 
@@ -103,7 +103,7 @@ test("while loop", () => {
     repeat
     ;`
 
-    expect(run_file(src)).toBe("10\n9\n8\n7\n6\n5\n4\n3\n2\n1");
+    expect(run_code(src)).toBe("10\n9\n8\n7\n6\n5\n4\n3\n2\n1");
 });
 
 test("until loop", () => {
@@ -117,32 +117,36 @@ test("until loop", () => {
     until
     ;`
 
-    expect(run_file(src)).toBe("10\n9\n8\n7\n6\n5\n4\n3\n2\n1");
+    expect(run_code(src)).toBe("10\n9\n8\n7\n6\n5\n4\n3\n2\n1");
 });
 
 test("underflow", () => {
-    const t = () => { run_file(": main + ;") };
+    const t = () => { run_code(": main + ;") };
     expect(t).toThrow("stack underflow")
 })
 
 test("drop", () => {
-    expect(run_file(": main 1 2 3 drop print print ;")).toBe("2\n1");
+    expect(run_code(": main 1 2 3 drop print print ;")).toBe("2\n1");
 })
 
 test("dup", () => {
-    expect(run_file(": main 1 2 3 dup print print print print ;")).toBe("3\n3\n2\n1");
+    expect(run_code(": main 1 2 3 dup print print print print ;")).toBe("3\n3\n2\n1");
 });
 
 test("swap", () => {
-    expect(run_file(": main 1 2 3 swap print print print ;")).toBe("2\n3\n1");
+    expect(run_code(": main 1 2 3 swap print print print ;")).toBe("2\n3\n1");
 });
 
 test("over", () => {
-    expect(run_file(": main 1 2 3 over print print print print ;")).toBe("2\n3\n2\n1");
+    expect(run_code(": main 1 2 3 over print print print print ;")).toBe("2\n3\n2\n1");
+});
+
+test("2dup", () => {
+    expect(run_code(": main 27 31 over over print print print print ;")).toBe("31\n27\n31\n27");
 });
 
 test("comparisons", () => {
-    expect(run_file(`: main
+    expect(run_code(`: main
       12 24 gt print
       13 9 gt print
       17 19 lt print
@@ -162,7 +166,7 @@ test("comparisons", () => {
 });
 
 test("logical", () => {
-    expect(run_file(`
+    expect(run_code(`
         : main
         4 1 or print 
         10 3 and print 
@@ -172,7 +176,7 @@ test("logical", () => {
 });
 
 test("def", () => {
-    expect(run_file(`
+    expect(run_code(`
         : foo
            3 +
         ;
@@ -189,47 +193,47 @@ test("def", () => {
 
 
 test("unmatched comment", () => {
-    const t = () => { run_file("\n\n( this is an unmatched... \n\n") };
+    const t = () => { run_code("\n\n( this is an unmatched... \n\n") };
     expect(t).toThrow("Line 3: unmatched comment")
 });
 
 test("nested :", () => {
-    const t = () => { run_file("\n\n: foo\n: bar\n") };
+    const t = () => { run_code("\n\n: foo\n: bar\n") };
     expect(t).toThrow("Line 4: colon inside colon")
 });
 
 test("unmatched ;", () => {
-    const t = () => { run_file("\n\n;\n") };
+    const t = () => { run_code("\n\n;\n") };
     expect(t).toThrow("Line 3: unmatched ;")
 });
 
 test("variable inside :", () => {
-    const t = () => { run_file("\n: foo\nvariable bar\n") };
+    const t = () => { run_code("\n: foo\nvariable bar\n") };
     expect(t).toThrow("Line 3: variable inside word def")
 });
 
 test("unknown token", () => {
-    const t = () => { run_file("\n: foo\nbar\n") };
+    const t = () => { run_code("\n: foo\nbar\n") };
     expect(t).toThrow("Line 3: unknown token bar")
 });
 
 test("store out of range 1", () => {
-    const t = () => { run_file(": main 2 -1 ! ;") };
+    const t = () => { run_code(": main 2 -1 ! ;") };
     expect(t).toThrow("Memory store out of range: -1")
 });
 
 test("store out of range 2", () => {
-    const t = () => { run_file(": main 2 1000000 ! ;") };
+    const t = () => { run_code(": main 2 1000000 ! ;") };
     expect(t).toThrow("Memory store out of range: 1000000")
 });
 
 test("load out of range 1", () => {
-    const t = () => { run_file(": main -1 @ ;") };
+    const t = () => { run_code(": main -1 @ ;") };
     expect(t).toThrow("Memory load out of range: -1")
 });
 
 test("load out of range 2", () => {
-    const t = () => { run_file(": main 9999999 @ ;") };
+    const t = () => { run_code(": main 9999999 @ ;") };
     expect(t).toThrow("Memory load out of range: 9999999")
 });
 
@@ -260,11 +264,26 @@ test("invoke native return", () => {
 });
 
 test("infinite loop", () => {
-    const t = () => { run_file(": main begin 1 until ;") };
+    const t = () => { run_code(": main begin 1 until ;") };
     expect(t).toThrow("Exceeded maximum cycles");
 });
 
-test("un:d opcode", () => {
-    const t = () => { run_file(": foo immediate 9999 emit ; : main foo ;") };
+test("undefined opcode", () => {
+    const t = () => { run_code(": foo immediate 9999 emit ; : main foo ;") };
     expect(t).toThrow(Error);
+});
+
+test("pc out of range", () => {
+    const t = () => { run_code(": foo immediate begin 9999 emit 1 until ; : main foo ;") };
+    expect(t).toThrow("out of memory");
+});
+
+test("jump out of range", () => {
+    const t = () => { run_code(": foo immediate begin 7 emit 9999 emit until ; : main foo ;") };
+    expect(t).toThrow("PC out of range");
+});
+
+test("pick", () => {
+    expect(run_code(': main 27 28 29 30 31 32 0 pick print 1 pick print 2 pick print 5 pick print ;')).toBe(
+        "32\n31\n30\n27");
 });

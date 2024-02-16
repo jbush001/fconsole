@@ -63,7 +63,17 @@ const LIB = `
     here swap !
 ;
 
+: 2dup 
+    over over
+;
+
+: pick ( offset -- value )
+    1 + sp + @
+;
+
 `;
+
+const MEMORY_SIZE = 1024;
 
 const OP_PUSH = 1;
 const OP_DROP = 2;
@@ -81,6 +91,7 @@ const OP_OVER = 14;
 const OP_ADD = 15;
 const OP_SUB = 16;
 const OP_MUL = 17;
+const OP_SP = 18;
 const OP_GT = 19;
 const OP_GTE = 20;
 const OP_LT = 21;
@@ -103,6 +114,7 @@ const INTRINSICS = [
     ["+", OP_ADD],
     ["-", OP_SUB],
     ["*", OP_MUL],
+    ["sp", OP_SP],
     ["emit", OP_EMIT],
     ["here", OP_HERE],
     ["gt", OP_GT],
@@ -128,11 +140,12 @@ class Word {
 
 class Context {
     constructor() {
-        this.opStack = [];
         this.returnStack = [];
-        this.memory = [];
+        this.memory = Array(MEMORY_SIZE).fill(0);
         this.dictionary = {}
         this.nativeFunctions = [];
+        this.stackPointer = MEMORY_SIZE - 1;
+        this.nextEmit = 0;
 
         for (const intr of INTRINSICS) {
             const word = new Word();
@@ -151,48 +164,55 @@ class Context {
         this.nativeFunctions.push([callback, argCount]);
     }
 
+    pop() {
+        if (this.stackPointer == MEMORY_SIZE)
+            throw new Error("stack underflow");
+
+        return this.memory[this.stackPointer++];
+    }
+
+    push(val) {
+        this.memory[--this.stackPointer] = val;
+    }
+
     exec(entryAddress) {
         let pc = entryAddress;
 
         const self = this;
-        function pop() {
-            if (self.opStack.length == 0)
-                throw new Error("stack underflow");
-
-            return self.opStack.pop();
-        }
 
         function binop(opfunc) {
-            const op2 = pop();
-            const op1 = pop();
-            self.opStack.push(opfunc(op1, op2));
+            const op2 = self.pop();
+            const op1 = self.pop();
+            self.push(opfunc(op1, op2));
         }
 
         for (let i = 0; i < 10000; i++) {
+            if (pc > MEMORY_SIZE || pc < 0)
+                throw new Error("PC out of range");
+
             switch (this.memory[pc++]) {
                 case OP_PUSH:
-                    this.opStack.push(this.memory[pc++]);
+                    this.push(this.memory[pc++]);
                     break;
 
                 case OP_DROP:
-                    pop();
+                    this.pop();
                     break;
 
                 case OP_DUP:
-                    this.opStack.push(this.opStack[this.opStack.length - 1]);
+                    this.push(this.memory[this.stackPointer]);
                     break;
 
                 case OP_SWAP: {
-                    const top = this.opStack.length - 1;
-                    const temp1 = pop();
-                    const temp2 = pop();
-                    this.opStack.push(temp1);
-                    this.opStack.push(temp2);
+                    const temp1 = this.pop();
+                    const temp2 = this.pop();
+                    this.push(temp1);
+                    this.push(temp2);
                     break;
                 }
 
                 case OP_OVER:
-                    this.opStack.push(this.opStack[this.opStack.length - 2]);
+                    this.push(this.memory[this.stackPointer + 1]);
                     break;
 
                 case OP_ADD:
@@ -206,27 +226,32 @@ class Context {
                 case OP_MUL:
                     binop((a, b) => a * b);
                     break;
+
+                case OP_SP:
+                    this.push(this.stackPointer);
+                    break;
     
                 case OP_STORE: {
-                    const addr = pop();
+                    const addr = this.pop();
                     if (addr < 0 || addr >= this.memory.length)
                         throw new Error(`Memory store out of range: ${addr}`);
-                    const value = pop();
+
+                    const value = this.pop();
                     this.memory[addr] =  value;
                     break;
                 }
 
                 case OP_LOAD: {
-                    const addr = pop();
+                    const addr = this.pop();
                     if (addr < 0 || addr >= this.memory.length)
                         throw new Error(`Memory load out of range: ${addr}`);
 
-                    this.opStack.push(this.memory[addr]);
+                    this.push(this.memory[addr]);
                     break;
                 }
 
                 case OP_0BRANCH:
-                    if (!pop())
+                    if (!this.pop())
                         pc = this.memory[pc];
                     else
                         pc++;
@@ -250,11 +275,14 @@ class Context {
                     break;
     
                 case OP_HERE:
-                    this.opStack.push(this.memory.length);
+                    this.push(this.nextEmit);
                     break;
 
                 case OP_EMIT:
-                    this.memory.push(pop());
+                    if (this.nextEmit == MEMORY_SIZE)
+                        throw new Error("out of memory");
+
+                    this.memory[this.nextEmit++] = this.pop();
                     break;
 
                 case OP_GT:
@@ -282,7 +310,7 @@ class Context {
                     break;
 
                 case OP_NOT:
-                    this.opStack.push(~pop());
+                    this.push(~this.pop());
                     break;
 
                 case OP_AND:
@@ -296,18 +324,18 @@ class Context {
                 case OP_INVOKE_NATIVE: {
                     const index = this.memory[pc++];
                     const [ callback, argCount ] = this.nativeFunctions[index];
-                    if (this.opStack.length < argCount)
+                    if (MEMORY_SIZE - this.stackPointer - 1 < argCount)
                         throw new Error("stack underflow");
 
                     const args = [];
                     for (let i = 0; i < argCount; i++)
-                        args.push(this.opStack[this.opStack.length - argCount + i]);
+                        args.push(this.memory[this.stackPointer + argCount - i - 1]);
 
-                    this.opStack.length -= argCount;
+                    this.stackPointer += argCount;
                     const result = callback.apply(null, args);
                     if (result) {
                         for (const elem of result)
-                            this.opStack.push(elem);
+                            this.push(elem);
                     }
                     break;
                 }
@@ -346,7 +374,7 @@ class Context {
 
         const self = this;
         function emit(value) {
-            self.memory.push(value);
+            self.memory[self.nextEmit++] = value;
         }
 
         let currentWord = null;
@@ -403,7 +431,7 @@ class Context {
 
                     const funcName = tokens.next().value.currentToken;
                     currentWord = new Word();
-                    currentWord.address = this.memory.length;
+                    currentWord.address = this.nextEmit;
                     this.dictionary[funcName] = currentWord;
                     break;
 
