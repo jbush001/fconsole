@@ -84,7 +84,7 @@ const OP_LOAD = 6;
 const OP_BRANCH = 7;
 const OP_0BRANCH = 8;
 const OP_CALL = 9;
-const OP_RET = 10;
+const OP_EXIT = 10;
 const OP_EMIT = 11;
 const OP_HERE = 12;
 const OP_MOD = 13;
@@ -116,6 +116,7 @@ const INTRINSICS = [
     ["-", OP_SUB],
     ["*", OP_MUL],
     ["sp", OP_SP],
+    ["exit", OP_EXIT],
     ["emit", OP_EMIT],
     ["here", OP_HERE],
     ["mod", OP_MOD],
@@ -269,7 +270,7 @@ class Context {
                     pc = this.memory[pc];
                     break;
 
-                case OP_RET:
+                case OP_EXIT:
                     if (this.returnStack.length == 0)
                         return;
 
@@ -451,7 +452,7 @@ class Context {
                     if (currentWord === null)
                         throw new Error(`Line ${lineNumber}: unmatched ;`);
 
-                    emit(OP_RET);
+                    emit(OP_EXIT);
                     currentWord = null;
                     break;
 

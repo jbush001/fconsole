@@ -326,3 +326,21 @@ test("gcd", () => {
         ;
     `)).toBe("5\n32");
 });
+
+
+test("exit", () => {
+    expect(run_code(`
+        : foo
+            27 print
+            39 print
+            exit
+            49 print
+        ;
+
+        : main
+            foo
+        ;
+    `)).toBe("27\n39");
+
+
+});
