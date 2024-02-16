@@ -455,8 +455,7 @@ class Context {
 
                     const varName = tokens.next().value.currentToken;
                     const word = new Word();
-                    word.address = this.memory.length;
-                    this.memory.push(0)
+                    word.address = this.nextEmit++;
                     word.variable = true;
                     this.dictionary[varName] = word;
                     break;
