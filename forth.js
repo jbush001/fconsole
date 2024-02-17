@@ -483,6 +483,6 @@ class Context {
 
 if (typeof module !== 'undefined') {
     module.exports = {
-      Context
+        Context
     };
 }

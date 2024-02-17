@@ -27,9 +27,9 @@ function run_code(source) {
 }
 
 test("maths", () => {
-    const src = ": main 1 2 + print 5 7 * print 10 4 - print ;";
+    const src = ": main 1 2 + print 5 7 * print 10 4 - print  200 7 9 12 * + - 13 +  print ;";
 
-    expect(run_code(src)).toBe("3\n35\n6");
+    expect(run_code(src)).toBe("3\n35\n6\n98");
 });
 
 test("variables", () => {
@@ -50,8 +50,6 @@ test("variables", () => {
     ;
 `
     expect(run_code(src)).toBe("12\n13\n14\n15")
-
-
 });
 
 test("conditionals", () => {
@@ -88,7 +86,6 @@ then
 `;
 
     expect(run_code(src)).toBe("17\n20\n21\n23");
-
 });
 
 test("while loop", () => {
@@ -118,6 +115,28 @@ test("until loop", () => {
     ;`
 
     expect(run_code(src)).toBe("10\n9\n8\n7\n6\n5\n4\n3\n2\n1");
+});
+
+test("nested loop", () => {
+    src = `
+    variable a
+    variable b
+    : main
+    0 a !
+    begin
+        3 b !
+        begin
+            b @ 7 <
+        while
+            a @ b @ + print
+            b @ 2 + b !
+        repeat
+
+        a @ 10 + dup a ! 30 < 
+    until
+    ;`
+
+    expect(run_code(src)).toBe("3\n5\n13\n15\n23\n25");
 });
 
 test("underflow", () => {
@@ -190,7 +209,6 @@ test("def", () => {
         ;
     `)).toBe("17");
 });
-
 
 test("unmatched comment", () => {
     const t = () => { run_code("\n\n( this is an unmatched... \n\n") };
@@ -311,8 +329,7 @@ test("paren comment", () =>  {
         print
         ;   
     `)).toBe("42");
-})
-
+});
 
 test("gcd", () => {
     expect(run_code(`
@@ -327,7 +344,6 @@ test("gcd", () => {
     `)).toBe("5\n32");
 });
 
-
 test("exit", () => {
     expect(run_code(`
         : foo
@@ -341,6 +357,17 @@ test("exit", () => {
             foo
         ;
     `)).toBe("27\n39");
+});
 
+test("immediate outside word", () => {
+    expect(run_code(`
+        immediate
+        : foo
+            27 print
+        ;
 
+        : main
+            foo
+        ;
+    `)).toBe("27");
 });
