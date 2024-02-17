@@ -14,7 +14,12 @@
 
 let canvas = null;
 let context = null;
-let sprite = null;
+let spriteSheet = null;
+
+const SPRITE_SIZE = 8;
+const NUM_SPRITES = 256;
+const SPRITE_SHEET_W = 16;
+const SPRITE_SHEET_H = 16;
 
 
 const BUTTON_L = 1;
@@ -34,7 +39,6 @@ const BUTTON_MAP = {
 };
 
 let buttonMask = 0;
-
 
 function startup() {
     canvas = document.getElementById("screen");
@@ -63,6 +67,18 @@ function startup() {
     openPage("outputtab", document.getElementsByClassName("tablink")[0]);
     clearScreen(0);
 
+    const spriteSheetWidth = SPRITE_SHEET_W * SPRITE_SIZE;
+    const spriteSheetHeight = SPRITE_SHEET_H * SPRITE_SIZE;
+    const spriteData = context.createImageData(spriteSheetWidth, spriteSheetHeight);
+
+    function setPixel(x, y, value) {
+        const doffs = x + y * 128;
+        spriteData.data[doffs * 4] = value & 0xff;
+        spriteData.data[doffs * 4 + 1] = (value >> 8) & 0xff;
+        spriteData.data[doffs * 4 + 2] = (value >> 16) & 0xff;
+        spriteData.data[doffs * 4 + 3] = (value >> 24) & 0xff;
+    }
+
     const rawData = [
         0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000, 
         0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 
@@ -74,15 +90,26 @@ function startup() {
         0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000, 
     ];
 
-    sprite = context.createImageData(8, 8);
-    for (let i = 0; i < 64; i++) {
-        sprite.data[i * 4] = rawData[i] & 0xff;
-        sprite.data[i * 4 + 1] = (rawData[i] >> 8) & 0xff;
-        sprite.data[i * 4 + 2] = (rawData[i] >> 16) & 0xff;
-        sprite.data[i * 4 + 3] = (rawData[i] >> 24) & 0xff;
+    for (let y = 0; y < SPRITE_SIZE; y++) {
+        for (let x = 0; x < SPRITE_SIZE; x++) {
+            const soffs = x + y * SPRITE_SIZE;
+            setPixel(x, y, rawData[soffs]);
+        }
     }
-}
 
+    setPixel(8, 0, 0xff00ff00);
+    setPixel(9, 1, 0xff00ff00);
+    setPixel(10, 2, 0xff00ff00);
+    setPixel(11, 3, 0xff00ff00);
+    setPixel(12, 4, 0xff00ff00);
+    setPixel(13, 5, 0xff00ff00);
+    setPixel(14, 6, 0xff00ff00);
+    setPixel(15, 7, 0xff00ff00);
+
+    createImageBitmap(spriteData).then((bm) => {
+        spriteSheet = bm;
+    });
+}
 
 function writeConsole(text) {
     document.getElementById("output").textContent += text;
@@ -116,8 +143,13 @@ function setColor(color) {
     context.strokeStyle = COLOR_STRS[color & 7];
 }
 
-function drawSprite(x, y, index) {
-    context.putImageData(sprite, x, y);
+function drawSprite(x, y, w, h, index) {
+    const sheetRow = Math.floor(index / SPRITE_SHEET_W);
+    const sheetCol = index % SPRITE_SHEET_W;
+    const pixWidth = w * SPRITE_SIZE;
+    const pixHeight = h * SPRITE_SIZE;
+    context.drawImage(spriteSheet, sheetCol * SPRITE_SIZE, sheetRow * SPRITE_SIZE, 
+        pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
 function getButtons() {
@@ -139,7 +171,7 @@ function doRun() {
         ctx.registerNative("cls", 1, clearScreen);
         ctx.registerNative("setColor", 1, setColor);
         ctx.registerNative("drawLine", 4, drawLine);
-        ctx.registerNative("drawSprite", 3, drawSprite);
+        ctx.registerNative("drawSprite", 5, drawSprite);
         ctx.registerNative("print", 1, (val) => {
             writeConsole(val + "\n");
         });
