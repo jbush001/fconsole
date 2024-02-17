@@ -39,47 +39,64 @@ limitations under the License.
             
             <div id="sourcetab" class="tabcontent">
                 <textarea id="source" spellcheck="false">
-variable x
-variable y
-variable dx
-variable dy
-variable px
+variable ballX
+variable ballY
+variable ballDx
+variable ballDy
+variable paddleX
 
 : init
-    31 x !
-    17 y !
-    1 dx !
-    1 dy !
-    64 px !
+    31 ballX !
+    17 ballY !
+    1 ballDx !
+    1 ballDy !
+    48 paddleX !
 ;
 
 : drawFrame
     0 cls
-    y @ dy @ + y !
 
-    y @ 120 >= if
-        0 dy !
-        120 y !
-        buttons 16 and if
-            -10 dy !
-        then
-    else
-        dy @ 1 + dy !
+    \ Update ball position
+    ballX @ ballDx @ + ballX !
+    ballY @ ballDy @ + ballY !
+    ballX @ 0 = ballX @ 120 = or if
+        0 ballDx @ - ballDx !
     then
 
-    buttons 1 and x @ 0 > and if
-        x @ 1 - x !
+    ballY @ 0 = if
+        0 ballDy @ - ballDy !
+    then
+
+    \ Hit the bottom
+    ballY @ 116 = if
+        \ Are we on the paddle?
+        ballX @ 8 + paddleX @ > 
+        ballX @ paddleX @ 32 + < and if
+            \ Yes, on the paddle, bounce
+            0 ballDy @ - ballDy !
+        then
+    then
+
+    ballY @ 128 = if
+        \ Out of bounds. We do this here instead of in the else above because
+        \ we want to animate the ball going fully out of bounds
+        init
+    then
+
+    ballX @ ballY @ 1 1 0 drawSprite
+    \ Move paddle
+    buttons 1 and paddleX @ 0 > and if
+        paddleX @ 1 - paddleX !
     then
 
     buttons 2 and if
-        x @ 120 < if
-            x @ 1 + x !
+        paddleX @ 96 < if
+            paddleX @ 1 + paddleX !
         then
     then
 
-    x @ y @ 1 1 0 drawSprite
-
-    64 64 1 1 1 drawSprite
+    2 setColor
+    paddleX @ 124 32 4 fillRect 
 ;
 
                 </textarea>

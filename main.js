@@ -139,8 +139,15 @@ function drawLine(left, top, right, bottom) {
     context.stroke();
 }
 
+function fillRect(left, top, width, height) {
+    context.beginPath();
+    context.fillRect(left, top, width, height);
+    context.stroke();
+}
+
 function setColor(color) {
     context.strokeStyle = COLOR_STRS[color & 7];
+    context.fillStyle = COLOR_STRS[color & 7];
 }
 
 function drawSprite(x, y, w, h, index) {
@@ -176,6 +183,7 @@ function doRun() {
             writeConsole(val + "\n");
         });
         ctx.registerNative("buttons", 0, getButtons);
+        ctx.registerNative("fillRect", 4, fillRect);
         
         console.log("compiling");
         ctx.compile(LIB);
