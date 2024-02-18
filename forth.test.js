@@ -164,6 +164,10 @@ test("2dup", () => {
     expect(run_code(": main 27 31 over over print print print print ;")).toBe("31\n27\n31\n27");
 });
 
+test("0=", () => {
+    expect(run_code(": main 1 0= print 100 0= print 0 0= print ;")).toBe("0\n0\n1")
+});
+
 test("comparisons", () => {
     expect(run_code(`: main
       12 24 > print

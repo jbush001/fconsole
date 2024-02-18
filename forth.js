@@ -71,6 +71,11 @@ const LIB = `
     1 + sp + @
 ;
 
+: > swap < ;
+: >= < 0= ;
+: <= swap < 0= ;
+: <> = 0= ;
+
 `;
 
 const MEMORY_SIZE = 1024;
@@ -93,16 +98,13 @@ const OP_ADD = 15;
 const OP_SUB = 16;
 const OP_MUL = 17;
 const OP_SP = 18;
-const OP_GT = 19;
-const OP_GTE = 20;
-const OP_LT = 21;
-const OP_LTE = 22;
-const OP_EQ = 23;
-const OP_NEQ = 24;
-const OP_NOT = 25;
-const OP_AND = 26;
-const OP_OR = 27;
-const OP_INVOKE_NATIVE = 32;
+const OP_LT = 19;
+const OP_EQ = 20;
+const OP_NOT = 21;
+const OP_AND = 22;
+const OP_OR = 23;
+const OP_INVOKE_NATIVE = 24;
+const OP_ZERO_EQUALS = 25;
 
 const INTRINSICS = [
     ["drop", OP_DROP],
@@ -120,15 +122,12 @@ const INTRINSICS = [
     ["emit", OP_EMIT],
     ["here", OP_HERE],
     ["mod", OP_MOD],
-    [">", OP_GT],
-    [">=", OP_GTE],
     ["<", OP_LT],
-    ["<=", OP_LTE],
     ["=", OP_EQ],
-    ["<>", OP_NEQ],
     ["not", OP_NOT],
     ["and", OP_AND],
-    ["or", OP_OR]
+    ["or", OP_OR],
+    ["0=", OP_ZERO_EQUALS]
 ]
 
 class Word {
@@ -292,28 +291,12 @@ class Context {
                     this.memory[this.nextEmit++] = this.pop();
                     break;
 
-                case OP_GT:
-                    binop((a, b) => a > b ? 1 : 0);
-                    break;
-
-                case OP_GTE:
-                    binop((a, b) => a >= b ? 1 : 0);
-                    break;
-
                 case OP_LT:
                     binop((a, b) => a < b ? 1 : 0);
                     break;
 
-                case OP_LTE:
-                    binop((a, b) => a <= b ? 1 : 0);
-                    break;
-
                 case OP_EQ:
                     binop((a, b) => a === b ? 1 : 0);
-                    break;
-
-                case OP_NEQ:
-                    binop((a, b) => a !== b ? 1 : 0);
                     break;
 
                 case OP_NOT:
@@ -344,6 +327,12 @@ class Context {
                         for (const elem of result)
                             this.push(elem);
                     }
+                    break;
+                }
+
+                case OP_ZERO_EQUALS: {
+                    const pval = this.pop();
+                    this.push(pval ? 0 : 1);
                     break;
                 }
 
@@ -398,8 +387,8 @@ class Context {
 
             const tok = result.value.currentToken;
             const lineNumber = result.value.lineNumber;
-            const tokVal = parseFloat(tok);
-            if (!Number.isNaN(tokVal)) {
+            if (/^[+-]?\d+(\.\d+)?$/.test(tok)) {
+                const tokVal = parseFloat(tok);
                 emit(OP_PUSH);
                 emit(tokVal);
                 continue;
