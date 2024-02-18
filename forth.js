@@ -140,6 +140,33 @@ class Word {
     }
 }
 
+function* tokenize(src) {
+    let lineNumber = 1;
+    let currentToken = "";
+    let singleLineComment = false;
+    
+    for (const ch of src) {
+        const isSpace = /\s/.test(ch);
+        if (singleLineComment) {
+            if (ch == "\n")
+                singleLineComment = false;
+        } else if (!singleLineComment && ch == "\\")
+            singleLineComment = true;
+        else if (!isSpace)
+            currentToken += ch;
+        else if (currentToken != "") {
+            yield { currentToken, lineNumber };
+            currentToken = "";
+        }
+
+        if (ch == '\n')
+            lineNumber++;
+    }
+
+    if (currentToken != "")
+        yield { currentToken, lineNumber };
+}
+
 class Context {
     constructor() {
         this.returnStack = [];
@@ -345,34 +372,7 @@ class Context {
     }
 
     compile(src) {
-        function* tokenize() {
-            let lineNumber = 1;
-            let currentToken = "";
-            let singleLineComment = false;
-            
-            for (const ch of src) {
-                const isSpace = /\s/.test(ch);
-                if (singleLineComment) {
-                    if (ch == "\n")
-                        singleLineComment = false;
-                } else if (!singleLineComment && ch == "\\")
-                    singleLineComment = true;
-                else if (!isSpace)
-                    currentToken += ch;
-                else if (currentToken != "") {
-                    yield { currentToken, lineNumber };
-                    currentToken = "";
-                }
-
-                if (ch == '\n')
-                    lineNumber++;
-            }
-
-            if (currentToken != "")
-                yield { currentToken, lineNumber };
-        }
-
-        const tokens = tokenize();
+        const tokens = tokenize(src);
 
         const self = this;
         function emit(value) {
