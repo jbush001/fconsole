@@ -100,7 +100,7 @@ const OP_MUL = 17;
 const OP_SP = 18;
 const OP_LT = 19;
 const OP_EQ = 20;
-const OP_NOT = 21;
+const OP_XOR = 21;
 const OP_AND = 22;
 const OP_OR = 23;
 const OP_INVOKE_NATIVE = 24;
@@ -124,7 +124,7 @@ const INTRINSICS = [
     ["mod", OP_MOD],
     ["<", OP_LT],
     ["=", OP_EQ],
-    ["not", OP_NOT],
+    ["xor", OP_XOR],
     ["and", OP_AND],
     ["or", OP_OR],
     ["0=", OP_ZERO_EQUALS]
@@ -326,8 +326,8 @@ class Context {
                     binop((a, b) => a === b ? 1 : 0);
                     break;
 
-                case OP_NOT:
-                    this.push(~this.pop());
+                case OP_XOR:
+                    binop((a, b) => a ^ b);
                     break;
 
                 case OP_AND:

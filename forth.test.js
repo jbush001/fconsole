@@ -27,9 +27,9 @@ function run_code(source) {
 }
 
 test("maths", () => {
-    const src = ": main 1 2 + print 5 7 * print 10 4 - print  200 7 9 12 * + - 13 +  print ;";
+    const src = ": main 1 2 + print -5 7 * print 4 10 - print  200 7 9 12 * + - 13 +  print ;";
 
-    expect(run_code(src)).toBe("3\n35\n6\n98");
+    expect(run_code(src)).toBe("3\n-35\n-6\n98");
 });
 
 test("variables", () => {
@@ -40,7 +40,7 @@ test("variables", () => {
 
     : main
     12 a !
-    13 b !
+    -13 b !
     14 c !
     a @ print
     b @ print
@@ -49,7 +49,7 @@ test("variables", () => {
     a @ print
     ;
 `
-    expect(run_code(src)).toBe("12\n13\n14\n15")
+    expect(run_code(src)).toBe("12\n-13\n14\n15")
 });
 
 test("conditionals", () => {
@@ -171,6 +171,7 @@ test("0=", () => {
 test("comparisons", () => {
     expect(run_code(`: main
       12 24 > print
+      12 -24 > print
       13 9 > print
       17 19 < print
       19 17 < print
@@ -185,7 +186,7 @@ test("comparisons", () => {
       55 55 <> print
       54 53 <> print
       ;
-    `)).toBe("0\n1\n1\n0\n1\n0\n1\n1\n0\n1\n1\n0\n0\n1");
+    `)).toBe("0\n1\n1\n1\n0\n1\n0\n1\n1\n0\n1\n1\n0\n0\n1");
 });
 
 test("logical", () => {
@@ -193,9 +194,10 @@ test("logical", () => {
         : main
         4 1 or print 
         10 3 and print 
-        11 not print
+        13 6 xor print
+        13 -1 xor print
         ;
-    `)).toBe("5\n2\n-12");
+    `)).toBe("5\n2\n11\n-14");
 });
 
 test("def", () => {
