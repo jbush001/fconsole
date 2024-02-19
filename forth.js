@@ -105,6 +105,8 @@ const OP_AND = 22;
 const OP_OR = 23;
 const OP_INVOKE_NATIVE = 24;
 const OP_ZERO_EQUALS = 25;
+const OP_PUSH_RETURN = 26;
+const OP_POP_RETURN = 27;
 
 const INTRINSICS = [
     ["drop", OP_DROP],
@@ -127,7 +129,9 @@ const INTRINSICS = [
     ["xor", OP_XOR],
     ["and", OP_AND],
     ["or", OP_OR],
-    ["0=", OP_ZERO_EQUALS]
+    ["0=", OP_ZERO_EQUALS],
+    [">r", OP_PUSH_RETURN],
+    ["r>", OP_POP_RETURN]
 ]
 
 class Word {
@@ -362,6 +366,17 @@ class Context {
                     this.push(pval ? 0 : 1);
                     break;
                 }
+
+                case OP_PUSH_RETURN:
+                    this.returnStack.push(this.pop());
+                    break;
+
+                case OP_POP_RETURN:
+                    if (this.returnStack.length == 0)
+                        throw new Error(`return stack underflow PC @{pc - 1}`);
+                    
+                    this.push(this.returnStack.pop());
+                    break;
 
                 default:
                     throw new Error(`Undefined opcode @${pc - 1} ${this.memory[pc - 1]}`);

@@ -377,3 +377,31 @@ test("immediate outside word", () => {
         ;
     `)).toBe("27");
 });
+
+test("push/pop return", () => {
+    expect(run_code(`
+        immediate
+        : foo
+            7 9 12 13 >r >r
+            15 print print
+            r> r> print print 
+            print
+        ;
+
+        : main
+            foo
+            99 print
+        ;
+    `)).toBe("15\n9\n13\n12\n7\n99");
+});
+
+test("return stack underflow 1", () => {
+    const t = () => { run_code(": main r> r> ;") };
+    expect(t).toThrow(Error);
+});
+
+
+test("return stack underflow 2", () => {
+    const t = () => { run_code(": main r> ;") };
+    expect(t).toThrow(Error);
+});
