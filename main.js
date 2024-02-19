@@ -174,7 +174,7 @@ function drawFrame(ctx) {
 function doRun() {
     console.log("started");
     try {
-        const ctx = new Context();
+        const ctx = new ForthContext();
         ctx.registerNative("cls", 1, clearScreen);
         ctx.registerNative("setColor", 1, setColor);
         ctx.registerNative("drawLine", 4, drawLine);

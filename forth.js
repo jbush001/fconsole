@@ -171,7 +171,7 @@ function* tokenize(src) {
         yield { currentToken, lineNumber };
 }
 
-class Context {
+class ForthContext {
     constructor() {
         this.returnStack = [];
         this.memory = Array(MEMORY_SIZE).fill(0);
@@ -374,7 +374,7 @@ class Context {
                 case OP_POP_RETURN:
                     if (this.returnStack.length == 0)
                         throw new Error(`return stack underflow PC @{pc - 1}`);
-                    
+
                     this.push(this.returnStack.pop());
                     break;
 
@@ -487,6 +487,6 @@ class Context {
 
 if (typeof module !== 'undefined') {
     module.exports = {
-        Context
+        ForthContext
     };
 }

@@ -15,7 +15,7 @@
 const forth = require("./forth");
 
 function run_code(source) {
-    const ctx = new forth.Context();
+    const ctx = new forth.ForthContext();
     let strval = "";
     ctx.registerNative("print", 1, (val) =>  {
         strval += val.toString() + "\n";
@@ -262,7 +262,7 @@ test("load out of range 2", () => {
 });
 
 test("invoke native underflow", () => {
-    const ctx = new forth.Context();
+    const ctx = new forth.ForthContext();
     ctx.registerNative("foo", 1, (val) =>  {});
     ctx.compile(": main foo ;");
 
@@ -275,7 +275,7 @@ test("invoke native underflow", () => {
 
 
 test("invoke native return", () => {
-    const ctx = new forth.Context();
+    const ctx = new forth.ForthContext();
     ctx.registerNative("foo", 1, (val) =>  { return [val + 1, val + 2] });
     let strval = "";
     ctx.registerNative("print", 1, (val) =>  {
