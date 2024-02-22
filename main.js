@@ -64,7 +64,7 @@ function startup() {
     });
 
 
-    openPage("outputtab", document.getElementsByClassName("tablink")[0]);
+    openTab("outputtab", document.getElementsByClassName("tablink")[0]);
     clearScreen(0);
 
     const spriteSheetWidth = SPRITE_SHEET_W * SPRITE_SIZE;
@@ -175,15 +175,15 @@ function doRun() {
     console.log("started");
     try {
         const ctx = new ForthContext();
-        ctx.registerNative("cls", 1, clearScreen);
-        ctx.registerNative("setColor", 1, setColor);
-        ctx.registerNative("drawLine", 4, drawLine);
-        ctx.registerNative("drawSprite", 5, drawSprite);
-        ctx.registerNative("print", 1, (val) => {
+        ctx.bindNative("cls", 1, clearScreen);
+        ctx.bindNative("setColor", 1, setColor);
+        ctx.bindNative("drawLine", 4, drawLine);
+        ctx.bindNative("drawSprite", 5, drawSprite);
+        ctx.bindNative("print", 1, (val) => {
             writeConsole(val + "\n");
         });
-        ctx.registerNative("buttons", 0, getButtons);
-        ctx.registerNative("fillRect", 4, fillRect);
+        ctx.bindNative("buttons", 0, getButtons);
+        ctx.bindNative("fillRect", 4, fillRect);
         
         console.log("compiling");
         ctx.compile(LIB);
@@ -206,7 +206,7 @@ function doRun() {
     }
 }
 
-function openPage(pageName, element) {
+function openTab(pageName, element) {
     for (const tab of document.getElementsByClassName("tabcontent"))
         tab.style.display = "none";
 

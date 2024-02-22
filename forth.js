@@ -80,12 +80,12 @@ const LIB = `
 
 const MEMORY_SIZE = 1024;
 
-const OP_PUSH = 1;
+const OP_LIT = 1;
 const OP_DROP = 2;
 const OP_DUP = 3;
 const OP_SWAP = 4;
 const OP_STORE = 5;
-const OP_LOAD = 6;
+const OP_FETCH = 6;
 const OP_BRANCH = 7;
 const OP_0BRANCH = 8;
 const OP_CALL = 9;
@@ -113,7 +113,7 @@ const INTRINSICS = [
     ["dup", OP_DUP],
     ["swap", OP_SWAP],
     ["!", OP_STORE],
-    ["@", OP_LOAD],
+    ["@", OP_FETCH],
     ["emit", OP_EMIT],
     ["over", OP_OVER],
     ["+", OP_ADD],
@@ -189,7 +189,7 @@ class ForthContext {
         this.compile(LIB);
     }
 
-    registerNative(funcName, argCount, callback) {
+    bindNative(funcName, argCount, callback) {
         const word = new Word();
         this.dictionary[funcName] = word;
         word.native = true;
@@ -224,7 +224,7 @@ class ForthContext {
                 throw new Error("PC out of range");
 
             switch (this.memory[pc++]) {
-                case OP_PUSH:
+                case OP_LIT:
                     this.push(this.memory[pc++]);
                     break;
 
@@ -274,7 +274,7 @@ class ForthContext {
                     break;
                 }
 
-                case OP_LOAD: {
+                case OP_FETCH: {
                     const addr = this.pop();
                     if (addr < 0 || addr >= this.memory.length)
                         throw new Error(`Memory load out of range: ${addr}`);
@@ -404,7 +404,7 @@ class ForthContext {
             const lineNumber = result.value.lineNumber;
             if (/^[+-]?\d+(\.\d+)?$/.test(tok)) {
                 const tokVal = parseFloat(tok);
-                emit(OP_PUSH);
+                emit(OP_LIT);
                 emit(tokVal);
                 continue;
             }
@@ -417,7 +417,7 @@ class ForthContext {
                 } else if (word.immediate) {
                     this.exec(word.address);
                 } else if (word.variable) {
-                    emit(OP_PUSH);
+                    emit(OP_LIT);
                     emit(word.address);
                 } else if (word.intrinsic >= 0) {
                     emit(word.intrinsic);
