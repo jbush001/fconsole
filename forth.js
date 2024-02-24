@@ -16,6 +16,24 @@
 // Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
 
 const LIB = `
+: begin immediate
+    here
+;
+
+: until immediate
+    8 emit
+    emit
+;
+
+: ( immediate
+    begin
+        key dup
+        41 =
+        swap -1 =
+        or
+    until
+;
+
 : if immediate
     8 emit        ( 0branch )
     here          ( save on stack )
@@ -34,16 +52,6 @@ const LIB = `
     ( Now patch previous branch )
     swap
     here swap !
-;
-
-: begin immediate
-    here
-;
-
-: until immediate
-    8 emit          ( create a conditional branch head if zero )
-    emit            ( pop head address off stack and emit as branch addr )
-    ( else falls through )
 ;
 
 : while immediate
@@ -160,7 +168,13 @@ class ForthContext {
 
         const self = this;
         this.bindNative("key", 0, () => {
-            return [ self.nextChar() ];
+            const ch = self.nextChar();
+            if (!ch) {
+                console.log("get next key");
+                return [ -1 ];
+            }
+
+            return [ ch.charCodeAt(0) ];
         });
 
         this.compile(LIB);
@@ -365,7 +379,7 @@ class ForthContext {
 
     nextChar() {
         if (this.compileOffs == this.compileStr.length)
-            return -1;
+            return "";
 
         const ch = this.compileStr[this.compileOffs++];
         if (ch == '\n')
@@ -379,7 +393,7 @@ class ForthContext {
         let currentToken = "";
         while (true) {
             const ch = this.nextChar();
-            if (ch < 0)
+            if (!ch)
                 return currentToken;
 
             const isSpace = /\s/.test(ch);
@@ -444,20 +458,6 @@ class ForthContext {
             }
 
             switch (tok) {
-                case "(": {
-                    const firstLine = this.lineNumber;
-                    while (true) {
-                        const next = this.nextToken();
-                        if (!next)
-                            throw new Error(`Line ${firstLine}: unmatched comment`);
-
-                        if (next == ")")
-                            break;
-                    }
-
-                    break;
-                }
-
                 case ":":
                     if (currentWord !== null)
                         throw new Error(`Line ${this.lineNumber}: colon inside colon`);

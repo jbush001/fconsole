@@ -217,8 +217,7 @@ test("def", () => {
 });
 
 test("unmatched comment", () => {
-    const t = () => { run_code("\n\n( this is an unmatched... \n\n") };
-    expect(t).toThrow("Line 3: unmatched comment")
+    expect(run_code("\n: main ; \n( this is an unmatched... \n\n")).toBe("");
 });
 
 test("nested :", () => {
@@ -404,4 +403,9 @@ test("return stack underflow 1", () => {
 test("return stack underflow 2", () => {
     const t = () => { run_code(": main r> ;") };
     expect(t).toThrow(Error);
+});
+
+test("missing word name", () => {
+    const t = () => { run_code(":") };
+    expect(t).toThrow("Line 1: missing word name");
 });
