@@ -255,14 +255,14 @@ test("store out of range 2", () => {
     expect(t).toThrow("Memory store out of range: 1000000")
 });
 
-test("load out of range 1", () => {
+test("fetch out of range 1", () => {
     const t = () => { run_code(": main -1 @ ;") };
-    expect(t).toThrow("Memory load out of range: -1")
+    expect(t).toThrow("Memory fetch out of range: -1")
 });
 
-test("load out of range 2", () => {
+test("fetch out of range 2", () => {
     const t = () => { run_code(": main 9999999 @ ;") };
-    expect(t).toThrow("Memory load out of range: 9999999")
+    expect(t).toThrow("Memory fetch out of range: 9999999")
 });
 
 test("invoke native underflow", () => {
@@ -412,4 +412,54 @@ test("return stack underflow 2", () => {
 test("missing word name", () => {
     const t = () => { run_code(":") };
     expect(t).toThrow("Line 1: missing word name");
+});
+
+test("fetch char", () => {
+    expect(run_code(`
+        variable foo
+        : main
+            3735928559 foo !  \\ 0xdeadbeef
+            foo c@ print
+            foo 1 + c@ print
+            foo 2 + c@ print
+            foo 3 + c@ print
+        ;
+    `)).toBe("239\n190\n173\n222");
+});
+
+test("store char", () => {
+    expect(run_code(`
+        variable foo
+        : main
+            1717986918 foo ! \\ 0x66666666
+            239 foo c!
+            foo @ print      \\ 0x666666ef
+            190 foo 1 + c!
+            foo @ print      \\ 0x6666beef
+            173 foo 2 + c!
+            foo @ print      \\ 0x66adbeef
+            222 foo 3 + c!
+            foo @ print      \\ 0xdeadbeef
+        ;
+    `)).toBe("1717987055\n1718009583\n1722662639\n-559038737");
+});
+
+test("store char out of range 1", () => {
+    const t = () => { run_code(": main 2 -1 c! ;") };
+    expect(t).toThrow("Memory store out of range: -1")
+});
+
+test("store char out of range 2", () => {
+    const t = () => { run_code(": main 2 1000000 c! ;") };
+    expect(t).toThrow("Memory store out of range: 1000000")
+});
+
+test("fetch char out of range 1", () => {
+    const t = () => { run_code(": main -1 c@ ;") };
+    expect(t).toThrow("Memory fetch out of range: -1")
+});
+
+test("fetch char out of range 2", () => {
+    const t = () => { run_code(": main 9999999 c@ ;") };
+    expect(t).toThrow("Memory fetch out of range: 9999999")
 });

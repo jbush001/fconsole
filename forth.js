@@ -114,6 +114,8 @@ const OP_INVOKE_NATIVE = 25;
 const OP_ZERO_EQUALS = 26;
 const OP_PUSH_RETURN = 27;
 const OP_POP_RETURN = 28;
+const OP_STORE_CHAR = 29;
+const OP_FETCH_CHAR = 30;
 
 const INTRINSICS = [
     ["drop", OP_DROP],
@@ -139,7 +141,9 @@ const INTRINSICS = [
     ["or", OP_OR],
     ["0=", OP_ZERO_EQUALS],
     [">r", OP_PUSH_RETURN],
-    ["r>", OP_POP_RETURN]
+    ["r>", OP_POP_RETURN],
+    ["c!", OP_STORE_CHAR],
+    ["c@", OP_FETCH_CHAR]
 ]
 
 class Word {
@@ -283,7 +287,7 @@ class ForthContext {
                 case OP_FETCH: {
                     const addr = this.pop();
                     if (addr < 0 || addr >= MEMORY_SIZE)
-                        throw new Error(`Memory load out of range: ${addr}`);
+                        throw new Error(`Memory fetch out of range: ${addr}`);
 
                     this.push(this.memory[addr >> 2]);
                     break;
@@ -383,6 +387,32 @@ class ForthContext {
                         throw new Error(`return stack underflow PC @{pc - 4}`);
 
                     this.push(this.returnStack.pop());
+                    break;
+
+                case OP_STORE_CHAR: {
+                    const addr = this.pop();
+                    if (addr < 0 || addr >= MEMORY_SIZE)
+                        throw new Error(`Memory store out of range: ${addr}`);
+
+                    const index = addr >> 2;
+                    const offs = (addr & 3) * 8;
+
+                    const value = this.pop() & 0xff;
+                    this.memory[index] = (this.memory[index] & ~(0xff << offs)) | (value << offs);
+                    break;
+                }
+
+                case OP_FETCH_CHAR: {
+                    const addr = this.pop();
+                    if (addr < 0 || addr >= MEMORY_SIZE)
+                        throw new Error(`Memory fetch out of range: ${addr}`);
+
+                    const index = addr >> 2;
+                    const offs = (addr & 3) * 8;
+                    this.push((this.memory[index] >> offs) & 0xff);
+                }
+
+                case OP_FETCH_CHAR:
                     break;
 
                 default:
