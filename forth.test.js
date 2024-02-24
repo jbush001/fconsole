@@ -463,3 +463,14 @@ test("fetch char out of range 2", () => {
     const t = () => { run_code(": main 9999999 c@ ;") };
     expect(t).toThrow("Memory fetch out of range: 9999999")
 });
+
+test("set here", () => {
+    expect(run_code(`
+        : main
+            300 here !
+            here @ print
+            1234 emit
+            300 @ print
+        ;
+    `)).toBe("300\n1234");
+});

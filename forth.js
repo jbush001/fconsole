@@ -17,7 +17,7 @@
 
 const LIB = `
 : begin immediate
-    here
+    here @
 ;
 
 : until immediate
@@ -37,27 +37,27 @@ const LIB = `
 
 : if immediate
     8 emit        ( 0branch )
-    here          ( save on stack )
+    here @        ( save on stack )
     0 emit        ( dummy offset )
 ;
 
 : then immediate
-    here swap !          ( patch branch )
+    here @ swap !          ( patch branch )
 ;
 
 : else immediate
     7 emit        ( branch at end of previous block )
-    here          ( Save new branch address )
+    here @        ( Save new branch address )
     0 emit        ( dummy offset )
 
     ( Now patch previous branch )
     swap
-    here swap !
+    here @ swap !
 ;
 
 : while immediate
     8 emit          ( create a conditional branch to break out if 0 )
-    here            ( Save new branch address )
+    here @          ( Save new branch address )
     0 emit          ( dummy offset )
 ;
 
@@ -68,7 +68,7 @@ const LIB = `
     emit          ( push address of top of loop)
 
 ( now patch the previous break out )
-    here swap !
+    here @ swap !
 ;
 
 : 2dup over over ;
@@ -97,7 +97,6 @@ const OP_0BRANCH = 8;
 const OP_CALL = 9;
 const OP_EXIT = 10;
 const OP_EMIT = 11;
-const OP_HERE = 12;
 const OP_MOD = 13;
 const OP_OVER = 14;
 const OP_ADD = 15;
@@ -132,7 +131,6 @@ const INTRINSICS = [
     ["sp", OP_SP],
     ["exit", OP_EXIT],
     ["emit", OP_EMIT],
-    ["here", OP_HERE],
     ["mod", OP_MOD],
     ["<", OP_LT],
     ["=", OP_EQ],
@@ -153,6 +151,7 @@ class Word {
         this.native = false;
         this.nativeIndex = -1;
         this.intrinsic = -1;
+        this.address = 0;
     }
 }
 
@@ -164,7 +163,12 @@ class ForthContext {
         this.dictionary = {}
         this.nativeFunctions = [];
         this.stackPointer = MEMORY_SIZE - 4;
-        this.here = 0; // Next instruction to emit
+
+        const here = new Word();
+        here.variable = true;
+        here.address = 0;
+        this.dictionary['here'] = here;
+        this.here = 4;
 
         for (const intr of INTRINSICS) {
             const word = new Word();
@@ -209,6 +213,14 @@ class ForthContext {
         // as integer types.
         this.stackPointer -= 4;
         this.memory[this.stackPointer >> 2] = val | 0;
+    }
+
+    get here() {
+        return this.memory[0];
+    }
+
+    set here(value) {
+        this.memory[0] = value;
     }
 
     exec(entryAddress) {
@@ -315,10 +327,6 @@ class ForthContext {
                         return;
 
                     pc = this.returnStack.pop();
-                    break;
-
-                case OP_HERE:
-                    this.push(this.here);
                     break;
 
                 case OP_MOD:
