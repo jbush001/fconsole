@@ -1,11 +1,11 @@
 // Copyright 2024 Jeff Bush
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //   http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -80,14 +80,14 @@ function startup() {
     }
 
     const rawData = [
-        0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000, 
-        0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 
-        0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 
-        0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 
-        0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 
-        0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 
-        0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 
-        0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000, 
+        0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000,
+        0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000,
+        0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000,
+        0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000,
+        0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000,
+        0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000,
+        0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000,
+        0xff000000, 0xff000000, 0xff000000, 0xffff0000, 0xffff0000, 0xff000000, 0xff000000, 0xff000000,
     ];
 
     for (let y = 0; y < SPRITE_SIZE; y++) {
@@ -117,7 +117,7 @@ function writeConsole(text) {
 
 const COLOR_STRS = [
     "black",
-    "red", 
+    "red",
     "magenta",
     "green",
     "yellow",
@@ -155,7 +155,7 @@ function drawSprite(x, y, w, h, index) {
     const sheetCol = index % SPRITE_SHEET_W;
     const pixWidth = w * SPRITE_SIZE;
     const pixHeight = h * SPRITE_SIZE;
-    context.drawImage(spriteSheet, sheetCol * SPRITE_SIZE, sheetRow * SPRITE_SIZE, 
+    context.drawImage(spriteSheet, sheetCol * SPRITE_SIZE, sheetRow * SPRITE_SIZE,
         pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
@@ -184,7 +184,7 @@ function doRun() {
         });
         ctx.bindNative("buttons", 0, getButtons);
         ctx.bindNative("fillRect", 4, fillRect);
-        
+
         console.log("compiling");
         ctx.compile(LIB);
         ctx.compile(document.getElementById("source").value);

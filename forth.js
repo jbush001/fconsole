@@ -1,29 +1,29 @@
 // Copyright 2024 Jeff Bush
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //   http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This was heavily inspired by the excellent jonesforth tutorial by 
+// This was heavily inspired by the excellent jonesforth tutorial by
 // Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
 
 const LIB = `
 : if immediate
-    8 emit        ( 0branch ) 
-    here          ( save on stack ) 
-    0 emit        ( dummy offset )    
+    8 emit        ( 0branch )
+    here          ( save on stack )
+    0 emit        ( dummy offset )
 ;
 
 : then immediate
-    here swap !          ( patch branch )  
+    here swap !          ( patch branch )
 ;
 
 : else immediate
@@ -49,21 +49,21 @@ const LIB = `
 
 : while immediate
     8 emit          ( create a conditional branch to break out if 0 )
-    here            ( Save new branch address )            
-    0 emit          ( dummy offset )          
+    here            ( Save new branch address )
+    0 emit          ( dummy offset )
 ;
 
 ( loop_top_addr cond_branch_to_path -- )
 : repeat immediate
-    7 emit        ( branch at end of previous block )        
+    7 emit        ( branch at end of previous block )
     swap
-    emit          ( push address of top of loop)          
-    
+    emit          ( push address of top of loop)
+
 ( now patch the previous break out )
     here swap !
 ;
 
-: 2dup 
+: 2dup
     over over
 ;
 
@@ -160,8 +160,8 @@ class ForthContext {
         }
 
         const self = this;
-        this.bindNative("key", 0, () => { 
-            return [ self.nextChar() ]; 
+        this.bindNative("key", 0, () => {
+            return [ self.nextChar() ];
         });
 
         this.compile(LIB);
@@ -241,7 +241,7 @@ class ForthContext {
                 case OP_SP:
                     this.push(this.stackPointer);
                     break;
-    
+
                 case OP_STORE: {
                     const addr = this.pop();
                     if (addr < 0 || addr >= this.memory.length)
@@ -284,11 +284,11 @@ class ForthContext {
 
                     pc = this.returnStack.pop();
                     break;
-    
+
                 case OP_HERE:
                     this.push(this.nextEmit);
                     break;
-                
+
                 case OP_MOD:
                     binop((a, b) => a % b);
                     break;
@@ -423,7 +423,7 @@ class ForthContext {
                 emit(tokVal);
                 continue;
             }
-    
+
             if (tok in this.dictionary) {
                 const word = this.dictionary[tok];
                 if (word.native) {
@@ -450,12 +450,12 @@ class ForthContext {
                     while (true) {
                         const next = this.nextToken();
                         if (!next)
-                            throw new Error(`Line ${firstLine}: unmatched comment`);    
+                            throw new Error(`Line ${firstLine}: unmatched comment`);
 
                         if (next == ")")
                             break;
                     }
-                    
+
                     break;
                 }
 
@@ -496,7 +496,7 @@ class ForthContext {
                     this.dictionary[varName] = word;
                     break;
                 }
-        
+
                 default:
                     throw new Error(`Line ${this.lineNumber}: unknown token ${tok}`);
             }

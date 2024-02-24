@@ -1,11 +1,11 @@
 // Copyright 2024 Jeff Bush
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //   http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,19 +55,19 @@ test("variables", () => {
 test("conditionals", () => {
     const src = `
 : main
-1 if 
+1 if
     17 print
 else
     18 print
 then
 
-0 if 
+0 if
     19 print
 else
     20 print
 then
 
-1 if 
+1 if
     21 print
 then
 
@@ -76,10 +76,10 @@ then
 then
 
 1 if
-    1 if 
+    1 if
        23 print
     then
-else    
+else
     24 print
 then
 ;
@@ -109,7 +109,7 @@ test("until loop", () => {
     10
     begin
         dup print
-        1 - 
+        1 -
         dup
     until
     ;`
@@ -132,7 +132,7 @@ test("nested loop", () => {
             b @ 2 + b !
         repeat
 
-        a @ 10 + dup a ! 30 < 
+        a @ 10 + dup a ! 30 <
     until
     ;`
 
@@ -192,8 +192,8 @@ test("comparisons", () => {
 test("logical", () => {
     expect(run_code(`
         : main
-        4 1 or print 
-        10 3 and print 
+        4 1 or print
+        10 3 and print
         13 6 xor print
         13 -1 xor print
         ;
@@ -207,7 +207,7 @@ test("def", () => {
         ;
 
         : bar
-            2 * 
+            2 *
         ;
 
         : main
@@ -266,7 +266,7 @@ test("invoke native underflow", () => {
     ctx.bindNative("foo", 1, (val) =>  {});
     ctx.compile(": main foo ;");
 
-    const t = () => { 
+    const t = () => {
         ctx.exec(ctx.dictionary["main"].address);
     };
 
@@ -318,22 +318,22 @@ test("single line comment", () => {
         : main \\ define function
         42 \\ push a value
         print
-        ;   
+        ;
     `)).toBe("42");
 });
 
 test("paren comment", () =>  {
     expect(run_code(`
-        ( 
-            this is an example of a 
-            paren comment 
+        (
+            this is an example of a
+            paren comment
         )
         : main ( a single line version )
         42 \\ ( this should be ignored )
         ( here's an interesting one \\ )
         )
         print
-        ;   
+        ;
     `)).toBe("42");
 });
 
@@ -384,7 +384,7 @@ test("push/pop return", () => {
         : foo
             7 9 12 13 >r >r
             15 print print
-            r> r> print print 
+            r> r> print print
             print
         ;
 
