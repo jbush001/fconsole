@@ -21,8 +21,8 @@ const LIB = `
 ;
 
 : until immediate
-    8 emit    \\ 0branch instruction
-    emit      \\ branch address, from stack, beginning of loop
+    8 ,    \\ 0branch instruction
+    ,      \\ branch address, from stack, beginning of loop
 ;
 
 \\ paren comment
@@ -36,9 +36,9 @@ const LIB = `
 ;
 
 : if immediate
-    8 emit        ( 0branch )
+    8 ,           ( 0branch )
     here @        ( save on stack )
-    0 emit        ( dummy offset )
+    0 ,           ( dummy offset )
 ;
 
 : then immediate
@@ -46,9 +46,9 @@ const LIB = `
 ;
 
 : else immediate
-    7 emit        ( branch at end of previous block )
+    7 ,           ( branch at end of previous block )
     here @        ( Save new branch address )
-    0 emit        ( dummy offset )
+    0 ,           ( dummy offset )
 
     ( Now patch previous branch )
     swap
@@ -56,16 +56,16 @@ const LIB = `
 ;
 
 : while immediate
-    8 emit          ( create a conditional branch to break out if 0 )
+    8 ,             ( create a conditional branch to break out if 0 )
     here @          ( Save new branch address )
-    0 emit          ( dummy offset )
+    0 ,             ( dummy offset )
 ;
 
 ( loop_top_addr cond_branch_to_path -- )
 : repeat immediate
-    7 emit        ( branch at end of previous block )
+    7 ,           ( branch at end of previous block )
     swap
-    emit          ( push address of top of loop)
+    ,             ( push address of top of loop)
 
 ( now patch the previous break out )
     here @ swap !
@@ -122,7 +122,6 @@ const INTRINSICS = [
     ["swap", OP_SWAP],
     ["!", OP_STORE],
     ["@", OP_FETCH],
-    ["emit", OP_EMIT],
     ["over", OP_OVER],
     ["+", OP_ADD],
     ["-", OP_SUB],
@@ -130,7 +129,7 @@ const INTRINSICS = [
     ["/", OP_DIV],
     ["sp", OP_SP],
     ["exit", OP_EXIT],
-    ["emit", OP_EMIT],
+    [",", OP_EMIT],
     ["mod", OP_MOD],
     ["<", OP_LT],
     ["=", OP_EQ],

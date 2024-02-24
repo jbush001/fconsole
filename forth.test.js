@@ -297,17 +297,17 @@ test("infinite loop", () => {
 });
 
 test("undefined opcode", () => {
-    const t = () => { run_code(": foo immediate 9999 emit ; : main foo ;") };
+    const t = () => { run_code(": foo immediate 9999 , ; : main foo ;") };
     expect(t).toThrow(Error);
 });
 
 test("pc out of range", () => {
-    const t = () => { run_code(": foo immediate begin 9999 emit 0 until ; : main foo ;") };
+    const t = () => { run_code(": foo immediate begin 9999 , 0 until ; : main foo ;") };
     expect(t).toThrow("out of memory");
 });
 
 test("jump out of range", () => {
-    const t = () => { run_code(": foo immediate begin 7 emit 9999 emit 1 until ; : main foo ;") };
+    const t = () => { run_code(": foo immediate begin 7 , 9999 , 1 until ; : main foo ;") };
     expect(t).toThrow("PC out of range");
 });
 
@@ -469,7 +469,7 @@ test("set here", () => {
         : main
             300 here !
             here @ print
-            1234 emit
+            1234 ,
             300 @ print
         ;
     `)).toBe("300\n1234");
