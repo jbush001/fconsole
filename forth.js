@@ -17,13 +17,13 @@
 
 const LIB = `
 : if immediate
-    8 emit        ( 0branch )
-    here          ( save on stack )
-    0 emit        ( dummy offset )
+    8 emit        ( 0branch ) 
+    here          ( save on stack ) 
+    0 emit        ( dummy offset )    
 ;
 
 : then immediate
-    here swap !          ( patch branch )
+    here swap !          ( patch branch )  
 ;
 
 : else immediate
@@ -49,17 +49,17 @@ const LIB = `
 
 : while immediate
     8 emit          ( create a conditional branch to break out if 0 )
-    here            ( Save new branch address )
-    0 emit          ( dummy offset )
+    here            ( Save new branch address )            
+    0 emit          ( dummy offset )          
 ;
 
 ( loop_top_addr cond_branch_to_path -- )
 : repeat immediate
-    7 emit        ( branch at end of previous block )
+    7 emit        ( branch at end of previous block )        
     swap
-    emit          ( push address of top of loop)
+    emit          ( push address of top of loop)          
     
-    ( now patch the previous break out )
+( now patch the previous break out )
     here swap !
 ;
 
@@ -144,33 +144,6 @@ class Word {
     }
 }
 
-function* tokenize(src) {
-    let lineNumber = 1;
-    let currentToken = "";
-    let singleLineComment = false;
-    
-    for (const ch of src) {
-        const isSpace = /\s/.test(ch);
-        if (singleLineComment) {
-            if (ch == "\n")
-                singleLineComment = false;
-        } else if (!singleLineComment && ch == "\\")
-            singleLineComment = true;
-        else if (!isSpace)
-            currentToken += ch;
-        else if (currentToken != "") {
-            yield { currentToken, lineNumber };
-            currentToken = "";
-        }
-
-        if (ch == '\n')
-            lineNumber++;
-    }
-
-    if (currentToken != "")
-        yield { currentToken, lineNumber };
-}
-
 class ForthContext {
     constructor() {
         this.returnStack = [];
@@ -185,6 +158,11 @@ class ForthContext {
             word.intrinsic = intr[1];
             this.dictionary[intr[0]] = word;
         }
+
+        const self = this;
+        this.bindNative("key", 0, () => { 
+            return [ self.nextChar() ]; 
+        });
 
         this.compile(LIB);
     }
@@ -386,8 +364,47 @@ class ForthContext {
         throw new Error("Exceeded maximum cycles");
     }
 
+    nextChar() {
+        if (this.compileOffs == this.compileStr.length)
+            return -1;
+
+        const ch = this.compileStr[this.compileOffs++];
+        if (ch == '\n')
+            this.lineNumber++;
+
+        return ch;
+    }
+
+    nextToken() {
+        let singleLineComment = false;
+        let currentToken = "";
+        while (true) {
+            const ch = this.nextChar();
+            if (ch < 0)
+                return currentToken;
+
+            const isSpace = /\s/.test(ch);
+            if (singleLineComment) {
+                if (ch == "\n")
+                    singleLineComment = false;
+            } else if (!singleLineComment && ch == "\\")
+                singleLineComment = true;
+            else if (!isSpace)
+                currentToken += ch;
+            else if (currentToken != "") {
+                // If terminated by newline, push back so line number is correct.
+                if (this.compileStr[--this.compileOffs] == '\n')
+                    this.lineNumber--;
+
+                return currentToken;
+            }
+        }
+    }
+
     compile(src) {
-        const tokens = tokenize(src);
+        this.compileStr = src;
+        this.compileOffs = 0;
+        this.lineNumber = 1;
 
         const self = this;
         function emit(value) {
@@ -396,12 +413,10 @@ class ForthContext {
 
         let currentWord = null;
         while (true) {
-            const result = tokens.next();
-            if (result.done)
+            const tok = this.nextToken();
+            if (!tok)
                 break;
 
-            const tok = result.value.currentToken;
-            const lineNumber = result.value.lineNumber;
             if (/^[+-]?\d+(\.\d+)?$/.test(tok)) {
                 const tokVal = parseFloat(tok);
                 emit(OP_LIT);
@@ -430,23 +445,27 @@ class ForthContext {
             }
 
             switch (tok) {
-                case "(":
+                case "(": {
+                    const firstLine = this.lineNumber;
                     while (true) {
-                        const next = tokens.next();
-                        if (next.done)
-                            throw new Error(`Line ${lineNumber}: unmatched comment`);    
+                        const next = this.nextToken();
+                        if (!next)
+                            throw new Error(`Line ${firstLine}: unmatched comment`);    
 
-                        if (next.value.currentToken == ")")
+                        if (next == ")")
                             break;
                     }
                     
                     break;
+                }
 
                 case ":":
                     if (currentWord !== null)
-                        throw new Error(`Line ${lineNumber}: colon inside colon`);
+                        throw new Error(`Line ${this.lineNumber}: colon inside colon`);
 
-                    const funcName = tokens.next().value.currentToken;
+                    const funcName = this.nextToken();
+                    if (!funcName)
+                        throw new Error(`Line ${this.lineNumber}: missing word name`);
                     currentWord = new Word();
                     currentWord.address = this.nextEmit;
                     this.dictionary[funcName] = currentWord;
@@ -454,7 +473,7 @@ class ForthContext {
 
                 case ";":
                     if (currentWord === null)
-                        throw new Error(`Line ${lineNumber}: unmatched ;`);
+                        throw new Error(`Line ${this.lineNumber}: unmatched ;`);
 
                     emit(OP_EXIT);
                     currentWord = null;
@@ -468,9 +487,9 @@ class ForthContext {
 
                 case "variable": {
                     if (currentWord)
-                        throw new Error(`Line ${lineNumber}: variable inside word def`);
+                        throw new Error(`Line ${this.lineNumber}: variable inside word def`);
 
-                    const varName = tokens.next().value.currentToken;
+                    const varName = this.nextToken();
                     const word = new Word();
                     word.address = this.nextEmit++;
                     word.variable = true;
@@ -479,7 +498,7 @@ class ForthContext {
                 }
         
                 default:
-                    throw new Error(`Line ${lineNumber}: unknown token ${tok}`);
+                    throw new Error(`Line ${this.lineNumber}: unknown token ${tok}`);
             }
         }
     }
