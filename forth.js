@@ -21,15 +21,16 @@ const LIB = `
 ;
 
 : until immediate
-    8 emit
-    emit
+    8 emit    \\ 0branch instruction
+    emit      \\ branch address, from stack, beginning of loop
 ;
 
+\\ paren comment
 : ( immediate
-    begin
+    begin          \\ consume until end of comment
         key dup
-        41 =
-        swap -1 =
+        41 =       \\ close paren
+        swap -1 =  \\ end of input
         or
     until
 ;
@@ -70,9 +71,7 @@ const LIB = `
     here swap !
 ;
 
-: 2dup
-    over over
-;
+: 2dup over over ;
 
 : pick ( offset -- value )
     1 + sp + @
@@ -169,10 +168,8 @@ class ForthContext {
         const self = this;
         this.bindNative("key", 0, () => {
             const ch = self.nextChar();
-            if (!ch) {
-                console.log("get next key");
+            if (!ch)
                 return [ -1 ];
-            }
 
             return [ ch.charCodeAt(0) ];
         });
