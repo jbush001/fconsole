@@ -74,7 +74,7 @@ const LIB = `
 : 2dup over over ;
 
 : pick ( offset -- value )
-    1 + sp + @
+    1 + 4 * sp + @
 ;
 
 : > swap < ;
@@ -84,7 +84,7 @@ const LIB = `
 
 `;
 
-const MEMORY_SIZE = 1024;
+const MEMORY_SIZE = 4096;
 
 const OP_LIT = 1;
 const OP_DROP = 2;
@@ -155,11 +155,12 @@ class Word {
 class ForthContext {
     constructor() {
         this.returnStack = [];
+        // Memory is an array of 32-bit words, although pointers are byte oriented.
         this.memory = Array(MEMORY_SIZE).fill(0);
         this.dictionary = {}
         this.nativeFunctions = [];
-        this.stackPointer = MEMORY_SIZE - 1;
-        this.nextEmit = 0;
+        this.stackPointer = MEMORY_SIZE - 4;
+        this.here = 0; // Next instruction to emit
 
         for (const intr of INTRINSICS) {
             const word = new Word();
@@ -188,16 +189,22 @@ class ForthContext {
     }
 
     pop() {
-        if (this.stackPointer == MEMORY_SIZE)
+        if (this.stackPointer >= MEMORY_SIZE)
             throw new Error("stack underflow");
 
-        return this.memory[this.stackPointer++];
+        const result = this.memory[this.stackPointer >> 2];
+        this.stackPointer += 4;
+        return result;
     }
 
     push(val) {
+        if (val === undefined)
+            throw new Exception("internal error: undefined pushed on stack");
+
         // the "| 0" forces this to fit in an int. We always keep the stack
         // as integer types.
-        this.memory[--this.stackPointer] = val | 0;
+        this.stackPointer -= 4;
+        this.memory[this.stackPointer >> 2] = val | 0;
     }
 
     exec(entryAddress) {
@@ -212,12 +219,15 @@ class ForthContext {
         }
 
         for (let i = 0; i < 10000; i++) {
-            if (pc > MEMORY_SIZE || pc < 0)
+            if (pc >= MEMORY_SIZE || pc < 0)
                 throw new Error("PC out of range");
 
-            switch (this.memory[pc++]) {
+            const op = this.memory[pc >> 2];
+            pc += 4;
+            switch (op) {
                 case OP_LIT:
-                    this.push(this.memory[pc++]);
+                    this.push(this.memory[pc >> 2]);
+                    pc += 4;
                     break;
 
                 case OP_DROP:
@@ -225,7 +235,7 @@ class ForthContext {
                     break;
 
                 case OP_DUP:
-                    this.push(this.memory[this.stackPointer]);
+                    this.push(this.memory[this.stackPointer >> 2]);
                     break;
 
                 case OP_SWAP: {
@@ -237,7 +247,7 @@ class ForthContext {
                 }
 
                 case OP_OVER:
-                    this.push(this.memory[this.stackPointer + 1]);
+                    this.push(this.memory[(this.stackPointer + 4) >> 2]);
                     break;
 
                 case OP_ADD:
@@ -262,38 +272,38 @@ class ForthContext {
 
                 case OP_STORE: {
                     const addr = this.pop();
-                    if (addr < 0 || addr >= this.memory.length)
+                    if (addr < 0 || addr >= MEMORY_SIZE)
                         throw new Error(`Memory store out of range: ${addr}`);
 
                     const value = this.pop();
-                    this.memory[addr] =  value;
+                    this.memory[addr >> 2] =  value;
                     break;
                 }
 
                 case OP_FETCH: {
                     const addr = this.pop();
-                    if (addr < 0 || addr >= this.memory.length)
+                    if (addr < 0 || addr >= MEMORY_SIZE)
                         throw new Error(`Memory load out of range: ${addr}`);
 
-                    this.push(this.memory[addr]);
+                    this.push(this.memory[addr >> 2]);
                     break;
                 }
 
                 case OP_0BRANCH:
                     if (!this.pop())
-                        pc = this.memory[pc];
+                        pc = this.memory[pc >> 2];
                     else
-                        pc++;
+                        pc += 4;
 
                     break;
 
                 case OP_BRANCH:
-                    pc = this.memory[pc];
+                    pc = this.memory[pc >> 2];
                     break;
 
                 case OP_CALL:
-                    this.returnStack.push(pc + 1);
-                    pc = this.memory[pc];
+                    this.returnStack.push(pc + 4);
+                    pc = this.memory[pc >> 2];
                     break;
 
                 case OP_EXIT:
@@ -304,7 +314,7 @@ class ForthContext {
                     break;
 
                 case OP_HERE:
-                    this.push(this.nextEmit);
+                    this.push(this.here);
                     break;
 
                 case OP_MOD:
@@ -312,10 +322,11 @@ class ForthContext {
                     break;
 
                 case OP_EMIT:
-                    if (this.nextEmit == MEMORY_SIZE)
+                    if (this.here >= MEMORY_SIZE)
                         throw new Error("out of memory");
 
-                    this.memory[this.nextEmit++] = this.pop();
+                    this.memory[this.here >> 2] = this.pop();
+                    this.here += 4
                     break;
 
                 case OP_LT:
@@ -339,16 +350,18 @@ class ForthContext {
                     break;
 
                 case OP_INVOKE_NATIVE: {
-                    const index = this.memory[pc++];
+                    const index = this.memory[pc >> 2];
+                    pc += 4;
                     const [ callback, argCount ] = this.nativeFunctions[index];
-                    if (MEMORY_SIZE - this.stackPointer - 1 < argCount)
+                    if (((MEMORY_SIZE - this.stackPointer - 4) >> 2) < argCount)
                         throw new Error("stack underflow");
 
                     const args = [];
+                    let argIndex = (this.stackPointer >> 2) + argCount - 1;
                     for (let i = 0; i < argCount; i++)
-                        args.push(this.memory[this.stackPointer + argCount - i - 1]);
+                        args.push(this.memory[argIndex--]);
 
-                    this.stackPointer += argCount;
+                    this.stackPointer += argCount * 4;
                     const result = callback.apply(null, args);
                     if (result) {
                         for (const elem of result)
@@ -357,11 +370,9 @@ class ForthContext {
                     break;
                 }
 
-                case OP_ZERO_EQUALS: {
-                    const pval = this.pop();
-                    this.push(!pval);
+                case OP_ZERO_EQUALS:
+                    this.push(!this.pop());
                     break;
-                }
 
                 case OP_PUSH_RETURN:
                     this.returnStack.push(this.pop());
@@ -369,13 +380,13 @@ class ForthContext {
 
                 case OP_POP_RETURN:
                     if (this.returnStack.length == 0)
-                        throw new Error(`return stack underflow PC @{pc - 1}`);
+                        throw new Error(`return stack underflow PC @{pc - 4}`);
 
                     this.push(this.returnStack.pop());
                     break;
 
                 default:
-                    throw new Error(`Undefined opcode @${pc - 1} ${this.memory[pc - 1]}`);
+                    throw new Error(`Undefined opcode @${pc - 4} ${this.memory[(pc - 1) >> 2]}`);
             }
         }
 
@@ -426,7 +437,8 @@ class ForthContext {
 
         const self = this;
         function emit(value) {
-            self.memory[self.nextEmit++] = value;
+            self.memory[self.here >> 2] = value;
+            self.here += 4;
         }
 
         let currentWord = null;
@@ -471,7 +483,7 @@ class ForthContext {
                     if (!funcName)
                         throw new Error(`Line ${this.lineNumber}: missing word name`);
                     currentWord = new Word();
-                    currentWord.address = this.nextEmit;
+                    currentWord.address = this.here;
                     this.dictionary[funcName] = currentWord;
                     break;
 
@@ -495,7 +507,8 @@ class ForthContext {
 
                     const varName = this.nextToken();
                     const word = new Word();
-                    word.address = this.nextEmit++;
+                    word.address = this.here;
+                    this.here += 4;
                     word.variable = true;
                     this.dictionary[varName] = word;
                     break;
