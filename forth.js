@@ -41,10 +41,9 @@ const LIB = `
 ;
 
 : until immediate
-    8 emit          ( create a conditional branch to break out if 0 )
-    here 3 + emit   ( branch address past unconditional branch )
-    7 emit          ( unconditional branch to head )
+    8 emit          ( create a conditional branch head if zero )
     emit            ( pop head address off stack and emit as branch addr )
+    ( else falls through )
 ;
 
 : while immediate

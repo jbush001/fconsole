@@ -110,7 +110,7 @@ test("until loop", () => {
     begin
         dup print
         1 -
-        dup
+        dup 0=
     until
     ;`
 
@@ -132,7 +132,7 @@ test("nested loop", () => {
             b @ 2 + b !
         repeat
 
-        a @ 10 + dup a ! 30 <
+        a @ 10 + dup a ! 30 >=
     until
     ;`
 
@@ -288,7 +288,7 @@ test("invoke native return", () => {
 });
 
 test("infinite loop", () => {
-    const t = () => { run_code(": main begin 1 until ;") };
+    const t = () => { run_code(": main begin 0 until ;") };
     expect(t).toThrow("Exceeded maximum cycles");
 });
 
@@ -298,12 +298,12 @@ test("undefined opcode", () => {
 });
 
 test("pc out of range", () => {
-    const t = () => { run_code(": foo immediate begin 9999 emit 1 until ; : main foo ;") };
+    const t = () => { run_code(": foo immediate begin 9999 emit 0 until ; : main foo ;") };
     expect(t).toThrow("out of memory");
 });
 
 test("jump out of range", () => {
-    const t = () => { run_code(": foo immediate begin 7 emit 9999 emit until ; : main foo ;") };
+    const t = () => { run_code(": foo immediate begin 7 emit 9999 emit 1 until ; : main foo ;") };
     expect(t).toThrow("PC out of range");
 });
 
