@@ -27,9 +27,14 @@ function run_code(source) {
 }
 
 test("maths", () => {
-    const src = ": main 1 2 + print -5 7 * print 4 10 - print  200 7 9 12 * + - 13 +  print ;";
+    const src = `: main
+        1 2 + print
+        -5 7 * print
+        4 10 - print
+        347 7 2 3 * + / 13 +  print
+        ;`;
 
-    expect(run_code(src)).toBe("3\n-35\n-6\n98");
+    expect(run_code(src)).toBe("3\n-35\n-6\n39");
 });
 
 test("variables", () => {

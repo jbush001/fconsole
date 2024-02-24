@@ -103,16 +103,17 @@ const OP_OVER = 14;
 const OP_ADD = 15;
 const OP_SUB = 16;
 const OP_MUL = 17;
-const OP_SP = 18;
-const OP_LT = 19;
-const OP_EQ = 20;
-const OP_XOR = 21;
-const OP_AND = 22;
-const OP_OR = 23;
-const OP_INVOKE_NATIVE = 24;
-const OP_ZERO_EQUALS = 25;
-const OP_PUSH_RETURN = 26;
-const OP_POP_RETURN = 27;
+const OP_DIV = 18;
+const OP_SP = 19;
+const OP_LT = 20;
+const OP_EQ = 21;
+const OP_XOR = 22;
+const OP_AND = 23;
+const OP_OR = 24;
+const OP_INVOKE_NATIVE = 25;
+const OP_ZERO_EQUALS = 26;
+const OP_PUSH_RETURN = 27;
+const OP_POP_RETURN = 28;
 
 const INTRINSICS = [
     ["drop", OP_DROP],
@@ -125,6 +126,7 @@ const INTRINSICS = [
     ["+", OP_ADD],
     ["-", OP_SUB],
     ["*", OP_MUL],
+    ["/", OP_DIV],
     ["sp", OP_SP],
     ["exit", OP_EXIT],
     ["emit", OP_EMIT],
@@ -193,7 +195,9 @@ class ForthContext {
     }
 
     push(val) {
-        this.memory[--this.stackPointer] = val;
+        // the "| 0" forces this to fit in an int. We always keep the stack
+        // as integer types.
+        this.memory[--this.stackPointer] = val | 0;
     }
 
     exec(entryAddress) {
@@ -246,6 +250,10 @@ class ForthContext {
 
                 case OP_MUL:
                     binop((a, b) => a * b);
+                    break;
+
+                case OP_DIV:
+                    binop((a, b) => a / b);
                     break;
 
                 case OP_SP:
@@ -311,11 +319,11 @@ class ForthContext {
                     break;
 
                 case OP_LT:
-                    binop((a, b) => a < b ? 1 : 0);
+                    binop((a, b) => a < b);
                     break;
 
                 case OP_EQ:
-                    binop((a, b) => a === b ? 1 : 0);
+                    binop((a, b) => a === b);
                     break;
 
                 case OP_XOR:
@@ -351,7 +359,7 @@ class ForthContext {
 
                 case OP_ZERO_EQUALS: {
                     const pval = this.pop();
-                    this.push(pval ? 0 : 1);
+                    this.push(!pval);
                     break;
                 }
 
