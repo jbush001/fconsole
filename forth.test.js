@@ -330,7 +330,6 @@ test("paren comment", () =>  {
         : main ( a single line version )
         42 \\ ( this should be ignored )
         ( here's an interesting one \\ )
-        )
         print
         ;
     `)).toBe("42");
