@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/jbush001/fconsole#readme",
   "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-google": "^0.14.0",
     "jest": "^29.7.0"
   }
 }
