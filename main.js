@@ -118,6 +118,42 @@ function startup() {
   createImageBitmap(spriteData).then((bm) => {
     spriteSheet = bm;
   });
+
+  fetch('game.fth').then((response) => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.text();
+  }).then((data) => {
+    document.getElementById('source').value = data;
+    setInterval(saveToServer, 10000);
+  }).catch((error) => {
+    alert('Error loading file');
+  });
+
+  window.addEventListener('beforeunload', () => {
+    saveToServer();
+  });
+}
+
+function saveToServer() {
+  console.log('saving text');
+  const content = document.getElementById('source').value;
+  console.log('content', content);
+  fetch('/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({content}),
+  }).then((response) => {
+    if (!response.ok) {
+      throw new Error('Failed to save text to server');
+    }
+    console.log('Saved');
+  }).catch((error) => {
+    alert('Error saving text to server:' + error);
+  });
 }
 
 function writeConsole(text) {

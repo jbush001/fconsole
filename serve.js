@@ -17,16 +17,37 @@ const fs = require('fs');
 const path = require('path');
 
 const server = http.createServer((req, res) => {
-  const filePath = path.join(__dirname, req.url);
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      res.writeHead(404);
-      res.end('File Not Found');
-    } else {
-      res.writeHead(200);
-      res.end(content, 'utf-8');
-    }
-  });
+  if (req.url == '/save') {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += JSON.parse(chunk.toString()).content;
+    });
+
+    req.on('end', () => {
+      const filePath = path.join(__dirname, 'game.fth');
+      fs.writeFile(filePath, body, (err) => {
+        if (err) {
+          res.writeHead(500, {'Content-Type': 'text/plain'});
+          res.end('Error saving file');
+          return;
+        }
+
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end('File saved successfully');
+      });
+    });
+  } else {
+    const filePath = path.join(__dirname, req.url);
+    fs.readFile(filePath, (err, content) => {
+      if (err) {
+        res.writeHead(404);
+        res.end('File Not Found');
+      } else {
+        res.writeHead(200);
+        res.end(content, 'utf-8');
+      }
+    });
+  }
 });
 
 server.listen(3000, () => {
