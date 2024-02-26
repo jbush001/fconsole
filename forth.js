@@ -436,9 +436,6 @@ class ForthContext {
           this.push((this.memory[index] >> offs) & 0xff);
         }
 
-        case OP_FETCH_CHAR:
-          break;
-
         default:
           throw new Error(
               `Undefined opcode @${pc - 4} ${this.memory[(pc - 1) >> 2]}`);
