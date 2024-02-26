@@ -434,6 +434,7 @@ class ForthContext {
           const index = addr >> 2;
           const offs = (addr & 3) * 8;
           this.push((this.memory[index] >> offs) & 0xff);
+          break;
         }
 
         default:
