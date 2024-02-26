@@ -1,3 +1,5 @@
+![example workflow](https://github.com/jbush001/fconsole/actions/workflows/node.js.yml/badge.svg)
+
 FORTH has a fervent base of adherents who rave about its simplicity and power.
 While the mechanics are pretty simple, I've never really fully understood its Te.
 I've been having fun recently making small games in PICO-8, and I thought an
