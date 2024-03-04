@@ -126,7 +126,7 @@ function startup() {
     return response.text();
   }).then((data) => {
     document.getElementById('source').value = data;
-    setInterval(saveToServer, 10000);
+//  setInterval(saveToServer, 10000);
   }).catch((error) => {
     alert('Error loading file');
   });
@@ -234,21 +234,20 @@ function doRun() {
     ctx.bindNative('fillRect', 4, fillRect);
 
     console.log('compiling');
-    ctx.compile(LIB);
-    ctx.compile(document.getElementById('source').value);
+    ctx.interpretSource(document.getElementById('source').value);
     console.log('done');
-    console.log(ctx.memory);
     for (const key in ctx.dictionary) {
-      console.log(key, ctx.dictionary[key].address);
+      console.log(key, ctx.dictionary[key].value);
     }
 
     document.getElementById('output').textContent = '';
 
     if ('init' in ctx.dictionary) {
-      ctx.exec(ctx.dictionary['init'].address);
+      ctx.exec(ctx.dictionary['init'].value);
     }
 
-    drawFrameAddr = ctx.dictionary['drawFrame'].address;
+    drawFrameAddr = ctx.dictionary['drawFrame'].value;
+    console.log('drawFrameAddr=', drawFrameAddr, ctx.memory[drawFrameAddr >> 2]);
     clearTimeout(timer);
     drawFrame(ctx);
   } catch (err) {
