@@ -25,6 +25,16 @@ const LIB = `
   ,  \\ branch address, from stack, beginning of loop
 ;
 
+\\ paren comment
+: ( immediate
+  begin      \\ consume until end of comment
+    key dup
+    41 =     \\ close paren
+    swap -1 =  \\ end of input
+    or
+  until
+;
+
 : while immediate
   ' 0branch ,      \\ create a conditional branch to break out if 0
   here @           \\ Save new branch address
@@ -96,6 +106,7 @@ class ForthContext {
       '-': new Word(this._sub),
       '*': new Word(this._mul),
       '/': new Word(this._div),
+      'mod': new Word(this._mod),
       'dup': new Word(this._dup),
       'or': new Word(this._or),
       'and': new Word(this._and),
@@ -118,6 +129,9 @@ class ForthContext {
       'branch': new Word(this._branch),
       '0=': new Word(this._zeroEquals),
       'key': new Word(this._key),
+      'exit': new Word(this._exit),
+      '>r': new Word(this._pushReturn),
+      'r>': new Word(this._popReturn),
     };
 
     this.interpretSource(LIB);
@@ -249,6 +263,12 @@ class ForthContext {
     const a = this._pop();
     const b = this._pop();
     this._push(b / a);
+  }
+
+  _mod() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(b % a);
   }
 
   _or() {
@@ -402,7 +422,24 @@ class ForthContext {
   }
 
   _key() {
-    this._push(this._nextChar());
+    const val = this._nextChar();
+    if (val) {
+      this._push(val.charCodeAt(0));
+    } else {
+      this._push(-1);
+    }
+  }
+
+  _pushReturn() {
+    this.returnStack.push(this._pop());
+  }
+
+  _popReturn() {
+    if (this.returnStack.length == 0) {
+      throw new Error(`return stack underflow PC @{this.pc - 4}`);
+    }
+
+    this._push(this.returnStack.pop());
   }
 
   exec(startAddress) {

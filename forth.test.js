@@ -308,6 +308,47 @@ test('single line comment', () => {
   `)).toBe('42');
 });
 
+test('paren comment', () => {
+  expect(runCode(`
+    (
+      this is an example of a
+      paren comment
+    )
+    ( a single line version )
+    42 \\ ( this should be ignored )
+    ( here's an interesting one \\ )
+    print
+  `)).toBe('42');
+});
+
+test('gcd', () => {
+  expect(runCode(`
+    : gcd ( a b -- n )
+      begin dup while swap over mod repeat drop
+    ;
+
+    15 10 gcd print
+    128 96 gcd print
+  `)).toBe('5\n32');
+});
+
+test('exit', () => {
+  expect(runCode(`
+    : foo
+      27 print
+      39 print
+      exit
+      49 print
+    ;
+
+    foo
+  `)).toBe('27\n39');
+});
+
+test('unmatched comment', () => {
+  expect(runCode('\n: main ; \n( this is an unmatched... \n\n')).toBe('');
+});
+
 test('immediate outside word', () => {
   expect(runCode(`
     immediate
@@ -317,6 +358,36 @@ test('immediate outside word', () => {
 
     foo
   `)).toBe('27');
+});
+
+test('push/pop return', () => {
+  expect(runCode(`
+    immediate
+    : foo
+      7 9 12 13 >r >r
+      15 print print
+      r> r> print print
+      print
+    ;
+
+    foo
+    99 print
+  `)).toBe('15\n9\n13\n12\n7\n99');
+});
+
+test('return stack underflow 1', () => {
+  const t = () => {
+    runCode(': main r> r> ; main');
+  };
+  expect(t).toThrow(Error);
+});
+
+
+test('return stack underflow 2', () => {
+  const t = () => {
+    runCode(': main r> ; main');
+  };
+  expect(t).toThrow(Error);
 });
 
 test('missing word name', () => {

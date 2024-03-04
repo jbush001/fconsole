@@ -247,7 +247,6 @@ function doRun() {
     }
 
     drawFrameAddr = ctx.dictionary['drawFrame'].value;
-    console.log('drawFrameAddr=', drawFrameAddr, ctx.memory[drawFrameAddr >> 2]);
     clearTimeout(timer);
     drawFrame(ctx);
   } catch (err) {
