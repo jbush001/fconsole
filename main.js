@@ -119,21 +119,21 @@ function startup() {
     spriteSheet = bm;
   });
 
-  fetch('game.fth').then((response) => {
+  fetch('quadblox.fth').then((response) => {
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     return response.text();
   }).then((data) => {
     document.getElementById('source').value = data;
-//  setInterval(saveToServer, 10000);
+    // setInterval(saveToServer, 10000);
   }).catch((error) => {
     alert('Error loading file');
   });
 
-  window.addEventListener('beforeunload', () => {
-    saveToServer();
-  });
+  // window.addEventListener('beforeunload', () => {
+  //   saveToServer();
+  // });
 }
 
 function saveToServer() {
@@ -212,10 +212,15 @@ let timer = null;
 let drawFrameAddr = -1;
 
 function drawFrame(ctx) {
-  ctx.exec(drawFrameAddr);
-  timer = setTimeout(() => {
-    drawFrame(ctx);
-  }, 16);
+  try {
+    ctx.exec(drawFrameAddr);
+
+    timer = setTimeout(() => {
+      drawFrame(ctx);
+    }, 16);
+  } catch (err) {
+    alert(err);
+  }
 }
 
 // eslint-disable-next-line no-unused-vars

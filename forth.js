@@ -100,6 +100,11 @@ const LIB = `
   ' exit ,
 ;
 
+( offset -- value )
+: pick
+  4 * dsp@ + @
+;
+
 `;
 
 const MEMORY_SIZE = 4096;
@@ -119,7 +124,7 @@ class ForthContext {
     this.returnStack = [];
 
     // Memory is an array of 32-bit words, although pointers are byte oriented.
-    this.memory = Array(MEMORY_SIZE).fill(0);
+    this.memory = Array(MEMORY_SIZE >> 2).fill(0);
     this.stackPointer = MEMORY_SIZE - 4;
     this.mode = MODE_INTERP;
     this.here = 4; // Zero is reserved for 'here' itself.
@@ -157,6 +162,7 @@ class ForthContext {
       'exit': new Word(this._exit),
       '>r': new Word(this._pushReturn),
       'r>': new Word(this._popReturn),
+      'dsp@': new Word(this._dsp),
     };
 
     this.interpretSource(LIB);
@@ -464,6 +470,10 @@ class ForthContext {
     }
 
     this._push(this.returnStack.pop());
+  }
+
+  _dsp() {
+    this._push(this.stackPointer);
   }
 
   exec(startAddress) {

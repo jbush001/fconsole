@@ -493,3 +493,15 @@ test('set here', () => {
   `)).toBe('300\n1234');
 });
 
+test('pick', () => {
+  expect(runCode(`
+    7 6 5 4 3 2 1
+    1 pick .
+    2 pick .
+    3 pick .
+    4 pick .
+    5 pick .
+    6 pick .
+    7 pick .
+  `)).toBe('1\n2\n3\n4\n5\n6\n7');
+});
