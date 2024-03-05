@@ -54,6 +54,18 @@ test('variables', () => {
   expect(runCode(src)).toBe('12\n-13\n14\n15');
 });
 
+test('constant', () => {
+  const src = `
+  13 constant a
+  17 constant b
+
+  a print
+  b print
+  a b + print`;
+
+  expect(runCode(src)).toBe('13\n17\n30');
+});
+
 test('conditionals', () => {
   const src = `
 : main
@@ -208,7 +220,7 @@ test('nested :', () => {
   const t = () => {
     runCode('\n\n: foo\n: bar\n');
   };
-  expect(t).toThrow('Line 4: colon inside colon');
+  expect(t).toThrow('Line 4: nested colon def');
 });
 
 test('unmatched ;', () => {
@@ -222,7 +234,44 @@ test('variable inside :', () => {
   const t = () => {
     runCode('\n: foo\nvariable bar\n');
   };
-  expect(t).toThrow('Line 3: variable inside word def');
+  expect(t).toThrow('Line 3: create inside colon def');
+});
+
+test('lookup table', () => {
+  expect(runCode(`
+    here @ 13 , 17 , 19 , 21 , 23 , 27 , 31 , 33 , constant foo
+
+    foo @ print
+    foo 4 + @ print
+    foo 8 + @ print
+    foo 12 + @ print
+    foo 16 + @ print
+    foo 20 + @ print
+    foo 24 + @ print
+    foo 28 + @ print
+  `)).toBe('13\n17\n19\n21\n23\n27\n31\n33');
+});
+
+test('array alloc', () => {
+  expect(runCode(`
+    5 cells allot constant array1
+    variable foo
+    5 array1 !
+    7 array1 4 + !
+    9 array1 8 + !
+    13 array1 12 + !
+    17 array1 16 + !
+
+    99 foo !
+
+    array1 @ print
+    array1 4 + @ print
+    array1 8 + @ print
+    array1 12 + @ print
+    array1 16 + @ print
+
+    foo @ print
+  `)).toBe('5\n7\n9\n13\n17\n99');
 });
 
 test('unknown token', () => {

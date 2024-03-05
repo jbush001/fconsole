@@ -77,6 +77,29 @@ const LIB = `
 
 : 2dup over over ;
 
+: constant
+  word create
+  ' lit ,
+  ,
+  ' exit ,
+;
+
+: allot  ( n -- start_address )
+  here @ swap  ( start_address count )
+  over +       ( start_address end_address )
+  here !       ( start_address )
+;
+
+: cells 4 * ;
+
+: variable immediate
+  1 cells allot
+  word create  \\ Create in dictionary
+  ' lit ,
+  ,            \\ Push the value returned by allot
+  ' exit ,
+;
+
 `;
 
 const MEMORY_SIZE = 4096;
@@ -102,6 +125,9 @@ class ForthContext {
     this.here = 4; // Zero is reserved for 'here' itself.
     this.currentToken = '';
     this.dictionary = {
+      'word': new Word(this._word),
+      'create': new Word(this._create),
+      'lit': new Word(this._lit),
       '+': new Word(this._add),
       '-': new Word(this._sub),
       '*': new Word(this._mul),
@@ -113,7 +139,6 @@ class ForthContext {
       'xor': new Word(this._xor),
       '=': new Word(this._equals),
       '<': new Word(this._lessThan),
-      'variable': new Word(this._variable, true),
       '!': new Word(this._store),
       '@': new Word(this._fetch),
       ':': new Word(this._colon, true),
@@ -240,6 +265,19 @@ class ForthContext {
     }
   }
 
+  _word() {
+    this._nextWord();
+    // the word will be stored in this.currentToken
+  }
+
+  _create() {
+    if (this.mode == MODE_COMPILE) {
+      throw new Error(`Line ${this.lineNumber}: create inside colon def`);
+    }
+
+    this.dictionary[this.currentToken] = new Word(this.here);
+  }
+
   _lit() {
     this._push(this.memory[this.pc >> 2]);
     this.pc += 4;
@@ -310,20 +348,6 @@ class ForthContext {
     }
   }
 
-  _variable() {
-    if (this.mode == MODE_COMPILE) {
-      throw new Error(`Line ${this.lineNumber}: variable inside word def`);
-    }
-
-    const name = this._nextWord();
-    const varAddr = this.here;
-    this._emitCode(0); // Reserve space for storage
-    this._emitCode(this._lit);
-    this._emitCode(varAddr);
-    this._emitCode(this._exit);
-    this.dictionary[name] = new Word(varAddr + 4);
-  }
-
   _fetch() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
@@ -345,7 +369,7 @@ class ForthContext {
 
   _colon() {
     if (this.mode == MODE_COMPILE) {
-      throw new Error(`Line ${this.lineNumber}: colon inside colon`);
+      throw new Error(`Line ${this.lineNumber}: nested colon def`);
     }
 
     const name = this._nextWord();
