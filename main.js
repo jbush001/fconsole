@@ -227,7 +227,7 @@ function doRun() {
     ctx.bindNative('setColor', 1, setColor);
     ctx.bindNative('drawLine', 4, drawLine);
     ctx.bindNative('drawSprite', 5, drawSprite);
-    ctx.bindNative('print', 1, (val) => {
+    ctx.bindNative('.', 1, (val) => {
       writeConsole(val + '\n');
     });
     ctx.bindNative('buttons', 0, getButtons);

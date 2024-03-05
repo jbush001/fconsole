@@ -17,7 +17,7 @@ const forth = require('./forth');
 function runCode(source) {
   const ctx = new forth.ForthContext();
   let strval = '';
-  ctx.bindNative('print', 1, (val) => {
+  ctx.bindNative('.', 1, (val) => {
     strval += val.toString() + '\n';
   });
 
@@ -27,10 +27,10 @@ function runCode(source) {
 
 test('maths', () => {
   const src = `
-  1 2 + print
-  -5 7 * print
-  4 10 - print
-  347 7 2 3 * + / 13 +  print
+  1 2 + .
+  -5 7 * .
+  4 10 - .
+  347 7 2 3 * + / 13 +  .
   `;
 
   expect(runCode(src)).toBe('3\n-35\n-6\n39');
@@ -45,11 +45,11 @@ test('variables', () => {
   12 a !
   -13 b !
   14 c !
-  a @ print
-  b @ print
-  c @ print
+  a @ .
+  b @ .
+  c @ .
   15 a !
-  a @ print`;
+  a @ .`;
 
   expect(runCode(src)).toBe('12\n-13\n14\n15');
 });
@@ -59,9 +59,9 @@ test('constant', () => {
   13 constant a
   17 constant b
 
-  a print
-  b print
-  a b + print`;
+  a .
+  b .
+  a b + .`;
 
   expect(runCode(src)).toBe('13\n17\n30');
 });
@@ -70,31 +70,31 @@ test('conditionals', () => {
   const src = `
 : main
 1 if
-  17 print
+  17 .
 else
-  18 print
+  18 .
 then
 
 0 if
-  19 print
+  19 .
 else
-  20 print
+  20 .
 then
 
 1 if
-  21 print
+  21 .
 then
 
 0 if
-  22 print
+  22 .
 then
 
 1 if
   1 if
-     23 print
+     23 .
   then
 else
-  24 print
+  24 .
 then
 ;
 
@@ -111,7 +111,7 @@ test('while loop', () => {
   begin
     dup 0 >
   while
-    dup print
+    dup .
     1 -
   repeat
   ;
@@ -126,7 +126,7 @@ test('until loop', () => {
   : main
     10
     begin
-      dup print
+      dup .
       1 -
       dup 0=
     until
@@ -146,59 +146,59 @@ test('underflow', () => {
 });
 
 test('drop', () => {
-  expect(runCode('1 2 3 drop print print')).toBe('2\n1');
+  expect(runCode('1 2 3 drop . .')).toBe('2\n1');
 });
 
 test('dup', () => {
-  expect(runCode('1 2 3 dup print print print print'))
+  expect(runCode('1 2 3 dup . . . .'))
       .toBe('3\n3\n2\n1');
 });
 
 test('swap', () => {
-  expect(runCode('1 2 3 swap print print print')).toBe('2\n3\n1');
+  expect(runCode('1 2 3 swap . . .')).toBe('2\n3\n1');
 });
 
 test('over', () => {
-  expect(runCode('1 2 3 over print print print print'))
+  expect(runCode('1 2 3 over . . . .'))
       .toBe('2\n3\n2\n1');
 });
 
 test('2dup', () => {
-  expect(runCode('27 31 over over print print print print'))
+  expect(runCode('27 31 over over . . . .'))
       .toBe('31\n27\n31\n27');
 });
 
 test('0=', () => {
-  expect(runCode('1 0= print 100 0= print 0 0= print'))
+  expect(runCode('1 0= . 100 0= . 0 0= .'))
       .toBe('0\n0\n1');
 });
 
 test('comparisons', () => {
   expect(runCode(`
-    12 24 > print
-    12 -24 > print
-    13 9 > print
-    17 19 < print
-    19 17 < print
-    11 11 >= print
-    11 12 >= print
-    12 11 >= print
-    22 23 <= print
-    23 22 <= print
-    22 22 <= print
-    44 44 = print
-    44 43 = print
-    55 55 <> print
-    54 53 <> print
+    12 24 > .
+    12 -24 > .
+    13 9 > .
+    17 19 < .
+    19 17 < .
+    11 11 >= .
+    11 12 >= .
+    12 11 >= .
+    22 23 <= .
+    23 22 <= .
+    22 22 <= .
+    44 44 = .
+    44 43 = .
+    55 55 <> .
+    54 53 <> .
   `)).toBe('0\n1\n1\n1\n0\n1\n0\n1\n1\n0\n1\n1\n0\n0\n1');
 });
 
 test('logical', () => {
   expect(runCode(`
-    4 1 or print
-    10 3 and print
-    13 6 xor print
-    13 -1 xor print
+    4 1 or .
+    10 3 and .
+    13 6 xor .
+    13 -1 xor .
   `)).toBe('5\n2\n11\n-14');
 });
 
@@ -212,7 +212,7 @@ test('def', () => {
       2 *
     ;
 
-    7 bar foo print
+    7 bar foo .
   `)).toBe('17');
 });
 
@@ -241,14 +241,14 @@ test('lookup table', () => {
   expect(runCode(`
     here @ 13 , 17 , 19 , 21 , 23 , 27 , 31 , 33 , constant foo
 
-    foo @ print
-    foo 4 + @ print
-    foo 8 + @ print
-    foo 12 + @ print
-    foo 16 + @ print
-    foo 20 + @ print
-    foo 24 + @ print
-    foo 28 + @ print
+    foo @ .
+    foo 4 + @ .
+    foo 8 + @ .
+    foo 12 + @ .
+    foo 16 + @ .
+    foo 20 + @ .
+    foo 24 + @ .
+    foo 28 + @ .
   `)).toBe('13\n17\n19\n21\n23\n27\n31\n33');
 });
 
@@ -264,13 +264,13 @@ test('array alloc', () => {
 
     99 foo !
 
-    array1 @ print
-    array1 4 + @ print
-    array1 8 + @ print
-    array1 12 + @ print
-    array1 16 + @ print
+    array1 @ .
+    array1 4 + @ .
+    array1 8 + @ .
+    array1 12 + @ .
+    array1 16 + @ .
 
-    foo @ print
+    foo @ .
   `)).toBe('5\n7\n9\n13\n17\n99');
 });
 
@@ -327,11 +327,11 @@ test('invoke native return', () => {
     return [val + 1, val + 2];
   });
   let strval = '';
-  ctx.bindNative('print', 1, (val) => {
+  ctx.bindNative('.', 1, (val) => {
     strval += val.toString() + '\n';
   });
 
-  ctx.interpretSource('17 foo print print');
+  ctx.interpretSource('17 foo . .');
   expect(strval).toBe('19\n18\n');
 });
 
@@ -353,7 +353,7 @@ test('single line comment', () => {
   expect(runCode(`
     \\ ignore this it is a comment
     42 \\ push a value
-    print
+    .
   `)).toBe('42');
 });
 
@@ -366,7 +366,7 @@ test('paren comment', () => {
     ( a single line version )
     42 \\ ( this should be ignored )
     ( here's an interesting one \\ )
-    print
+    .
   `)).toBe('42');
 });
 
@@ -376,18 +376,18 @@ test('gcd', () => {
       begin dup while swap over mod repeat drop
     ;
 
-    15 10 gcd print
-    128 96 gcd print
+    15 10 gcd .
+    128 96 gcd .
   `)).toBe('5\n32');
 });
 
 test('exit', () => {
   expect(runCode(`
     : foo
-      27 print
-      39 print
+      27 .
+      39 .
       exit
-      49 print
+      49 .
     ;
 
     foo
@@ -402,7 +402,7 @@ test('immediate outside word', () => {
   expect(runCode(`
     immediate
     : foo
-      27 print
+      27 .
     ;
 
     foo
@@ -414,13 +414,13 @@ test('push/pop return', () => {
     immediate
     : foo
       7 9 12 13 >r >r
-      15 print print
-      r> r> print print
-      print
+      15 . .
+      r> r> . .
+      .
     ;
 
     foo
-    99 print
+    99 .
   `)).toBe('15\n9\n13\n12\n7\n99');
 });
 
@@ -450,9 +450,9 @@ test('set here', () => {
   expect(runCode(`
     : main
       300 here !
-      here @ print
+      here @ .
       1234 ,
-      300 @ print
+      300 @ .
     ;
 
     main
