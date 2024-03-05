@@ -27,13 +27,23 @@ function runCode(source) {
 
 test('maths', () => {
   const src = `
+  \\ Immediate
   1 2 + .
   -5 7 * .
   4 10 - .
   347 7 2 3 * + / 13 +  .
+
+  \\ Compiled
+  : foo
+      -7 9 + .
+      8 3 - .
+      -3 -4 * .
+      123 4 5 6 * + / 7 + .
+  ;
+  foo
   `;
 
-  expect(runCode(src)).toBe('3\n-35\n-6\n39');
+  expect(runCode(src)).toBe('3\n-35\n-6\n39\n2\n5\n12\n10');
 });
 
 test('variables', () => {
@@ -137,6 +147,31 @@ test('until loop', () => {
 
   expect(runCode(src)).toBe('10\n9\n8\n7\n6\n5\n4\n3\n2\n1');
 });
+
+test('nested loop', () => {
+  src = `
+  variable a
+  variable b
+  : main
+  0 a !
+  begin
+    3 b !
+    begin
+      b @ 7 <
+    while
+      a @ b @ + .
+      b @ 2 + b !
+    repeat
+
+    a @ 10 + dup a ! 30 >=
+  until
+  ;
+
+  main`;
+
+  expect(runCode(src)).toBe('3\n5\n13\n15\n23\n25');
+});
+
 
 test('underflow', () => {
   const t = () => {
@@ -430,7 +465,6 @@ test('return stack underflow 1', () => {
   };
   expect(t).toThrow(Error);
 });
-
 
 test('return stack underflow 2', () => {
   const t = () => {
