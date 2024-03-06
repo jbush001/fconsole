@@ -309,13 +309,6 @@ test('array alloc', () => {
   `)).toBe('5\n7\n9\n13\n17\n99');
 });
 
-test('unknown token', () => {
-  const t = () => {
-    runCode('\n: foo\nbar\n');
-  };
-  expect(t).toThrow('Line 3: unknown token \'bar\'');
-});
-
 test('store out of range 1', () => {
   const t = () => {
     runCode('2 -1 !');
@@ -504,4 +497,32 @@ test('pick', () => {
     6 pick .
     7 pick .
   `)).toBe('1\n2\n3\n4\n5\n6\n7');
+});
+
+test('bases', () => {
+  expect(runCode(`
+    16 base !
+    f00abc .
+    8 base !
+    1234 .
+    12 base !  \\ Actually 10, since our numbers are octal now
+    456 .
+  `)).toBe('15731388\n668\n456');
+});
+
+
+test('state', () => {
+  expect(runCode(`
+    : foo immediate
+      state @ .
+    ;
+
+    : bar
+      state @ .
+      foo
+    ;
+
+    state @ .
+    bar
+  `)).toBe('1\n0\n0');
 });

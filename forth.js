@@ -122,10 +122,12 @@ class Word {
   }
 }
 
-const MODE_INTERP = 0;
-const MODE_COMPILE = 1;
+const STATE_INTERP = 0;
+const STATE_COMPILE = 1;
 
-const HERE_ADDR = 0;
+const HERE_IDX = 0;
+const BASE_IDX = 1;
+const STATE_IDX = 2;
 
 class ForthContext {
   constructor() {
@@ -134,8 +136,9 @@ class ForthContext {
     // Memory is an array of 32-bit words, although pointers are byte oriented.
     this.memory = Array(MEMORY_SIZE >> 2).fill(0);
     this.stackPointer = MEMORY_SIZE - 4;
-    this.mode = MODE_INTERP;
-    this.memory[HERE_ADDR] = 4; // Zero is reserved for 'here' itself.
+    this.memory[HERE_IDX] = 12; // Account for built-in variables
+    this.memory[BASE_IDX] = 10;
+    this.memory[STATE_IDX] = STATE_INTERP;
     this.currentToken = '';
     this.dictionary = {
       'word': new Word(this._word),
@@ -160,7 +163,9 @@ class ForthContext {
       'drop': new Word(this._drop),
       'swap': new Word(this._swap),
       'over': new Word(this._over),
-      'here': new Word(this._here),
+      'here': new Word(() => { this._push(HERE_IDX * 4); }),
+      'base': new Word(() => { this._push(BASE_IDX * 4); }),
+      'state': new Word(() => { this._push(STATE_IDX * 4); }),
       ',': new Word(this._comma),
       '\'': new Word(this._tick),
       '0branch': new Word(this._branchIfZero),
@@ -236,8 +241,8 @@ class ForthContext {
   }
 
   _emitCode(value) {
-    this.memory[this.memory[HERE_ADDR] >> 2] = value;
-    this.memory[HERE_ADDR] += 4;
+    this.memory[this.memory[HERE_IDX] >> 2] = value;
+    this.memory[HERE_IDX] += 4;
   }
 
   // Read the next character from input. Since we don't implement an
@@ -297,11 +302,11 @@ class ForthContext {
   // Add a word to the dictionary, with the name of the word being the last
   // one read in by _word.
   _create() {
-    if (this.mode == MODE_COMPILE) {
+    if (this.memory[STATE_IDX] == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: create inside colon def`);
     }
 
-    this.dictionary[this.currentToken] = new Word(this.memory[HERE_ADDR]);
+    this.dictionary[this.currentToken] = new Word(this.memory[HERE_IDX]);
   }
 
   _lit() {
@@ -396,7 +401,7 @@ class ForthContext {
   }
 
   _colon() {
-    if (this.mode == MODE_COMPILE) {
+    if (this.memory[STATE_IDX] == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: nested colon def`);
     }
 
@@ -405,17 +410,17 @@ class ForthContext {
       throw new Error(`Line ${this.lineNumber}: missing word name`);
     }
 
-    this.currentWord = new Word(this.memory[HERE_ADDR]);
+    this.currentWord = new Word(this.memory[HERE_IDX]);
     this.dictionary[name] = this.currentWord;
-    this.mode = MODE_COMPILE;
+    this.memory[STATE_IDX] = STATE_COMPILE;
   }
 
   _semicolon() {
-    if (this.mode != MODE_COMPILE) {
+    if (this.memory[STATE_IDX] != STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: unmatched ;`);
     }
 
-    this.mode = MODE_INTERP;
+    this.memory[STATE_IDX] = STATE_INTERP;
     this._emitCode(this._exit);
   }
 
@@ -438,10 +443,6 @@ class ForthContext {
 
   _over() {
     this._push(this.memory[(this.stackPointer + 4) >> 2]);
-  }
-
-  _here() {
-    this._push(0); // Address 0 is returned for builtin here.
   }
 
   _comma() {
@@ -523,7 +524,12 @@ class ForthContext {
     }
   }
 
+
   interpretSource(src) {
+    const ZERO_ASCII = '0'.charCodeAt(0);
+    const LOWER_A_ASCII = 'a'.charCodeAt(0);
+    const A_ASCII = 'A'.charCodeAt(0);
+
     this.interpStr = src;
     this.interpOffs = 0;
     this.lineNumber = 1;
@@ -536,7 +542,7 @@ class ForthContext {
 
       if (tok in this.dictionary) {
         const word = this.dictionary[tok];
-        if (this.mode == MODE_INTERP || word.immediate) {
+        if (this.memory[STATE_IDX] == STATE_INTERP || word.immediate) {
           if (word.value instanceof Function) {
             word.value.call(this);
           } else {
@@ -545,18 +551,47 @@ class ForthContext {
         } else {
           this._emitCode(word.value);
         }
-      } else if (/^[+-]?\d+(\.\d+)?$/.test(tok)) {
-        // Numeric value
-        const tokVal = parseFloat(tok);
-        if (this.mode == MODE_INTERP) {
+      } else {
+        // Parse as a number
+        let tokVal = 0;
+        let digitval = 0;
+        const base = this.memory[1];
+        let i = 0;
+        let isNeg = false;
+        if (tok[0] == '-') {
+          isNeg = true;
+          i++;
+        }
+
+        for (; i < tok.length; i++) {
+          if (tok[i] >= '0' && tok[i] <= '9') {
+            digitval = tok.charCodeAt(i) - ZERO_ASCII;
+          } else if (tok[i] >= 'a' && tok[i] <= 'z') {
+            digitval = tok.charCodeAt(i) - LOWER_A_ASCII + 10;
+          } else if (tok[i] >= 'A' && tok[i] <= 'Z') {
+            digitval = tok.charCodeAt(i) - A_ASCII + 10;
+          } else {
+            break;
+          }
+
+          if (digitval >= base) {
+            break;
+          }
+
+          tokVal = (tokVal * base) + digitval;
+        }
+
+        if (isNeg) {
+          tokVal = -tokVal;
+        }
+
+        if (this.memory[STATE_IDX] == STATE_INTERP) {
           this._push(tokVal);
         } else {
           // Compile this into current word
           this._emitCode(this._lit);
           this._emitCode(tokVal);
         }
-      } else {
-        throw new Error(`Line ${this.lineNumber}: unknown token '${tok}'`);
       }
     }
   }
