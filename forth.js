@@ -14,7 +14,13 @@
 
 // This was heavily inspired by the excellent jonesforth tutorial by
 // Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
+//
+// This is basically an indirect threaded interpreter. Programs in the memory
+// space consist of either javascript function references (for built-in words)
+// or an integer number that is a call address for a user routine.
 
+
+// This contains words that implement the FORTH interpreter itself.
 const LIB = `
 : begin immediate
   here @
@@ -116,8 +122,10 @@ class Word {
   }
 }
 
-MODE_INTERP = 0;
-MODE_COMPILE = 1;
+const MODE_INTERP = 0;
+const MODE_COMPILE = 1;
+
+const HERE_ADDR = 0;
 
 class ForthContext {
   constructor() {
@@ -127,7 +135,7 @@ class ForthContext {
     this.memory = Array(MEMORY_SIZE >> 2).fill(0);
     this.stackPointer = MEMORY_SIZE - 4;
     this.mode = MODE_INTERP;
-    this.here = 4; // Zero is reserved for 'here' itself.
+    this.memory[HERE_ADDR] = 4; // Zero is reserved for 'here' itself.
     this.currentToken = '';
     this.dictionary = {
       'word': new Word(this._word),
@@ -191,6 +199,7 @@ class ForthContext {
     });
   }
 
+  // Pop the top value from the data stack, checking bounds.
   _pop() {
     if (this.stackPointer >= MEMORY_SIZE) {
       throw new Error('stack underflow');
@@ -201,13 +210,15 @@ class ForthContext {
     return result;
   }
 
+  // Push a value on top of the data stack, checking bounds.
   _push(val) {
     if (val === undefined) {
       throw new Error('internal error: undefined pushed on stack');
     }
 
     // the '| 0' forces this to fit in an int. We always keep the stack
-    // as integer types.
+    // as integer types (unless they are function references, used for
+    // built-in words).
     this.stackPointer -= 4;
     if (!(val instanceof Function)) {
       val |= 0;
@@ -225,11 +236,14 @@ class ForthContext {
   }
 
   _emitCode(value) {
-    this.memory[this.here >> 2] = value;
-    this.here += 4;
+    this.memory[this.memory[HERE_ADDR] >> 2] = value;
+    this.memory[HERE_ADDR] += 4;
   }
 
-  _nextChar() {
+  // Read the next character from input. Since we don't implement an
+  // actual REPL, this will always be pulled from the current ource
+  // string.
+  _readChar() {
     if (this.interpOffs == this.interpStr.length) {
       return '';
     }
@@ -242,13 +256,15 @@ class ForthContext {
     return ch;
   }
 
-  _nextWord() {
+  // Read the next space delimited character sequence from input, calling
+  // into _readChar.
+  _readWord() {
     let singleLineComment = false;
-    this.currentToken = '';
+    let token = '';
     while (true) {
-      const ch = this._nextChar();
+      const ch = this._readChar();
       if (!ch) {
-        return this.currentToken;
+        return token;
       }
 
       const isSpace = /\s/.test(ch);
@@ -259,29 +275,33 @@ class ForthContext {
       } else if (!singleLineComment && ch == '\\') {
         singleLineComment = true;
       } else if (!isSpace) {
-        this.currentToken += ch;
-      } else if (this.currentToken != '') {
+        token += ch;
+      } else if (token != '') {
         // If terminated by newline, push back so line number is correct.
         if (this.interpStr[--this.interpOffs] == '\n') {
           this.lineNumber--;
         }
 
-        return this.currentToken;
+        return token;
       }
     }
   }
 
+  // Called by FORTH to read a word and save the value in this.currentToken
+  // (to be used subsequently by _create). This mimics the way traditional
+  // forth interpreters store the word into a fixed array buffer in memory.
   _word() {
-    this._nextWord();
-    // the word will be stored in this.currentToken
+    this.currentToken = this._readWord();
   }
 
+  // Add a word to the dictionary, with the name of the word being the last
+  // one read in by _word.
   _create() {
     if (this.mode == MODE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: create inside colon def`);
     }
 
-    this.dictionary[this.currentToken] = new Word(this.here);
+    this.dictionary[this.currentToken] = new Word(this.memory[HERE_ADDR]);
   }
 
   _lit() {
@@ -354,6 +374,7 @@ class ForthContext {
     }
   }
 
+  // Read a word from memory and push onto the stack
   _fetch() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
@@ -363,6 +384,7 @@ class ForthContext {
     this._push(this.memory[addr >> 2]);
   }
 
+  // Pop address and value from the stack and store into memory.
   _store() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
@@ -378,12 +400,12 @@ class ForthContext {
       throw new Error(`Line ${this.lineNumber}: nested colon def`);
     }
 
-    const name = this._nextWord();
+    const name = this._readWord();
     if (!name) {
       throw new Error(`Line ${this.lineNumber}: missing word name`);
     }
 
-    this.currentWord = new Word(this.here);
+    this.currentWord = new Word(this.memory[HERE_ADDR]);
     this.dictionary[name] = this.currentWord;
     this.mode = MODE_COMPILE;
   }
@@ -452,7 +474,7 @@ class ForthContext {
   }
 
   _key() {
-    const val = this._nextChar();
+    const val = this._readChar();
     if (val) {
       this._push(val.charCodeAt(0));
     } else {
@@ -507,7 +529,7 @@ class ForthContext {
     this.lineNumber = 1;
 
     while (true) {
-      const tok = this._nextWord();
+      const tok = this._readWord();
       if (!tok) {
         break;
       }
