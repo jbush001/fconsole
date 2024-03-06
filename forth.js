@@ -15,10 +15,6 @@
 // This was heavily inspired by the excellent jonesforth tutorial by
 // Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
 //
-// This is basically an indirect threaded interpreter. Programs in the memory
-// space consist of either javascript function references (for built-in words)
-// or an integer number that is a call address for a user routine.
-
 
 // This contains words that implement the FORTH interpreter itself.
 const LIB = `
@@ -129,6 +125,10 @@ const HERE_IDX = 0;
 const BASE_IDX = 1;
 const STATE_IDX = 2;
 
+const ZERO_ASCII = '0'.charCodeAt(0);
+const LOWER_A_ASCII = 'a'.charCodeAt(0);
+const A_ASCII = 'A'.charCodeAt(0);
+
 class ForthContext {
   constructor() {
     this.returnStack = [];
@@ -230,14 +230,6 @@ class ForthContext {
     }
 
     this.memory[this.stackPointer >> 2] = val;
-  }
-
-  get here() {
-    return this.memory[0];
-  }
-
-  set here(value) {
-    this.memory[0] = value;
   }
 
   _emitCode(value) {
@@ -499,6 +491,49 @@ class ForthContext {
     this._push(this.stackPointer);
   }
 
+  // Direct execute code. This intepreter doesn't have an actual REPL, so
+  // we interpret code out of a string buffer. This implements what is
+  // formally known as the "outer interpreter."
+  interpretSource(src) {
+    this.interpStr = src;
+    this.interpOffs = 0;
+    this.lineNumber = 1;
+
+    while (true) {
+      const tok = this._readWord();
+      if (!tok) {
+        break;
+      }
+
+      if (tok in this.dictionary) {
+        const word = this.dictionary[tok];
+        if (this.memory[STATE_IDX] == STATE_INTERP || word.immediate) {
+          if (word.value instanceof Function) {
+            word.value.call(this);
+          } else {
+            this.exec(word.value);
+          }
+        } else {
+          this._emitCode(word.value);
+        }
+      } else {
+        const tokVal = this._parseNumber(tok);
+        if (this.memory[STATE_IDX] == STATE_INTERP) {
+          this._push(tokVal);
+        } else {
+          // Compile this into current word
+          this._emitCode(this._lit);
+          this._emitCode(tokVal);
+        }
+      }
+    }
+  }
+
+  // Run compiled code. This is what is usually referred to as the "inner
+  // interpreter." It is basically an indirect threaded interpreter.
+  // Programs in the memory space consist of either javascript function
+  // references (for built-in words) or an integer number that is a call
+  // address for a user routine.
   exec(startAddress) {
     this.continueExec = true;
     this.pc = startAddress;
@@ -524,76 +559,40 @@ class ForthContext {
     }
   }
 
+  _parseNumber(tok) {
+    let tokVal = 0;
+    let digitval = 0;
+    const base = this.memory[1];
+    let i = 0;
+    let isNeg = false;
+    if (tok[0] == '-') {
+      isNeg = true;
+      i++;
+    }
 
-  interpretSource(src) {
-    const ZERO_ASCII = '0'.charCodeAt(0);
-    const LOWER_A_ASCII = 'a'.charCodeAt(0);
-    const A_ASCII = 'A'.charCodeAt(0);
-
-    this.interpStr = src;
-    this.interpOffs = 0;
-    this.lineNumber = 1;
-
-    while (true) {
-      const tok = this._readWord();
-      if (!tok) {
+    for (; i < tok.length; i++) {
+      if (tok[i] >= '0' && tok[i] <= '9') {
+        digitval = tok.charCodeAt(i) - ZERO_ASCII;
+      } else if (tok[i] >= 'a' && tok[i] <= 'z') {
+        digitval = tok.charCodeAt(i) - LOWER_A_ASCII + 10;
+      } else if (tok[i] >= 'A' && tok[i] <= 'Z') {
+        digitval = tok.charCodeAt(i) - A_ASCII + 10;
+      } else {
         break;
       }
 
-      if (tok in this.dictionary) {
-        const word = this.dictionary[tok];
-        if (this.memory[STATE_IDX] == STATE_INTERP || word.immediate) {
-          if (word.value instanceof Function) {
-            word.value.call(this);
-          } else {
-            this.exec(word.value);
-          }
-        } else {
-          this._emitCode(word.value);
-        }
-      } else {
-        // Parse as a number
-        let tokVal = 0;
-        let digitval = 0;
-        const base = this.memory[1];
-        let i = 0;
-        let isNeg = false;
-        if (tok[0] == '-') {
-          isNeg = true;
-          i++;
-        }
-
-        for (; i < tok.length; i++) {
-          if (tok[i] >= '0' && tok[i] <= '9') {
-            digitval = tok.charCodeAt(i) - ZERO_ASCII;
-          } else if (tok[i] >= 'a' && tok[i] <= 'z') {
-            digitval = tok.charCodeAt(i) - LOWER_A_ASCII + 10;
-          } else if (tok[i] >= 'A' && tok[i] <= 'Z') {
-            digitval = tok.charCodeAt(i) - A_ASCII + 10;
-          } else {
-            break;
-          }
-
-          if (digitval >= base) {
-            break;
-          }
-
-          tokVal = (tokVal * base) + digitval;
-        }
-
-        if (isNeg) {
-          tokVal = -tokVal;
-        }
-
-        if (this.memory[STATE_IDX] == STATE_INTERP) {
-          this._push(tokVal);
-        } else {
-          // Compile this into current word
-          this._emitCode(this._lit);
-          this._emitCode(tokVal);
-        }
+      if (digitval >= base) {
+        break;
       }
+
+      tokVal = (tokVal * base) + digitval;
     }
+
+    if (isNeg) {
+      tokVal = -tokVal;
+    }
+
+    return tokVal;
   }
 }
 
