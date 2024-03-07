@@ -79,7 +79,7 @@ const LIB = `
 : 2dup over over ;
 
 : constant
-  word create
+  create
   ' lit ,
   ,
   ' exit ,
@@ -95,7 +95,7 @@ const LIB = `
 
 : variable immediate
   1 cells allot
-  word create  \\ Create in dictionary
+  create
   ' lit ,
   ,            \\ Push the value returned by allot
   ' exit ,
@@ -139,9 +139,7 @@ class ForthContext {
     this.memory[HERE_IDX] = 12; // Account for built-in variables
     this.memory[BASE_IDX] = 10;
     this.memory[STATE_IDX] = STATE_INTERP;
-    this.currentToken = '';
     this.dictionary = {
-      'word': new Word(this._word),
       'create': new Word(this._create),
       'lit': new Word(this._lit),
       '+': new Word(this._add),
@@ -289,22 +287,19 @@ class ForthContext {
     }
   }
 
-  // Called by FORTH code to read a word and save the value in
-  // this.currentToken (to be used subsequently by _create). This mimics
-  // the way traditional forth interpreters store the word into a fixed
-  // array buffer in memory.
-  _word() {
-    this.currentToken = this._readWord();
-  }
-
-  // Add a word to the dictionary, with the name of the word being the last
-  // one read in by _word.
+  // Add a word to the dictionary.
   _create() {
     if (this.memory[STATE_IDX] == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: create inside colon def`);
     }
 
-    this.dictionary[this.currentToken] = new Word(this.memory[HERE_IDX]);
+    const name = this._readWord();
+    if (!name) {
+      throw new Error(`Line ${this.lineNumber}: missing word name`);
+    }
+
+    this.currentWord = new Word(this.memory[HERE_IDX]);
+    this.dictionary[name] = this.currentWord;
   }
 
   // Push a constant value onto the stack (literal). This is usually generated
@@ -407,13 +402,7 @@ class ForthContext {
       throw new Error(`Line ${this.lineNumber}: nested colon def`);
     }
 
-    const name = this._readWord();
-    if (!name) {
-      throw new Error(`Line ${this.lineNumber}: missing word name`);
-    }
-
-    this.currentWord = new Word(this.memory[HERE_IDX]);
-    this.dictionary[name] = this.currentWord;
+    this._create();
     this.memory[STATE_IDX] = STATE_COMPILE;
   }
 
