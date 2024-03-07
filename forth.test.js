@@ -480,6 +480,21 @@ test('missing word name', () => {
   expect(t).toThrow('Line 1: missing word name');
 });
 
+test('constant missing name', () => {
+  const t = () => {
+    runCode('constant');
+  };
+  expect(t).toThrow('Line 1: missing word name');
+});
+
+test('constant in def', () => {
+  const t = () => {
+    runCode(': foo constant bar ;');
+  };
+  expect(t).toThrow('Line 1: constant inside colon def');
+});
+
+
 test('set here', () => {
   expect(runCode(`
     : main
