@@ -1,7 +1,7 @@
 : begindata here @ ;
 
 : enddata
-  word create
+  create
   ' lit ,
   ,
   ' exit ,
