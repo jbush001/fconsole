@@ -370,7 +370,14 @@ test('infinite loop', () => {
   expect(t).toThrow('Exceeded maximum cycles');
 });
 
-test('jump out of range', () => {
+test('branch zero', () => {
+  const t = () => {
+    runCode(': foo immediate \' branch , 0 , ;  : main foo ; main');
+  };
+  expect(t).toThrow(Error);
+});
+
+test('branch out of range', () => {
   const t = () => {
     runCode(': foo immediate \' branch , 9999 , ;  : main foo ; main');
   };
@@ -502,7 +509,7 @@ test('pick', () => {
 test('bases', () => {
   expect(runCode(`
     16 base !
-    f00abc .
+    f00Abc .
     8 base !
     1234 .
     12 base !  \\ Actually 10, since our numbers are octal now
@@ -538,4 +545,12 @@ test('state', () => {
     state @ .
     bar
   `)).toBe('1\n0\n0');
+});
+
+test('push undefined', () => {
+  const t = () => {
+    const ctx = new forth.ForthContext();
+    ctx._push(undefined);
+  };
+  expect(t).toThrow('internal error: undefined pushed on stack');
 });
