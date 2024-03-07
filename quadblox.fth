@@ -1,22 +1,13 @@
-: begindata here @ ;
 
-: enddata
-  create
-  ' lit ,
-  ,
-  ' exit ,
-;
 
-begindata -1 , -1 , -1 , 0 , -1 , 1 , 0 , 1 , enddata block_l
-begindata 1 , -1 , 1 , 0 , 1 , 1 , 0 , 1 , enddata block_j
-begindata 0 , -2 , 0 , -1 , 0 , 0 , 0 , 1 , enddata block_i
-begindata -1 , 0 , 0 , 0 , 1 , 0 , 0 , 1 , enddata block_t
-begindata 0 , 0 , 1 , 0 , 1 , 1 , 0 , 1 , enddata block_o
-begindata -1 , 1 , 0 , 1 , 0 , 0 , 1 , 0 , enddata block_s
-begindata 1 , 1 , 0 , 1 , 0 , 0 , -1 , 0 , enddata block_z
-begindata block_l , block_j , block_i , block_t , block_o , block_s , block_z , enddata blocks
-
-8 cells allot constant currentblock
+create block_l -1 , -1 , -1 , 0 , -1 , 1 , 0 , 1 ,
+create block_j 1 , -1 , 1 , 0 , 1 , 1 , 0 , 1 ,
+create block_i 0 , -2 , 0 , -1 , 0 , 0 , 0 , 1 ,
+create block_t -1 , 0 , 0 , 0 , 1 , 0 , 0 , 1 ,
+create block_o 0 , 0 , 1 , 0 , 1 , 1 , 0 , 1 ,
+create block_s -1 , 1 , 0 , 1 , 0 , 0 , 1 , 0 ,
+create block_z 1 , 1 , 0 , 1 , 0 , 0 , -1 , 0 ,
+create blocks block_l , block_j , block_i , block_t , block_o , block_s , block_z ,
 
 8 constant box_size
 

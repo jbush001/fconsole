@@ -78,13 +78,6 @@ const LIB = `
 
 : 2dup over over ;
 
-: constant
-  create
-  ' lit ,
-  ,
-  ' exit ,
-;
-
 : allot  ( n -- start_address )
   here @ swap  ( start_address count )
   over +       ( start_address end_address )
@@ -94,11 +87,7 @@ const LIB = `
 : cells 4 * ;
 
 : variable immediate
-  1 cells allot
-  create
-  ' lit ,
-  ,            \\ Push the value returned by allot
-  ' exit ,
+  create 0 ,
 ;
 
 ( offset -- value )
@@ -111,8 +100,9 @@ const LIB = `
 const MEMORY_SIZE = 4096;
 
 class Word {
-  constructor(value, immediate=false) {
+  constructor(value, immediate=false, literal=false) {
     this.immediate = immediate;
+    this.literal = literal;
     this.value = value;
   }
 }
@@ -142,6 +132,7 @@ class ForthContext {
     this.dictionary = {
       'create': new Word(this._create),
       'lit': new Word(this._lit),
+      'constant': new Word(this._constant, true),
       '+': new Word(this._add),
       '-': new Word(this._sub),
       '*': new Word(this._mul),
@@ -298,7 +289,7 @@ class ForthContext {
       throw new Error(`Line ${this.lineNumber}: missing word name`);
     }
 
-    this.currentWord = new Word(this.memory[HERE_IDX]);
+    this.currentWord = new Word(this.memory[HERE_IDX], false, true);
     this.dictionary[name] = this.currentWord;
   }
 
@@ -308,6 +299,19 @@ class ForthContext {
   _lit() {
     this._push(this.memory[this.pc >> 2]);
     this.pc += 4;
+  }
+
+  _constant() {
+    if (this.memory[STATE_IDX] == STATE_COMPILE) {
+      throw new Error(`Line ${this.lineNumber}: constant inside colon def`);
+    }
+
+    const name = this._readWord();
+    if (!name) {
+      throw new Error(`Line ${this.lineNumber}: missing word name`);
+    }
+
+    this.dictionary[name] = new Word(this._pop(), false, true);
   }
 
   _add() {
@@ -403,6 +407,7 @@ class ForthContext {
     }
 
     this._create();
+    this.currentWord.literal = false;
     this.memory[STATE_IDX] = STATE_COMPILE;
   }
 
@@ -510,10 +515,16 @@ class ForthContext {
       if (tok in this.dictionary) {
         const word = this.dictionary[tok];
         if (isCompiling && !word.immediate) {
+          if (word.literal) {
+            this._emitCode(this._lit);
+          }
+
           this._emitCode(word.value);
         } else {
           if (word.value instanceof Function) {
             word.value.call(this);
+          } else if (word.literal) {
+            this._push(word.value);
           } else {
             this.exec(word.value);
           }

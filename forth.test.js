@@ -274,7 +274,7 @@ test('variable inside :', () => {
 
 test('lookup table', () => {
   expect(runCode(`
-    here @ 13 , 17 , 19 , 21 , 23 , 27 , 31 , 33 , constant foo
+    create foo 13 , 17 , 19 , 21 , 23 , 27 , 31 , 33 ,
 
     foo @ .
     foo 4 + @ .
@@ -289,7 +289,7 @@ test('lookup table', () => {
 
 test('array alloc', () => {
   expect(runCode(`
-    5 cells allot constant array1
+    create array1 5 cells allot
     variable foo
     5 array1 !
     7 array1 4 + !
