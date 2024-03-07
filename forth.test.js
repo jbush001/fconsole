@@ -517,19 +517,27 @@ test('bases', () => {
   `)).toBe('15731388\n668\n456');
 });
 
-test('invalid numeric char 1', () => {
+test('unknown word1', () => {
   const t = () => {
     runCode('16 base 1234g .');
   };
-  expect(t).toThrow('Line 1: invalid numeric character');
+  expect(t).toThrow('Line 1: unknown word 1234g');
 });
 
-test('invalid numeric char 2', () => {
+test('unknown word2', () => {
   const t = () => {
     runCode('16 base 12-34 .');
   };
-  expect(t).toThrow('Line 1: invalid numeric character');
+  expect(t).toThrow('Line 1: unknown word 12-34');
 });
+
+test('unknown word3', () => {
+  const t = () => {
+    runCode('adsfasdf');
+  };
+  expect(t).toThrow('Line 1: unknown word adsfasdf');
+});
+
 
 test('state', () => {
   expect(runCode(`

@@ -582,11 +582,11 @@ class ForthContext {
       } else if (tok[i] >= 'A' && tok[i] <= 'Z') {
         digitval = tok.charCodeAt(i) - A_ASCII + 10;
       } else {
-        throw new Error(`Line ${this.lineNumber}: invalid numeric character`);
+        throw new Error(`Line ${this.lineNumber}: unknown word ${tok}`);
       }
 
       if (digitval >= base) {
-        throw new Error(`Line ${this.lineNumber}: invalid numeric character`);
+        throw new Error(`Line ${this.lineNumber}: unknown word ${tok}`);
       }
 
       tokVal = (tokVal * base) + digitval;
