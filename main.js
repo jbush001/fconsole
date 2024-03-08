@@ -119,21 +119,19 @@ function startup() {
     spriteSheet = bm;
   });
 
-  fetch('quadblox.fth').then((response) => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    return response.text();
-  }).then((data) => {
-    document.getElementById('source').value = data;
-    // setInterval(saveToServer, 10000);
-  }).catch((error) => {
-    alert('Error loading file');
-  });
-
   // window.addEventListener('beforeunload', () => {
   //   saveToServer();
   // });
+
+  const fileSelect = document.getElementById('fileSelect');
+  fileSelect.addEventListener('change', function(event) {
+    handleFileSelect(event);
+  });
+
+  const files = ['pong.fth', 'quadblox.fth'];
+  const selectOptions = files.map((file) =>
+    `<option value="${file}">${file}</option>`);
+  fileSelect.innerHTML += selectOptions.join('');
 }
 
 function saveToServer() {
@@ -247,16 +245,28 @@ function doRun() {
 
     document.getElementById('output').textContent = '';
 
-    if ('init' in ctx.dictionary) {
-      ctx.exec(ctx.dictionary['init'].value);
-    }
-
     drawFrameAddr = ctx.dictionary['drawFrame'].value;
     clearTimeout(timer);
     drawFrame(ctx);
   } catch (err) {
     alert(err);
   }
+}
+
+function handleFileSelect(event) {
+  const selectedFile = event.target.value;
+  fetch(selectedFile).then((response) => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.text();
+  }).then((data) => {
+    document.getElementById('source').value = data;
+    // setInterval(saveToServer, 10000);
+  }).catch((error) => {
+    alert('Error loading file');
+  });
+
 }
 
 function openTab(pageName, element) {

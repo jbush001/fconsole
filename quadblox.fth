@@ -30,9 +30,6 @@ create blocks block_l , block_j , block_i , block_t , block_o , block_s , block_
     drop drop drop
 ;
 
-: init
-;
-
 variable counter
 
 : ++

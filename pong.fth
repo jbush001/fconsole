@@ -12,6 +12,8 @@ variable paddleX
     48 paddleX !
 ;
 
+init
+
 : drawFrame
     0 cls
 
