@@ -124,7 +124,7 @@ variable drop_delay
     drop
 ;
 
-variable can_move
+variable collision
 
 : check_square
     transform_square_coords
@@ -132,13 +132,13 @@ variable can_move
     ( x y )
     \ Check in bounds
     dup 0 < if
-        0 can_move !
+        1 collision !
         drop drop
         exit
     then
 
     dup well_height >= if
-        0 can_move !
+        1 collision !
         drop drop
         exit
     then
@@ -146,13 +146,13 @@ variable can_move
     swap
 
     dup 0 < if
-        0 can_move !
+        1 collision !
         drop drop
         exit
     then
 
     dup well_width >= if
-        0 can_move !
+        1 collision !
         drop drop
         exit
     then
@@ -161,20 +161,20 @@ variable can_move
     well_width * + cells \ Convert to array offset
     well_data +
     @  \ Read
-
     if
-        0 can_move !
+        1 collision !
     then
 ;
 
-: check_block
-    1 can_move !
+: block_collides
+    0 collision !
     cur_shape @
     check_square 8 +
     check_square 8 +
     check_square 8 +
     check_square
     drop
+    collision @
 ;
 
 variable counter
@@ -200,7 +200,6 @@ new_block
 
 variable x
 variable y
-
 
 : draw_well
     \ Draw the well sides
@@ -232,7 +231,7 @@ variable y
     repeat
 ;
 
-: drawFrame
+: move_block
     \ Controls. We only take action when the button transition
     \ from not pressed to pressed, so check if the button state
     \ has changed from the last frame.
@@ -244,8 +243,8 @@ variable y
     \ Check left
     dup BUTTON_L and block_x @ 0 > and if
         block_x @ 1 - block_x !
-        check_block
-        can_move @ 0= if
+        block_collides if
+            \ Collision, undo action
             block_x @ 1 + block_x !
         then
     then
@@ -254,8 +253,8 @@ variable y
     dup BUTTON_R and if
         block_x @ well_width < if
             block_x @ 1 + block_x !
-            check_block
-            can_move @ 0= if
+            block_collides if
+                \ Collision, undo action
                 block_x @ 1 - block_x !
             then
         then
@@ -264,8 +263,8 @@ variable y
     \ Check up (rotate)
     BUTTON_U and if
         rotation @ 1 + 3 and rotation !
-        check_block
-        can_move @ 0= if
+        block_collides if
+            \ Collision, undo action
             rotation @ 3 + 3 and rotation !
         then
     then
@@ -279,13 +278,17 @@ variable y
     counter @ drop_delay @ >= if
         0 counter !
         block_y @ 1 + block_y !
-        check_block
-        can_move @ 0= if
+        block_collides if
+            \ Hit bottom
             block_y @ 1 - block_y !
             lock_block
             new_block
         then
     then
+;
+
+: drawFrame
+    move_block
 
     \ Draw
     0 cls
