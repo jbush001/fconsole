@@ -14,7 +14,7 @@ variable paddleX
 
 init
 
-: drawFrame
+: draw_frame
     0 cls
 
     \ Update ball position
@@ -44,7 +44,7 @@ init
         init
     then
 
-    ballX @ ballY @ 1 1 0 drawSprite
+    ballX @ ballY @ 1 1 0 draw_sprite
     \ Move paddle
     buttons 1 and paddleX @ 0 > and if
         paddleX @ 1 - paddleX !
@@ -56,7 +56,7 @@ init
         then
     then
 
-    2 setColor
-    paddleX @ 124 32 4 fillRect
+    2 set_color
+    paddleX @ 124 32 4 fill_rect
 ;
 

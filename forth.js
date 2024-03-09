@@ -604,7 +604,7 @@ class ForthContext {
   // address for a user defined word.
   exec(startAddress) {
     // Used to prevent infinite loops, which hang the browser.
-    const MAX_EXEC_CYCLES = 10000;
+    const MAX_EXEC_CYCLES = 20000;
 
     this.continueExec = true;
     this.pc = startAddress;
@@ -622,6 +622,11 @@ class ForthContext {
       } else {
         this.returnStack.push(this.pc);
         this.pc = value;
+      }
+
+      // Debug: just before we exceed cycles, print line number trace
+      if (i > MAX_EXEC_CYCLES - 500) {
+        console.log('line', this.debugInfo.lookupLine(this.pc));
       }
     }
 

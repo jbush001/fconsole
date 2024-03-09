@@ -227,14 +227,14 @@ function doRun() {
   try {
     const ctx = new ForthContext();
     ctx.bindNative('cls', 1, clearScreen);
-    ctx.bindNative('setColor', 1, setColor);
-    ctx.bindNative('drawLine', 4, drawLine);
-    ctx.bindNative('drawSprite', 5, drawSprite);
+    ctx.bindNative('set_color', 1, setColor);
+    ctx.bindNative('draw_line', 4, drawLine);
+    ctx.bindNative('draw_sprite', 5, drawSprite);
     ctx.bindNative('.', 1, (val) => {
       writeConsole(val + '\n');
     });
     ctx.bindNative('buttons', 0, getButtons);
-    ctx.bindNative('fillRect', 4, fillRect);
+    ctx.bindNative('fill_rect', 4, fillRect);
 
     console.log('compiling');
     ctx.interpretSource(document.getElementById('source').value);
@@ -245,11 +245,11 @@ function doRun() {
 
     document.getElementById('output').textContent = '';
 
-    if (!('drawFrame' in ctx.dictionary)) {
-      throw new Error('drawFrame not defined');
+    if (!('draw_frame' in ctx.dictionary)) {
+      throw new Error('draw_frame not defined');
     }
 
-    drawFrameAddr = ctx.dictionary['drawFrame'].value;
+    drawFrameAddr = ctx.dictionary['draw_frame'].value;
     clearTimeout(timer);
     drawFrame(ctx);
   } catch (err) {
@@ -270,7 +270,6 @@ function handleFileSelect(event) {
   }).catch((error) => {
     alert('Error loading file');
   });
-
 }
 
 function openTab(pageName, element) {

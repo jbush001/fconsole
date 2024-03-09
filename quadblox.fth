@@ -9,28 +9,24 @@
 10 constant well_width
 15 constant well_height
 
-create block_l -1 , -1 , -1 , 0 , -1 , 1 , 0 , 1 ,
-create block_j 1 , -1 , 1 , 0 , 1 , 1 , 0 , 1 ,
-create block_i 0 , -2 , 0 , -1 , 0 , 0 , 0 , 1 ,
-create block_t -1 , 0 , 0 , 0 , 1 , 0 , 0 , 1 ,
-create block_o 0 , 0 , 1 , 0 , 1 , 1 , 0 , 1 ,
-create block_s -1 , 1 , 0 , 1 , 0 , 0 , 1 , 0 ,
-create block_z 1 , 1 , 0 , 1 , 0 , 0 , -1 , 0 ,
-create blocks block_l , block_j , block_i , block_t , block_o , block_s , block_z ,
+create piece_l -1 , -1 , -1 , 0 , -1 , 1 , 0 , 1 ,
+create piece_j 1 , -1 , 1 , 0 , 1 , 1 , 0 , 1 ,
+create piece_i 0 , -2 , 0 , -1 , 0 , 0 , 0 , 1 ,
+create piece_t -1 , 0 , 0 , 0 , 1 , 0 , 0 , 1 ,
+create piece_o 0 , 0 , 1 , 0 , 1 , 1 , 0 , 1 ,
+create piece_s -1 , 1 , 0 , 1 , 0 , 0 , 1 , 0 ,
+create piece_z 1 , 1 , 0 , 1 , 0 , 0 , -1 , 0 ,
+create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_z ,
 
 create well_data well_width well_height * cells allot
 
-variable block_x
-variable block_y
+variable piece_x
+variable piece_y
 variable cur_shape
 variable shape_color
 variable rotation
 
 variable seed
-variable button_mask
-variable drop_delay
-
-20 drop_delay !
 
 1 seed !
 
@@ -65,34 +61,34 @@ variable drop_delay
     then
 ;
 
-( block_addr -- block_addr )
-: square
+( piece_addr -- piece_addr )
+: draw_square
     dup @      \ Read X
     over 4 + @ \ Read Y
 
     rotate
 
     \ Convert to screen locations
-    block_y @ + box_size * well_y_offs +
+    piece_y @ + box_size * well_y_offs +
     swap
-    block_x @ + box_size * well_x_offs +
+    piece_x @ + box_size * well_x_offs +
     swap
 
-    7 7 fillRect
+    7 7 fill_rect
 ;
 
-: drawblock
+: draw_piece
     cur_shape @
-    square 8 +
-    square 8 +
-    square 8 +
-    square
+    draw_square 8 +
+    draw_square 8 +
+    draw_square 8 +
+    draw_square
     drop
 ;
 
-\ Given block addr translate and rotate to
+\ Given piece addr translate and rotate to
 \ coords in grid
-( block_addr -- x y )
+( piece_addr -- x y )
 : transform_square_coords
     dup @      \ Read X
     over 4 + @ \ Read Y
@@ -100,9 +96,9 @@ variable drop_delay
     rotate
 
     \ Convert to screen locations
-    block_y @ +
+    piece_y @ +
     swap
-    block_x @ +
+    piece_x @ +
     swap
 ;
 
@@ -115,7 +111,7 @@ variable drop_delay
     shape_color @ swap !
 ;
 
-: lock_block
+: lock_piece
     cur_shape @
     lock_square 8 +
     lock_square 8 +
@@ -166,7 +162,7 @@ variable collision
     then
 ;
 
-: block_collides
+: piece_collides
     0 collision !
     cur_shape @
     check_square 8 +
@@ -183,33 +179,31 @@ variable counter
     dup @ 1 + swap !
 ;
 
-: new_block
+: new_piece
     random 7 mod
     dup
 
     1 + shape_color !
 
-    cells blocks + @
+    cells pieces + @
     cur_shape !
 
-    5 block_x !
-    3 block_y !
+    4 piece_x !
+    2 piece_y !
 ;
-
-new_block
 
 variable x
 variable y
 
 : draw_well
     \ Draw the well sides
-    7 setColor
-    4 4 84 4 drawLine
-    4 4 4 124 drawLine
-    84 4 84 124 drawLine
-    4 124 84 124 drawLine
+    7 set_color
+    4 4 84 4 draw_line
+    4 4 4 124 draw_line
+    84 4 84 124 draw_line
+    4 124 84 124 draw_line
 
-    \ Draw locked blocks inside well
+    \ Draw locked pieces inside well
     0 y !
     begin
         y @ well_height <
@@ -219,11 +213,11 @@ variable y
             x @ well_width <
         while
             y @ well_width * x @ + cells well_data + @  \ Address inside well data structure
-            setColor
+            set_color
 
             x @ box_size * well_x_offs +
             y @ box_size * well_y_offs +
-            7 7 fillRect
+            7 7 fill_rect
 
             x ++
         repeat
@@ -231,31 +225,40 @@ variable y
     repeat
 ;
 
-: move_block
-    \ Controls. We only take action when the button transition
+variable button_mask
+
+: check_buttons
+    \We only take action when the button transition
     \ from not pressed to pressed, so check if the button state
     \ has changed from the last frame.
     buttons dup                 ( buttons buttons )
     button_mask @ -1 xor and    ( ~button_mask & buttons )
     swap button_mask !          ( update button msak)
+;
+
+variable drop_delay
+variable game_over
+
+: move_piece
+    check_buttons
 
     \ top of stack is now buttons that have been pressed
     \ Check left
-    dup BUTTON_L and block_x @ 0 > and if
-        block_x @ 1 - block_x !
-        block_collides if
+    dup BUTTON_L and piece_x @ 0 > and if
+        piece_x @ 1 - piece_x !
+        piece_collides if
             \ Collision, undo action
-            block_x @ 1 + block_x !
+            piece_x @ 1 + piece_x !
         then
     then
 
     \ Check right
     dup BUTTON_R and if
-        block_x @ well_width < if
-            block_x @ 1 + block_x !
-            block_collides if
+        piece_x @ well_width < if
+            piece_x @ 1 + piece_x !
+            piece_collides if
                 \ Collision, undo action
-                block_x @ 1 - block_x !
+                piece_x @ 1 - piece_x !
             then
         then
     then
@@ -263,7 +266,7 @@ variable y
     \ Check up (rotate)
     BUTTON_U and if
         rotation @ 1 + 3 and rotation !
-        block_collides if
+        piece_collides if
             \ Collision, undo action
             rotation @ 3 + 3 and rotation !
         then
@@ -277,18 +280,53 @@ variable y
     counter ++
     counter @ drop_delay @ >= if
         0 counter !
-        block_y @ 1 + block_y !
-        block_collides if
+        piece_y @ 1 + piece_y !
+        piece_collides if
             \ Hit bottom
-            block_y @ 1 - block_y !
-            lock_block
-            new_block
+            piece_y @ 1 - piece_y !
+            lock_piece
+            new_piece
+            piece_collides if
+                1 game_over !
+            then
         then
     then
 ;
 
-: drawFrame
-    move_block
+( count address -- )
+: zero_memory
+    begin
+        over 0 >
+    while
+        ( count well_data )
+        dup 0 swap !        \ write 0
+        4 +                 \ increment data pointer
+        swap 1 - swap       \ decrement counter
+    repeat
+;
+
+: init_game
+    0 game_over !
+    20 drop_delay !
+    0 counter !
+
+    \ Clear the well data structure
+    well_width well_height *
+    well_data
+    zero_memory
+
+    new_piece
+;
+
+: draw_frame
+    game_over @ if
+        \ User can press a button to restart
+        check_buttons if
+            init_game
+        then
+    else
+        move_piece
+    then
 
     \ Draw
     0 cls
@@ -296,8 +334,8 @@ variable y
     draw_well
 
     \ Draw the currently drawing piece
-    shape_color @ setColor
-    drawblock
+    shape_color @ set_color
+    draw_piece
 ;
 
-
+init_game
