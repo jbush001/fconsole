@@ -9,8 +9,8 @@
 10 constant well_width
 15 constant well_height
 
-create piece_l -1 , -1 , -1 , 0 , -1 , 1 , 0 , 1 ,
-create piece_j 1 , -1 , 1 , 0 , 1 , 1 , 0 , 1 ,
+create piece_l 0 , -1 , 0 , 0 , 0 , 1 , 1 , 1 ,
+create piece_j 0 , -1 , 0 , 0 , 0 , 1 , -1 , 1 ,
 create piece_i 0 , -2 , 0 , -1 , 0 , 0 , 0 , 1 ,
 create piece_t -1 , 0 , 0 , 0 , 1 , 0 , 0 , 1 ,
 create piece_o 0 , 0 , 1 , 0 , 1 , 1 , 0 , 1 ,
@@ -25,6 +25,15 @@ variable piece_y
 variable cur_shape
 variable shape_color
 variable rotation
+
+
+: ++
+    dup @ 1 + swap !
+;
+
+: --
+    dup @ 1 - swap !
+;
 
 variable seed
 
@@ -175,10 +184,6 @@ variable collision
 
 variable counter
 
-: ++
-    dup @ 1 + swap !
-;
-
 : new_piece
     random 7 mod
     dup
@@ -194,6 +199,9 @@ variable counter
 
 variable x
 variable y
+variable blink_state
+variable blink_counter
+create finished_rows well_height cells allot
 
 : draw_well
     \ Draw the well sides
@@ -208,21 +216,94 @@ variable y
     begin
         y @ well_height <
     while
+        \ If this row is finished, it will blink before being removed.
+        \ Check if the row is blinking before drawing
+        y @ cells finished_rows + @   ( Is this row set as finished )
+        blink_state @ and             ( and we are the hide phase )
+        0= if
+            0 x !
+            begin
+                x @ well_width <
+            while
+                y @ well_width * x @ + cells well_data + @  \ read well block
+                set_color
+
+                x @ box_size * well_x_offs +
+                y @ box_size * well_y_offs +
+                7 7 fill_rect
+
+                x ++
+            repeat
+        then
+        y ++
+    repeat
+;
+
+variable some_rows_finished
+variable row_is_finished
+
+: check_finished
+    well_height finished_rows zero_memory
+
+    0 some_rows_finished !
+    0 y !
+    begin
+        y @ well_height <
+    while
+        1 row_is_finished !
         0 x !
         begin
             x @ well_width <
         while
-            y @ well_width * x @ + cells well_data + @  \ Address inside well data structure
-            set_color
-
-            x @ box_size * well_x_offs +
-            y @ box_size * well_y_offs +
-            7 7 fill_rect
+            y @ well_width * x @ + cells well_data + @
+            0= if
+                0 row_is_finished !
+            then
 
             x ++
         repeat
+
+        row_is_finished @ if
+            1 y @ cells finished_rows + !
+            1 some_rows_finished !
+        then
+
         y ++
     repeat
+
+    some_rows_finished @
+;
+
+
+variable dest_y
+
+: remove_finished_rows
+    \ Walk from bottom up
+    well_height 1 -
+    dup
+    y !  \ Y is source address
+    dest_y !
+
+    begin
+        y @ 0 >=
+    while
+        y @ cells finished_rows + @   ( Is this row set as finished )
+        0= if
+            \ Not eliminated, copy
+            y @ well_width * cells well_data +  \ src
+            dest_y @ well_width * cells well_data +  \ dest
+            well_width \ count
+            copy
+            dest_y --
+        then
+
+        y --
+    repeat
+
+    \ Clear rows at top that are now exposed.
+    dest_y @ well_width * cells
+    well_data
+    zero_memory
 ;
 
 variable button_mask
@@ -283,27 +364,23 @@ variable game_over
         piece_y @ 1 + piece_y !
         piece_collides if
             \ Hit bottom
-            piece_y @ 1 - piece_y !
+            piece_y @ 1 - piece_y ! \ Restore to place before collision
             lock_piece
-            new_piece
-            piece_collides if
-                1 game_over !
+            check_finished if
+                \ If we finished a row, need to wait for blink animation
+                \ to finish before adding new piece.
+                1 blink_counter !
+            else
+                \ carry on
+                new_piece
+                piece_collides if
+                    1 game_over !
+                then
             then
         then
     then
 ;
 
-( count address -- )
-: zero_memory
-    begin
-        over 0 >
-    while
-        ( count well_data )
-        dup 0 swap !        \ write 0
-        4 +                 \ increment data pointer
-        swap 1 - swap       \ decrement counter
-    repeat
-;
 
 : init_game
     0 game_over !
@@ -315,6 +392,8 @@ variable game_over
     well_data
     zero_memory
 
+    well_width finished_rows zero_memory
+
     new_piece
 ;
 
@@ -325,8 +404,26 @@ variable game_over
             init_game
         then
     else
-        move_piece
+        blink_counter @ if
+            \ Peforming a blink animation sequence to remove rows.
+            blink_counter ++
+            blink_counter @ 6 / 1 and 0= blink_state !
+
+            \ Check if the animation sequence is finished.
+            blink_counter @ 30 > if
+                \ yes, so remove rows and start game again.
+                new_piece
+                piece_collides if
+                    1 game_over !
+                then
+                remove_finished_rows
+                0 blink_counter !
+            then
+        else
+            move_piece
+        then
     then
+
 
     \ Draw
     0 cls
@@ -335,7 +432,9 @@ variable game_over
 
     \ Draw the currently drawing piece
     shape_color @ set_color
-    draw_piece
+    blink_counter @ 0= if
+        draw_piece
+    then
 ;
 
 init_game

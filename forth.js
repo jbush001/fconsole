@@ -95,9 +95,35 @@ const LIB = `
   4 * dsp@ + @
 ;
 
+( src dest count -- )
+: copy
+    >r  \\ save count
+    begin
+        r> dup >r 0 >
+    while
+        over @ over !
+        4 + swap 4 + swap
+        r> 1 - >r
+    repeat
+    r> drop \\ Remove saved count
+;
+
+( count address -- )
+\\ XXX why is count first here, while it's last in copy?
+: zero_memory
+    begin
+        over 0 >
+    while
+        ( count well_data )
+        dup 0 swap !        \\ write 0
+        4 +                 \\ increment data pointer
+        swap 1 - swap       \\ decrement counter
+    repeat
+;
+
 `;
 
-const MEMORY_SIZE = 4096;
+const MEMORY_SIZE = 8192;
 
 class Word {
   constructor(value, immediate=false, literal=false) {
@@ -604,7 +630,7 @@ class ForthContext {
   // address for a user defined word.
   exec(startAddress) {
     // Used to prevent infinite loops, which hang the browser.
-    const MAX_EXEC_CYCLES = 20000;
+    const MAX_EXEC_CYCLES = 100000;
 
     this.continueExec = true;
     this.pc = startAddress;
@@ -625,8 +651,8 @@ class ForthContext {
       }
 
       // Debug: just before we exceed cycles, print line number trace
-      if (i > MAX_EXEC_CYCLES - 500) {
-        console.log('line', this.debugInfo.lookupLine(this.pc));
+      if (false && i > MAX_EXEC_CYCLES - 500) {
+        console.log('infinite loop, line', this.debugInfo.lookupLine(this.pc));
       }
     }
 

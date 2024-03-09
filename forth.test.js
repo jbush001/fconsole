@@ -601,8 +601,42 @@ test('stack crawl', () => {
 
 test('stack overflow', () => {
   const t = () => {
-    runCode('4090 here ! 1 1 1 1 1 1 1 1 1 1');
+    runCode('8189 here ! 1 1 1 1 1 1 1 1 1 1');
   };
   expect(t).toThrow('stack overflow');
 });
 
+test('copy', () => {
+  expect(runCode(`
+    create foo 12 , 17 , 19 , 23 , 25 , 27 , 29
+    create bar 9 allot
+
+    foo bar 8 + 5 copy
+
+    bar @ .
+    bar 4 + @ .
+    bar 8 + @ .
+    bar 12 + @ .
+    bar 16 + @ .
+    bar 20 + @ .
+    bar 24 + @ .
+    bar 28 + @ .
+    bar 32 + @ .
+  `)).toBe('0\n0\n12\n17\n19\n23\n25\n0\n0');
+});
+
+test('zero_memory', () => {
+  expect(runCode(`
+    create foo 12 , 17 , 19 , 23 , 25 , 27 , 29 ,
+    4 foo 8 + zero_memory
+
+    foo @ .
+    foo 4 + @ .
+    foo 8 + @ .
+    foo 12 + @ .
+    foo 16 + @ .
+    foo 20 + @ .
+    foo 24 + @ .
+
+  `)).toBe('12\n17\n0\n0\n0\n0\n29');
+});
