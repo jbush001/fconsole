@@ -119,6 +119,39 @@ const ZERO_ASCII = '0'.charCodeAt(0);
 const LOWER_A_ASCII = 'a'.charCodeAt(0);
 const A_ASCII = 'A'.charCodeAt(0);
 
+class DebugInfo {
+  constructor() {
+    this.lineMappings = {};
+    this.wordMappings = [];
+  }
+
+  startWord(name, address) {
+    this.wordMappings.push([name, address, address]);
+  }
+
+  endWord(address) {
+    this.wordMappings[this.wordMappings.length - 1][2] = address;
+  }
+
+  addLineMapping(address, line) {
+    this.lineMappings[address] = line;
+  }
+
+  lookupWord(address) {
+    for (const [name, start, end] of this.wordMappings) {
+      if (address >= start && address <= end) {
+        return name;
+      }
+    }
+
+    return null;
+  }
+
+  lookupLine(address) {
+    return this.lineMappings[address];
+  }
+}
+
 class ForthContext {
   constructor() {
     this.returnStack = [];
@@ -165,7 +198,10 @@ class ForthContext {
       '>r': new Word(this._pushReturn),
       'r>': new Word(this._popReturn),
       'dsp@': new Word(this._dsp),
+      'stackDump': new Word(this._stackDump),
     };
+
+    this.debugInfo = new DebugInfo();
 
     this.interpretSource(LIB);
   }
@@ -177,7 +213,7 @@ class ForthContext {
     const self = this;
     this.dictionary[name] = new Word(() => {
       if (((MEMORY_SIZE - self.stackPointer - 4) >> 2) < argCount) {
-        throw new Error('stack underflow');
+        throw new Error('stack underflow\n' + this._debugStackCrawl());
       }
 
       const args = [];
@@ -199,7 +235,7 @@ class ForthContext {
   // Pop the top value from the data stack, checking bounds.
   _pop() {
     if (this.stackPointer >= MEMORY_SIZE) {
-      throw new Error('stack underflow');
+      throw new Error('stack underflow\n' + this._debugStackCrawl());
     }
 
     const result = this.memory[this.stackPointer >> 2];
@@ -210,7 +246,8 @@ class ForthContext {
   // Push a value on top of the data stack, checking bounds.
   _push(val) {
     if (val === undefined) {
-      throw new Error('internal error: undefined pushed on stack');
+      throw new Error('internal error: undefined pushed on stack\n' +
+          this._debugStackCrawl());
     }
 
     // the '| 0' forces this to fit in an int. We always keep the stack
@@ -227,6 +264,7 @@ class ForthContext {
   // During compilation, write a word at 'here' (next code address)
   // and increment the pointer by one word.
   _emitCode(value) {
+    this.debugInfo.addLineMapping(this.memory[HERE_IDX], this.lineNumber);
     this.memory[this.memory[HERE_IDX] >> 2] = value;
     this.memory[HERE_IDX] += 4;
   }
@@ -291,6 +329,7 @@ class ForthContext {
 
     this.currentWord = new Word(this.memory[HERE_IDX], false, true);
     this.dictionary[name] = this.currentWord;
+    this.debugInfo.startWord(name, this.memory[HERE_IDX]);
   }
 
   // Push a constant value onto the stack (literal). This is usually generated
@@ -384,7 +423,8 @@ class ForthContext {
   _fetch() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory fetch out of range: ${addr}`);
+      throw new Error(`Memory fetch out of range: ${addr}\n` +
+        this._debugStackCrawl());
     }
 
     this._push(this.memory[addr >> 2]);
@@ -394,7 +434,8 @@ class ForthContext {
   _store() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory store out of range: ${addr}`);
+      throw new Error(`Memory store out of range: ${addr}\n` +
+        this._debugStackCrawl());
     }
 
     const value = this._pop();
@@ -418,6 +459,7 @@ class ForthContext {
 
     this.memory[STATE_IDX] = STATE_INTERP;
     this._emitCode(this._exit);
+    this.debugInfo.endWord(this.memory[HERE_IDX]);
   }
 
   _immediate() {
@@ -486,7 +528,7 @@ class ForthContext {
 
   _popReturn() {
     if (this.returnStack.length == 0) {
-      throw new Error(`return stack underflow PC @{this.pc - 4}`);
+      throw new Error(`return stack underflow\n` + this._debugStackCrawl());
     }
 
     this._push(this.returnStack.pop());
@@ -495,6 +537,10 @@ class ForthContext {
   // Push the stack pointer.
   _dsp() {
     this._push(this.stackPointer);
+  }
+
+  _stackDump() {
+    console.log(this._debugStackCrawl());
   }
 
   // Immedately execute code. This intepreter doesn't have an actual REPL, so
@@ -554,7 +600,7 @@ class ForthContext {
     this.pc = startAddress;
     for (let i = 0; i < MAX_EXEC_CYCLES && this.continueExec; i++) {
       if (this.pc >= MEMORY_SIZE || this.pc < 0) {
-        throw new Error('PC out of range');
+        throw new Error('PC out of range\n' + this._debugStackCrawl());
       }
 
       const value = this.memory[this.pc >> 2];
@@ -570,7 +616,7 @@ class ForthContext {
     }
 
     if (this.continueExec) {
-      throw new Error('Exceeded maximum cycles');
+      throw new Error('Exceeded maximum cycles\n' + this._debugStackCrawl());
     }
   }
 
@@ -608,6 +654,24 @@ class ForthContext {
     }
 
     return tokVal;
+  }
+
+  _debugStackCrawl() {
+    let crawlInfo = '(most recent call first)\n';
+
+    const self = this;
+    function addEntry(address) {
+      const wordDef = self.debugInfo.lookupWord(address);
+      const lineNo = self.debugInfo.lookupLine(address);
+      crawlInfo += `${wordDef} @${address} (line ${lineNo})\n`;
+    }
+
+    addEntry(this.pc);
+    for (let i = this.returnStack.length - 1; i >= 0; i--) {
+      addEntry(this.returnStack[i] - 4);
+    }
+
+    return crawlInfo;
   }
 }
 

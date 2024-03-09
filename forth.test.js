@@ -577,3 +577,24 @@ test('push undefined', () => {
   };
   expect(t).toThrow('internal error: undefined pushed on stack');
 });
+
+// XXX this doesn't really validate correctness, just checks that
+// this doesn't throw an exception.
+test('stack crawl', () => {
+  expect(runCode(`
+    : foo
+      2
+      3
+      stackDump
+      4
+    ;
+
+    : bar
+      1
+      foo
+      5
+    ;
+
+    bar
+  `)).toBe('');
+});
