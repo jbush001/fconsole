@@ -606,7 +606,7 @@ class ForthContext {
       const value = this.memory[this.pc >> 2];
       this.pc += 4;
       if (value == 0) {
-        throw new Error(`invalid branch to zero @ ${this.pc - 4}`);
+        throw new Error(`invalid branch to zero\n` + this._debugStackCrawl());
       } else if (value instanceof Function) {
         value.call(this);
       } else {
