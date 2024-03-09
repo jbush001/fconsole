@@ -598,3 +598,11 @@ test('stack crawl', () => {
     bar
   `)).toBe('');
 });
+
+test('stack overflow', () => {
+  const t = () => {
+    runCode('4090 here ! 1 1 1 1 1 1 1 1 1 1');
+  };
+  expect(t).toThrow('stack overflow');
+});
+

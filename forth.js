@@ -185,9 +185,15 @@ class ForthContext {
       'drop': new Word(this._drop),
       'swap': new Word(this._swap),
       'over': new Word(this._over),
-      'here': new Word(() => { this._push(HERE_IDX * 4); }),
-      'base': new Word(() => { this._push(BASE_IDX * 4); }),
-      'state': new Word(() => { this._push(STATE_IDX * 4); }),
+      'here': new Word(() => {
+        this._push(HERE_IDX * 4);
+      }),
+      'base': new Word(() => {
+        this._push(BASE_IDX * 4);
+      }),
+      'state': new Word(() => {
+        this._push(STATE_IDX * 4);
+      }),
       ',': new Word(this._comma),
       '\'': new Word(this._tick),
       '0branch': new Word(this._branchIfZero),
@@ -248,6 +254,10 @@ class ForthContext {
     if (val === undefined) {
       throw new Error('internal error: undefined pushed on stack\n' +
           this._debugStackCrawl());
+    }
+
+    if (this.stackPointer < this.memory[HERE_IDX]) {
+      throw new Error('stack overflow\n' + this._debugStackCrawl());
     }
 
     // the '| 0' forces this to fit in an int. We always keep the stack
