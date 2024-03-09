@@ -245,6 +245,10 @@ function doRun() {
 
     document.getElementById('output').textContent = '';
 
+    if (!('drawFrame' in ctx.dictionary)) {
+      throw new Error('drawFrame not defined');
+    }
+
     drawFrameAddr = ctx.dictionary['drawFrame'].value;
     clearTimeout(timer);
     drawFrame(ctx);

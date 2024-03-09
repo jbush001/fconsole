@@ -7,7 +7,7 @@
 4 constant well_x_offs
 4 constant well_y_offs
 10 constant well_width
-16 constant well_height
+15 constant well_height
 
 create block_l -1 , -1 , -1 , 0 , -1 , 1 , 0 , 1 ,
 create block_j 1 , -1 , 1 , 0 , 1 , 1 , 0 , 1 ,
@@ -17,6 +17,8 @@ create block_o 0 , 0 , 1 , 0 , 1 , 1 , 0 , 1 ,
 create block_s -1 , 1 , 0 , 1 , 0 , 0 , 1 , 0 ,
 create block_z 1 , 1 , 0 , 1 , 0 , 0 , -1 , 0 ,
 create blocks block_l , block_j , block_i , block_t , block_o , block_s , block_z ,
+
+create well_data well_width well_height * cells allot
 
 variable block_x
 variable block_y
@@ -42,11 +44,8 @@ variable drop_delay
     0 swap -
 ;
 
-( block_addr -- block_addr )
-: square
-    dup @      \ Read X
-    over 4 + @ \ Read Y
-
+( x y -- x y )
+: rotate
     rotation @ 1 = if
         \ x = y y = -x
         swap
@@ -64,6 +63,14 @@ variable drop_delay
         negate
         swap
     then
+;
+
+( block_addr -- block_addr )
+: square
+    dup @      \ Read X
+    over 4 + @ \ Read Y
+
+    rotate
 
     \ Convert to screen locations
     block_y @ + box_size * well_y_offs +
@@ -83,13 +90,100 @@ variable drop_delay
     drop
 ;
 
+\ Given block addr translate and rotate to
+\ coords in grid
+( block_addr -- x y )
+: transform_square_coords
+    dup @      \ Read X
+    over 4 + @ \ Read Y
+
+    rotate
+
+    \ Convert to screen locations
+    block_y @ +
+    swap
+    block_x @ +
+    swap
+;
+
+: lock_square
+    transform_square_coords
+
+    well_width * + cells \ Convert to array offset
+    well_data +
+
+    shape_color @ swap !
+;
+
+: lock_block
+    cur_shape @
+    lock_square 8 +
+    lock_square 8 +
+    lock_square 8 +
+    lock_square
+    drop
+;
+
+variable can_move
+
+: check_square
+    transform_square_coords
+
+    ( x y )
+    \ Check in bounds
+    dup 0 < if
+        0 can_move !
+        drop drop
+        exit
+    then
+
+    dup well_height >= if
+        0 can_move !
+        drop drop
+        exit
+    then
+
+    swap
+
+    dup 0 < if
+        0 can_move !
+        drop drop
+        exit
+    then
+
+    dup well_width >= if
+        0 can_move !
+        drop drop
+        exit
+    then
+
+    swap
+    well_width * + cells \ Convert to array offset
+    well_data +
+    @  \ Read
+
+    if
+        0 can_move !
+    then
+;
+
+: check_block
+    1 can_move !
+    cur_shape @
+    check_square 8 +
+    check_square 8 +
+    check_square 8 +
+    check_square
+    drop
+;
+
 variable counter
 
 : ++
     dup @ 1 + swap !
 ;
 
-: newBlock
+: new_block
     random 7 mod
     dup
 
@@ -102,7 +196,41 @@ variable counter
     3 block_y !
 ;
 
-newBlock
+new_block
+
+variable x
+variable y
+
+
+: draw_well
+    \ Draw the well sides
+    7 setColor
+    4 4 84 4 drawLine
+    4 4 4 124 drawLine
+    84 4 84 124 drawLine
+    4 124 84 124 drawLine
+
+    \ Draw locked blocks inside well
+    0 y !
+    begin
+        y @ well_height <
+    while
+        0 x !
+        begin
+            x @ well_width <
+        while
+            y @ well_width * x @ + cells well_data + @  \ Address inside well data structure
+            setColor
+
+            x @ box_size * well_x_offs +
+            y @ box_size * well_y_offs +
+            7 7 fillRect
+
+            x ++
+        repeat
+        y ++
+    repeat
+;
 
 : drawFrame
     \ Controls. We only take action when the button transition
@@ -116,18 +244,30 @@ newBlock
     \ Check left
     dup BUTTON_L and block_x @ 0 > and if
         block_x @ 1 - block_x !
+        check_block
+        can_move @ 0= if
+            block_x @ 1 + block_x !
+        then
     then
 
     \ Check right
     dup BUTTON_R and if
         block_x @ well_width < if
             block_x @ 1 + block_x !
+            check_block
+            can_move @ 0= if
+                block_x @ 1 - block_x !
+            then
         then
     then
 
     \ Check up (rotate)
     BUTTON_U and if
         rotation @ 1 + 3 and rotation !
+        check_block
+        can_move @ 0= if
+            rotation @ 3 + 3 and rotation !
+        then
     then
 
     \ Check down. Unlike the others, this can be held
@@ -139,13 +279,20 @@ newBlock
     counter @ drop_delay @ >= if
         0 counter !
         block_y @ 1 + block_y !
-        block_y @ well_height > if
-            newBlock
+        check_block
+        can_move @ 0= if
+            block_y @ 1 - block_y !
+            lock_block
+            new_block
         then
     then
 
     \ Draw
     0 cls
+
+    draw_well
+
+    \ Draw the currently drawing piece
     shape_color @ setColor
     drawblock
 ;
