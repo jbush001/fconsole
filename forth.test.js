@@ -585,7 +585,7 @@ test('stack crawl', () => {
     : foo
       2
       3
-      stackDump
+      stack_dump
       4
     ;
 
@@ -640,3 +640,12 @@ test('zero_memory', () => {
 
   `)).toBe('12\n17\n0\n0\n0\n0\n29');
 });
+
+test('negate', () => {
+  expect(runCode(`
+    7 negate .
+    -9 negate .
+    0 negate .
+  `)).toBe('-7\n9\n0');
+});
+

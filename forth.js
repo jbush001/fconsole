@@ -121,6 +121,18 @@ const LIB = `
     repeat
 ;
 
+variable __rand_seed
+
+_get_time __rand_seed !
+
+: random
+    __rand_seed @ 1103515245 * 12345 +
+    2147483647 and
+    dup __rand_seed !
+;
+
+: negate 0 swap - ;
+
 `;
 
 const MEMORY_SIZE = 8192;
@@ -230,7 +242,8 @@ class ForthContext {
       '>r': new Word(this._pushReturn),
       'r>': new Word(this._popReturn),
       'dsp@': new Word(this._dsp),
-      'stackDump': new Word(this._stackDump),
+      'stack_dump': new Word(this._stackDump),
+      '_get_time': new Word(this._getTime),
     };
 
     this.debugInfo = new DebugInfo();
@@ -577,6 +590,10 @@ class ForthContext {
 
   _stackDump() {
     console.log(this._debugStackCrawl());
+  }
+
+  _getTime() {
+    this._push(Date.now());
   }
 
   // Immedately execute code. This intepreter doesn't have an actual REPL, so

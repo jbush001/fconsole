@@ -20,12 +20,15 @@ create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_
 
 create well_data well_width well_height * cells allot
 
+create score_table 40 , 100 , 300 , 1200
+variable score
+
+
 variable piece_x
 variable piece_y
 variable cur_shape
 variable shape_color
 variable rotation
-
 
 : ++
     dup @ 1 + swap !
@@ -33,20 +36,6 @@ variable rotation
 
 : --
     dup @ 1 - swap !
-;
-
-variable seed
-
-1 seed !
-
-: random
-    seed @ 1103515245 * 12345 +
-    2147483647 and
-    dup seed !
-;
-
-: negate
-    0 swap -
 ;
 
 ( x y -- x y )
@@ -239,13 +228,13 @@ create finished_rows well_height cells allot
     repeat
 ;
 
-variable some_rows_finished
+variable finished_row_count
 variable row_is_finished
 
 : check_finished
     well_height finished_rows zero_memory
 
-    0 some_rows_finished !
+    0 finished_row_count !
     0 y !
     begin
         y @ well_height <
@@ -265,15 +254,14 @@ variable row_is_finished
 
         row_is_finished @ if
             1 y @ cells finished_rows + !
-            1 some_rows_finished !
+            finished_row_count ++
         then
 
         y ++
     repeat
 
-    some_rows_finished @
+    finished_row_count @
 ;
-
 
 variable dest_y
 
@@ -366,11 +354,18 @@ variable game_over
             \ Hit bottom
             piece_y @ 1 - piece_y ! \ Restore to place before collision
             lock_piece
-            check_finished if
+            check_finished dup if
+                \ Update score based on number of lines cleared
+                cells score_table + @
+                score @ + score !
+                score @ . \ print it for now (we can't draw text yet)
+
                 \ If we finished a row, need to wait for blink animation
                 \ to finish before adding new piece.
                 1 blink_counter !
             else
+                drop \ Clear extra finished line count
+
                 \ carry on
                 new_piece
                 piece_collides if
@@ -395,6 +390,8 @@ variable game_over
     well_width finished_rows zero_memory
 
     new_piece
+
+    0 score !
 ;
 
 : draw_frame
