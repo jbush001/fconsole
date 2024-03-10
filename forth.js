@@ -96,7 +96,7 @@ const LIB = `
 ;
 
 ( src dest count -- )
-: copy
+: copy_memory
     >r  \\ save count
     begin
         r> dup >r 0 >
@@ -108,16 +108,14 @@ const LIB = `
     r> drop \\ Remove saved count
 ;
 
-( count address -- )
-\\ XXX why is count first here, while it's last in copy?
+( address count -- )
 : zero_memory
     begin
-        over 0 >
+        dup 0 >
     while
-        ( count well_data )
-        dup 0 swap !        \\ write 0
-        4 +                 \\ increment data pointer
-        swap 1 - swap       \\ decrement counter
+        over 0 swap !       \\ write 0
+        1 -                 \\ decrement counter
+        swap 4 + swap       \\ increment data pointer
     repeat
 ;
 

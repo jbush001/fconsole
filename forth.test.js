@@ -606,12 +606,12 @@ test('stack overflow', () => {
   expect(t).toThrow('stack overflow');
 });
 
-test('copy', () => {
+test('copy_memory', () => {
   expect(runCode(`
     create foo 12 , 17 , 19 , 23 , 25 , 27 , 29
     create bar 9 allot
 
-    foo bar 8 + 5 copy
+    foo bar 8 + 5 copy_memory
 
     bar @ .
     bar 4 + @ .
@@ -628,7 +628,7 @@ test('copy', () => {
 test('zero_memory', () => {
   expect(runCode(`
     create foo 12 , 17 , 19 , 23 , 25 , 27 , 29 ,
-    4 foo 8 + zero_memory
+    foo 8 + 4 zero_memory
 
     foo @ .
     foo 4 + @ .

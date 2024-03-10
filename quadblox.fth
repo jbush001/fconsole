@@ -243,7 +243,7 @@ variable row_is_finished
 \ Check if any rows have all of their columns filled and
 \ need to disappear.
 : check_finished
-    well_height finished_rows zero_memory
+    finished_rows well_height zero_memory
 
     0 finished_row_count !
     0 y !
@@ -293,7 +293,7 @@ variable dest_y
             y @ well_width * cells well_data +  \ src
             dest_y @ well_width * cells well_data +  \ dest
             well_width \ count
-            copy
+            copy_memory
             dest_y --
         then
 
@@ -301,8 +301,8 @@ variable dest_y
     repeat
 
     \ Clear rows at top that are now exposed.
-    dest_y @ well_width * cells
     well_data
+    dest_y @ well_width * cells
     zero_memory
 ;
 
@@ -399,11 +399,11 @@ variable game_over
     0 drop_timer !
 
     \ Clear the well data structure
-    well_width well_height *
     well_data
+    well_width well_height *
     zero_memory
 
-    well_width finished_rows zero_memory
+    finished_rows well_width zero_memory
 
     new_piece
 
