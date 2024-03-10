@@ -20,7 +20,7 @@ create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_
 
 create well_data well_width well_height * cells allot
 
-create score_table 40 , 100 , 300 , 1200
+create score_table 40 , 100 , 300 , 1200 ,
 variable score
 
 
