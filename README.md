@@ -6,7 +6,11 @@ I've been having fun recently making small games in PICO-8, and I thought an
 interesting way to understand FORTH better would be to create a small fantasy
 console based on it.
 
-To set up, install NodeJS:
+Try it live here: <https://jbush001.github.io/fconsole/>
+
+## Develop and test locally
+
+Install NodeJS:
 
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
     (reopen shell)
@@ -16,7 +20,7 @@ To run tests:
 
     npm test
 
-To run in browser:
+To run in browser (locally):
 
     npm run serve
 
