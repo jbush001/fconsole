@@ -34,14 +34,17 @@ limitations under the License.
                 <div id="output">
                 </div>
                 <br/>
+                <label for="fileSelect">Load File:</label>
+                <select id="fileSelect" onchange="handleFileSelect(event)">
+                    <option value="">Select a file...</option>
+                </select>
+
                 <button onclick="doRun()">Run</button>
 
-                <form>
-                    <label for="fileSelect">File:</label>
-                    <select id="fileSelect" onchange="handleFileSelect(event)">
-                        <option value="">Select a file...</option>
-                    </select>
-                </form>
+                <div>
+                    Select a file from the drop down to load. Click 'run' to start.
+                    Use W A S D to move directionally.
+                </div>
             </div>
 
             <div id="sourcetab" class="tabcontent">

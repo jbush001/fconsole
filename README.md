@@ -6,7 +6,7 @@ I've been having fun recently making small games in PICO-8, and I thought an
 interesting way to understand FORTH better would be to create a small fantasy
 console based on it.
 
-Try it live here: <https://jbush001.github.io/fconsole/>
+Live version here: <https://jbush001.github.io/fconsole/>
 
 ## Develop and test locally
 
