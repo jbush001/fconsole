@@ -171,7 +171,7 @@ variable collision
     collision @
 ;
 
-variable counter
+variable drop_timer
 
 : new_piece
     random 7 mod
@@ -195,10 +195,10 @@ create finished_rows well_height cells allot
 : draw_well
     \ Draw the well sides
     7 set_color
-    4 4 84 4 draw_line
-    4 4 4 124 draw_line
-    84 4 84 124 draw_line
-    4 124 84 124 draw_line
+    3 3 84 3 draw_line
+    3 3 3 124 draw_line
+    84 3 84 124 draw_line
+    3 124 84 124 draw_line
 
     \ Draw locked pieces inside well
     0 y !
@@ -343,12 +343,12 @@ variable game_over
 
     \ Check down. Unlike the others, this can be held
     buttons BUTTON_D and if
-        counter ++
+        drop_timer ++
     then
 
-    counter ++
-    counter @ drop_delay @ >= if
-        0 counter !
+    drop_timer ++
+    drop_timer @ drop_delay @ >= if
+        0 drop_timer !
         piece_y @ 1 + piece_y !
         piece_collides if
             \ Hit bottom
@@ -380,7 +380,7 @@ variable game_over
 : init_game
     0 game_over !
     20 drop_delay !
-    0 counter !
+    0 drop_timer !
 
     \ Clear the well data structure
     well_width well_height *

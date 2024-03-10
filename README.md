@@ -20,7 +20,7 @@ To run tests:
 
     npm test
 
-To run in browser (locally):
+To run in browser:
 
     npm run serve
 
