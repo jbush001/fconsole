@@ -1,8 +1,8 @@
 \ Falling block puzzle game
-1 constant BUTTON_L
-2 constant BUTTON_R
-4 constant BUTTON_U
-8 constant BUTTON_D
+1 constant button_l
+2 constant button_r
+4 constant button_u
+8 constant button_d
 
 8 constant block_size
 4 constant well_x_offs
@@ -185,6 +185,7 @@ variable drop_timer
 
 : new_piece
     random 7 mod
+    drop 2
     dup
 
     1 + shape_color !
@@ -333,7 +334,7 @@ variable game_over
 
     \ top of stack is now buttons that have been pressed
     \ Check left
-    dup BUTTON_L and piece_x @ 0 > and if
+    dup button_l and piece_x @ 0 > and if
         piece_x @ 1 - piece_x !
         piece_collides if
             \ Collision, undo action
@@ -342,7 +343,7 @@ variable game_over
     then
 
     \ Check right
-    dup BUTTON_R and if
+    dup button_r and if
         piece_x @ well_width < if
             piece_x @ 1 + piece_x !
             piece_collides if
@@ -353,7 +354,7 @@ variable game_over
     then
 
     \ Check up button, which rotates the piece.
-    BUTTON_U and if
+    button_u and if
         rotation @ 1 + 3 and rotation !
         piece_collides if
             \ Collision, undo action
@@ -363,7 +364,7 @@ variable game_over
 
     \ Check down button, which speeds up the descent.
     \ Unlike the others, this can be held
-    buttons BUTTON_D and if
+    buttons button_d and if
         drop_timer ++
     then
 
@@ -378,7 +379,7 @@ variable game_over
             lock_piece
             check_finished dup if
                 \ Update score based on number of lines cleared
-                cells score_table + @
+                cells score_table + 1 - @
                 score @ + score !
                 score @ . \ print it for now (we can't draw text yet)
 

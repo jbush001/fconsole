@@ -1,15 +1,24 @@
-variable ballX
-variable ballY
-variable ballDx
-variable ballDy
-variable paddleX
+4 constant button_u
+8 constant button_d
+
+variable ball_x
+variable ball_y
+variable ball_dx
+variable ball_dy
+variable paddle_y
+
+16 constant court_top
+120 constant court_right
+115 constant court_bottom
+32 constant paddle_height
+6 constant paddle_width
 
 : init
-    31 ballX !
-    17 ballY !
-    1 ballDx !
-    1 ballDy !
-    48 paddleX !
+    31 ball_x !
+    17 ball_y !
+    1 ball_dx !
+    1 ball_dy !
+    48 paddle_y !
 ;
 
 init
@@ -18,45 +27,53 @@ init
     0 cls
 
     \ Update ball position
-    ballX @ ballDx @ + ballX !
-    ballY @ ballDy @ + ballY !
-    ballX @ 0 = ballX @ 120 = or if
-        0 ballDx @ - ballDx !
+    ball_x @ ball_dx @ + ball_x !
+    ball_y @ ball_dy @ + ball_y !
+
+    \ Right side
+    ball_x @ court_right = if
+        0 ball_dx @ - ball_dx !
     then
 
-    ballY @ 0 = if
-        0 ballDy @ - ballDy !
+    \ Top or bottom
+    ball_y @ court_top = ball_y @ court_bottom = or if
+        0 ball_dy @ - ball_dy !
     then
 
-    \ Hit the bottom
-    ballY @ 116 = if
+    \ Left (open) side where paddle is.
+    ball_x @ paddle_width = if
         \ Are we on the paddle?
-        ballX @ 8 + paddleX @ >
-        ballX @ paddleX @ 32 + < and if
+        ball_y @ 8 + paddle_y @ >
+        ball_y @ paddle_y @ paddle_height + < and if
             \ Yes, on the paddle, bounce
-            0 ballDy @ - ballDy !
+            0 ball_dx @ - ball_dx !
         then
     then
 
-    ballY @ 128 = if
+    ball_x @ -8 < if
         \ Out of bounds. We do this here instead of in the else above because
         \ we want to animate the ball going fully out of bounds
         init
     then
 
-    ballX @ ballY @ 1 1 0 draw_sprite
     \ Move paddle
-    buttons 1 and paddleX @ 0 > and if
-        paddleX @ 1 - paddleX !
-    then
-
-    buttons 2 and if
-        paddleX @ 96 < if
-            paddleX @ 1 + paddleX !
+    buttons button_u and if
+        paddle_y @ court_top > if
+            paddle_y @ 1 - paddle_y !
         then
     then
 
+    buttons button_d and if
+        paddle_y @ 128 paddle_height - < if
+            paddle_y @ 1 + paddle_y !
+        then
+    then
+
+
+    ball_x @ ball_y @ 1 1 0 draw_sprite
+
     2 set_color
-    paddleX @ 124 32 4 fill_rect
+    0 court_top 128 court_top draw_line
+    0 paddle_y @ paddle_width paddle_height fill_rect
 ;
 
