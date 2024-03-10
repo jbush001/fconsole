@@ -221,6 +221,18 @@ function drawFrame(ctx) {
   }
 }
 
+const GAME_BUILTINS = `
+1 constant button_l
+2 constant button_r
+4 constant button_u
+8 constant button_d
+16 constant button_a
+32 constant button_b
+
+128 constant screen_width
+128 constant screen_height
+`;
+
 // eslint-disable-next-line no-unused-vars
 function doRun() {
   console.log('started');
@@ -235,7 +247,8 @@ function doRun() {
     });
     ctx.bindNative('buttons', 0, getButtons);
     ctx.bindNative('fill_rect', 4, fillRect);
-    ctx.bindNative('beep', 2, playBeep)
+    ctx.bindNative('beep', 2, playBeep);
+    ctx.interpretSource(GAME_BUILTINS);
 
     console.log('compiling');
     ctx.interpretSource(document.getElementById('source').value);

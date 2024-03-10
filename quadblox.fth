@@ -1,9 +1,4 @@
 \ Falling block puzzle game
-1 constant button_l
-2 constant button_r
-4 constant button_u
-8 constant button_d
-
 8 constant block_size
 4 constant well_x_offs
 4 constant well_y_offs
@@ -185,7 +180,6 @@ variable drop_timer
 
 : new_piece
     random 7 mod
-    drop 2
     dup
 
     1 + shape_color !

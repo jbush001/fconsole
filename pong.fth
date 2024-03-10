@@ -1,6 +1,3 @@
-4 constant button_u
-8 constant button_d
-
 variable ball_x
 variable ball_y
 variable ball_dx
@@ -8,17 +5,17 @@ variable ball_dy
 variable paddle_y
 
 16 constant court_top
-120 constant court_right
-115 constant court_bottom
+screen_width 8 - constant court_right
+screen_height 8 - constant court_bottom
 32 constant paddle_height
 6 constant paddle_width
 
 : init
-    31 ball_x !
-    17 ball_y !
+    screen_width 2 / 4 - ball_x !
+    screen_height 2 / 4 - ball_y !
     1 ball_dx !
     1 ball_dy !
-    48 paddle_y !
+    screen_height paddle_height - 2 / paddle_y !
 ;
 
 init
@@ -67,7 +64,7 @@ init
     then
 
     buttons button_d and if
-        paddle_y @ 128 paddle_height - < if
+        paddle_y @ screen_height paddle_height - < if
             paddle_y @ 1 + paddle_y !
         then
     then
@@ -76,7 +73,7 @@ init
     ball_x @ ball_y @ 1 1 0 draw_sprite
 
     2 set_color
-    0 court_top 128 court_top draw_line
+    0 court_top screen_width court_top draw_line
     0 paddle_y @ paddle_width paddle_height fill_rect
 ;
 
