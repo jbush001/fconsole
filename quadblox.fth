@@ -1,14 +1,17 @@
+\ Falling block puzzle game
 1 constant BUTTON_L
 2 constant BUTTON_R
 4 constant BUTTON_U
 8 constant BUTTON_D
 
-8 constant box_size
+8 constant block_size
 4 constant well_x_offs
 4 constant well_y_offs
 10 constant well_width
 15 constant well_height
 
+\ Each piece consits of four blocks. Each block is stored here
+\ as an X and Y offset from the pivot point.
 create piece_l 0 , -1 , 0 , 0 , 0 , 1 , 1 , 1 ,
 create piece_j 0 , -1 , 0 , 0 , 0 , 1 , -1 , 1 ,
 create piece_i 0 , -2 , 0 , -1 , 0 , 0 , 0 , 1 ,
@@ -18,12 +21,15 @@ create piece_s -1 , 1 , 0 , 1 , 0 , 0 , 1 , 0 ,
 create piece_z 1 , 1 , 0 , 1 , 0 , 0 , -1 , 0 ,
 create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_z ,
 
+\ Track which blocks in the well have pieces in them. This only tracks pieces
+\ that have fallen in the well, not the currently dropping pieces.
 create well_data well_width well_height * cells allot
 
+\ Score increment for number of rows cleared.
 create score_table 40 , 100 , 300 , 1200 ,
 variable score
 
-
+\ Information about currently dropping piece.
 variable piece_x
 variable piece_y
 variable cur_shape
@@ -38,6 +44,8 @@ variable rotation
     dup @ 1 - swap !
 ;
 
+\ Given an X and Y coordinate, rotate it according to current piece
+\ rotation.
 ( x y -- x y )
 : rotate
     rotation @ 1 = if
@@ -60,16 +68,16 @@ variable rotation
 ;
 
 ( piece_addr -- piece_addr )
-: draw_square
+: draw_block
     dup @      \ Read X
     over 4 + @ \ Read Y
 
     rotate
 
     \ Convert to screen locations
-    piece_y @ + box_size * well_y_offs +
+    piece_y @ + block_size * well_y_offs +
     swap
-    piece_x @ + box_size * well_x_offs +
+    piece_x @ + block_size * well_x_offs +
     swap
 
     7 7 fill_rect
@@ -77,17 +85,17 @@ variable rotation
 
 : draw_piece
     cur_shape @
-    draw_square 8 +
-    draw_square 8 +
-    draw_square 8 +
-    draw_square
+    draw_block 8 +
+    draw_block 8 +
+    draw_block 8 +
+    draw_block
     drop
 ;
 
 \ Given piece addr translate and rotate to
 \ coords in grid
 ( piece_addr -- x y )
-: transform_square_coords
+: transform_block_coords
     dup @      \ Read X
     over 4 + @ \ Read Y
 
@@ -100,8 +108,8 @@ variable rotation
     swap
 ;
 
-: lock_square
-    transform_square_coords
+: lock_block
+    transform_block_coords
 
     well_width * + cells \ Convert to array offset
     well_data +
@@ -109,19 +117,21 @@ variable rotation
     shape_color @ swap !
 ;
 
+\ When a piece cannot fall any more, copy its blocks
+\ into the well grid.
 : lock_piece
     cur_shape @
-    lock_square 8 +
-    lock_square 8 +
-    lock_square 8 +
-    lock_square
+    lock_block 8 +
+    lock_block 8 +
+    lock_block 8 +
+    lock_block
     drop
 ;
 
 variable collision
 
-: check_square
-    transform_square_coords
+: block_collides
+    transform_block_coords
 
     ( x y )
     \ Check in bounds
@@ -163,10 +173,10 @@ variable collision
 : piece_collides
     0 collision !
     cur_shape @
-    check_square 8 +
-    check_square 8 +
-    check_square 8 +
-    check_square
+    block_collides 8 +
+    block_collides 8 +
+    block_collides 8 +
+    block_collides
     drop
     collision @
 ;
@@ -215,11 +225,15 @@ create finished_rows well_height cells allot
                 x @ well_width <
             while
                 y @ well_width * x @ + cells well_data + @  \ read well block
-                set_color
+                dup if
+                    set_color
 
-                x @ box_size * well_x_offs +
-                y @ box_size * well_y_offs +
-                7 7 fill_rect
+                    x @ block_size * well_x_offs +
+                    y @ block_size * well_y_offs +
+                    7 7 fill_rect
+                else
+                    drop
+                then
 
                 x ++
             repeat
@@ -231,6 +245,8 @@ create finished_rows well_height cells allot
 variable finished_row_count
 variable row_is_finished
 
+\ Check if any rows have all of their columns filled and
+\ need to disappear.
 : check_finished
     well_height finished_rows zero_memory
 
@@ -265,6 +281,7 @@ variable row_is_finished
 
 variable dest_y
 
+\ Copy rows down to fill spaces left by rows that have been completed.
 : remove_finished_rows
     \ Walk from bottom up
     well_height 1 -
@@ -297,9 +314,9 @@ variable dest_y
 variable button_mask
 
 : check_buttons
-    \We only take action when the button transition
+    \ We only take action when the button transition
     \ from not pressed to pressed, so check if the button state
-    \ has changed from the last frame.
+    \ has changed from the last sample.
     buttons dup                 ( buttons buttons )
     button_mask @ -1 xor and    ( ~button_mask & buttons )
     swap button_mask !          ( update button msak)
@@ -308,6 +325,9 @@ variable button_mask
 variable drop_delay
 variable game_over
 
+\ We check if the movement is legal by first moving to the new
+\ position and then checking if pieces are either out of bounds
+\ or intersecting existing blocks. If so, we undo the movement.
 : move_piece
     check_buttons
 
@@ -332,7 +352,7 @@ variable game_over
         then
     then
 
-    \ Check up (rotate)
+    \ Check up button, which rotates the piece.
     BUTTON_U and if
         rotation @ 1 + 3 and rotation !
         piece_collides if
@@ -341,17 +361,19 @@ variable game_over
         then
     then
 
-    \ Check down. Unlike the others, this can be held
+    \ Check down button, which speeds up the descent.
+    \ Unlike the others, this can be held
     buttons BUTTON_D and if
         drop_timer ++
     then
 
+    \ Handle falling
     drop_timer ++
     drop_timer @ drop_delay @ >= if
         0 drop_timer !
         piece_y @ 1 + piece_y !
         piece_collides if
-            \ Hit bottom
+            \ Hit bottom and can no longer fall.
             piece_y @ 1 - piece_y ! \ Restore to place before collision
             lock_piece
             check_finished dup if
@@ -360,8 +382,8 @@ variable game_over
                 score @ + score !
                 score @ . \ print it for now (we can't draw text yet)
 
-                \ If we finished a row, need to wait for blink animation
-                \ to finish before adding new piece.
+                \ Kick off animation. We don't add the new piece here because
+                \ we need to wait for the animation to finish.
                 1 blink_counter !
             else
                 drop \ Clear extra finished line count
@@ -375,7 +397,6 @@ variable game_over
         then
     then
 ;
-
 
 : init_game
     0 game_over !
@@ -427,7 +448,7 @@ variable game_over
 
     draw_well
 
-    \ Draw the currently drawing piece
+    \ Draw the currently falling piece
     shape_color @ set_color
     blink_counter @ 0= if
         draw_piece
