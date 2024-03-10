@@ -33,11 +33,13 @@ init
     \ Right side
     ball_x @ court_right = if
         0 ball_dx @ - ball_dx !
+        220 50 beep
     then
 
     \ Top or bottom
     ball_y @ court_top = ball_y @ court_bottom = or if
         0 ball_dy @ - ball_dy !
+        220 50 beep
     then
 
     \ Left (open) side where paddle is.
@@ -47,6 +49,7 @@ init
         ball_y @ paddle_y @ paddle_height + < and if
             \ Yes, on the paddle, bounce
             0 ball_dx @ - ball_dx !
+            220 50 beep
         then
     then
 

@@ -235,6 +235,7 @@ function doRun() {
     });
     ctx.bindNative('buttons', 0, getButtons);
     ctx.bindNative('fill_rect', 4, fillRect);
+    ctx.bindNative('beep', 2, playBeep)
 
     console.log('compiling');
     ctx.interpretSource(document.getElementById('source').value);
@@ -255,6 +256,19 @@ function doRun() {
   } catch (err) {
     alert(err);
   }
+}
+
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function playBeep(frequency, duration) {
+  const oscillator = audioContext.createOscillator();
+  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+  oscillator.connect(audioContext.destination);
+  oscillator.type = 'square';
+  oscillator.start();
+  setTimeout(() => {
+    oscillator.stop();
+  }, duration);
 }
 
 function handleFileSelect(event) {
