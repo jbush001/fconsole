@@ -649,3 +649,28 @@ test('negate', () => {
   `)).toBe('-7\n9\n0');
 });
 
+test('+!', () => {
+  expect(runCode(`
+    variable foo
+    2 foo !
+    9 foo +!
+    foo @ .
+  `)).toBe('11');
+});
+
+test('case', () => {
+  expect(runCode(`
+    : dispatch
+      case
+        1 of 999 . endof
+        2 of 800 . endof
+        3 of 765 . endof
+      endcase
+    ;
+
+    1 dispatch
+    3 dispatch
+    2 dispatch
+  `)).toBe('999\n765\n800');
+});
+

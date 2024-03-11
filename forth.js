@@ -52,7 +52,7 @@ const LIB = `
 ;
 
 : if immediate
-  ' 0branch ,       \\ 0branch
+  ' 0branch ,
   here @            \\ save on stack
   0 ,               \\ dummy offset
 ;
@@ -130,6 +130,46 @@ _get_time __rand_seed !
 ;
 
 : negate 0 swap - ;
+
+\\ Add n to the contents of addr and write back to addr.
+( n addr -- )
+: +!
+    swap over @
+    + swap !
+;
+
+: case immediate
+    0 \\ stack delimiter
+;
+
+: of immediate
+    ' over ,
+    ' = ,
+    ' 0branch ,
+    here @      \\ Save address to patch
+    0 ,         \\ dummy branch offset
+    ' drop ,
+;
+
+: endof immediate
+    ' branch ,       \\ branch at end of previous block
+    here @           \\ Save new branch address
+    0 ,              \\ dummy branch offset
+
+    \\ Now patch previous branch
+    swap
+    here @ swap !
+;
+
+: endcase immediate
+    ' drop ,
+    begin
+        dup
+    while
+        here @ swap !     \\ patch branch
+    repeat
+    drop
+;
 
 `;
 
@@ -273,6 +313,14 @@ class ForthContext {
         }
       }
     });
+  }
+
+  lookupWord(name) {
+    if (!(name in this.dictionary)) {
+      return undefined;
+    }
+
+    return this.dictionary[name].value;
   }
 
   // Pop the top value from the data stack, checking bounds.
@@ -722,7 +770,7 @@ class ForthContext {
       crawlInfo += `${wordDef} @${address} (line ${lineNo})\n`;
     }
 
-    addEntry(this.pc);
+    addEntry(this.pc - 4);
     for (let i = this.returnStack.length - 1; i >= 0; i--) {
       addEntry(this.returnStack[i] - 4);
     }

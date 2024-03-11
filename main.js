@@ -206,14 +206,14 @@ function getButtons() {
   return [buttonMask];
 }
 
-let timer = null;
+let drawFrameTimer = null;
 let drawFrameAddr = -1;
 
 function drawFrame(ctx) {
   try {
     ctx.exec(drawFrameAddr);
 
-    timer = setTimeout(() => {
+    drawFrameTimer = setTimeout(() => {
       drawFrame(ctx);
     }, 16);
   } catch (err) {
@@ -222,12 +222,12 @@ function drawFrame(ctx) {
 }
 
 const GAME_BUILTINS = `
-1 constant button_l
-2 constant button_r
-4 constant button_u
-8 constant button_d
-16 constant button_a
-32 constant button_b
+${BUTTON_L} constant button_l
+${BUTTON_R} constant button_r
+${BUTTON_U} constant button_u
+${BUTTON_D} constant button_d
+${BUTTON_A} constant button_a
+${BUTTON_B} constant button_b
 
 128 constant screen_width
 128 constant screen_height
@@ -235,7 +235,6 @@ const GAME_BUILTINS = `
 
 // eslint-disable-next-line no-unused-vars
 function doRun() {
-  console.log('started');
   try {
     const ctx = new ForthContext();
     ctx.bindNative('cls', 1, clearScreen);
@@ -250,21 +249,15 @@ function doRun() {
     ctx.bindNative('beep', 2, playBeep);
     ctx.interpretSource(GAME_BUILTINS);
 
-    console.log('compiling');
     ctx.interpretSource(document.getElementById('source').value);
-    console.log('done');
-    for (const key in ctx.dictionary) {
-      console.log(key, ctx.dictionary[key].value);
-    }
-
     document.getElementById('output').textContent = '';
 
-    if (!('draw_frame' in ctx.dictionary)) {
+    drawFrameAddr = ctx.lookupWord('draw_frame');
+    if (drawFrameAddr === undefined) {
       throw new Error('draw_frame not defined');
     }
 
-    drawFrameAddr = ctx.dictionary['draw_frame'].value;
-    clearTimeout(timer);
+    clearTimeout(drawFrameTimer);
     drawFrame(ctx);
   } catch (err) {
     alert(err);
@@ -290,6 +283,7 @@ function handleFileSelect(event) {
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
+
     return response.text();
   }).then((data) => {
     document.getElementById('source').value = data;

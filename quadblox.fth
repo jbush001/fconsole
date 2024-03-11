@@ -31,35 +31,30 @@ variable cur_shape
 variable shape_color
 variable rotation
 
-: ++
-    dup @ 1 + swap !
-;
-
-: --
-    dup @ 1 - swap !
-;
-
 \ Given an X and Y coordinate, rotate it according to current piece
 \ rotation.
 ( x y -- x y )
 : rotate
-    rotation @ 1 = if
-        \ x = y y = -x
-        swap
-        negate
-    then
-    rotation @ 2 = if
-        \ x = -x  y = -y
-        negate
-        swap
-        negate
-        swap
-    then
-    rotation @ 3 = if
-        \ x = -y y = x
-        negate
-        swap
-    then
+    case rotation @
+        0 of endof
+        1 of
+            \ x = y y = -x
+            swap
+            negate
+        endof
+        2 of
+            \ x = -x  y = -y
+            negate
+            swap
+            negate
+            swap
+        endof
+        3 of
+            \ x = -y y = x
+            negate
+            swap
+        endof
+    endcase
 ;
 
 ( piece_addr -- piece_addr )
@@ -176,8 +171,6 @@ variable collision
     collision @
 ;
 
-variable drop_timer
-
 : new_piece
     random 7 mod
     dup
@@ -230,10 +223,10 @@ create finished_rows well_height cells allot
                     drop
                 then
 
-                x ++
+                1 x +!
             repeat
         then
-        y ++
+        1 y +!
     repeat
 ;
 
@@ -260,15 +253,15 @@ variable row_is_finished
                 0 row_is_finished !
             then
 
-            x ++
+            1 x +!
         repeat
 
         row_is_finished @ if
             1 y @ cells finished_rows + !
-            finished_row_count ++
+            1 finished_row_count +!
         then
 
-        y ++
+        1 y +!
     repeat
 
     finished_row_count @
@@ -294,10 +287,10 @@ variable dest_y
             dest_y @ well_width * cells well_data +  \ dest
             well_width \ count
             copy_memory
-            dest_y --
+            -1 dest_y +!
         then
 
-        y --
+        -1 y +!
     repeat
 
     \ Clear rows at top that are now exposed.
@@ -317,6 +310,7 @@ variable button_mask
     swap button_mask !          ( update button msak)
 ;
 
+variable drop_timer
 variable drop_delay
 variable game_over
 
@@ -359,11 +353,11 @@ variable game_over
     \ Check down button, which speeds up the descent.
     \ Unlike the others, this can be held
     buttons button_d and if
-        drop_timer ++
+        1 drop_timer +!
     then
 
     \ Handle falling
-    drop_timer ++
+    1 drop_timer +!
     drop_timer @ drop_delay @ >= if
         0 drop_timer !
         piece_y @ 1 + piece_y !
@@ -419,7 +413,7 @@ variable game_over
     else
         blink_counter @ if
             \ Peforming a blink animation sequence to remove rows.
-            blink_counter ++
+            1 blink_counter +!
             blink_counter @ 6 / 1 and 0= blink_state !
 
             \ Check if the animation sequence is finished.
