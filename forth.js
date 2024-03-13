@@ -171,6 +171,8 @@ _get_time __rand_seed !
     drop
 ;
 
+: dup2 over over ;
+
 `;
 
 const MEMORY_SIZE = 8192;
@@ -282,6 +284,8 @@ class ForthContext {
       'dsp@': new Word(this._dsp),
       'stack_dump': new Word(this._stackDump),
       '_get_time': new Word(this._getTime),
+      'rot': new Word(this._rot),
+      '-rot': new Word(this._reverseRot),
     };
 
     this.debugInfo = new DebugInfo();
@@ -615,6 +619,26 @@ class ForthContext {
     } else {
       this._push(-1);
     }
+  }
+
+  // ( a b c -- b c a )
+  _rot() {
+    const c = this._pop();
+    const b = this._pop();
+    const a = this._pop();
+    this._push(b);
+    this._push(c);
+    this._push(a);
+  }
+
+  // ( a b c -- c a b )
+  _reverseRot() {
+    const c = this._pop();
+    const b = this._pop();
+    const a = this._pop();
+    this._push(c);
+    this._push(a);
+    this._push(b);
   }
 
   _pushReturn() {

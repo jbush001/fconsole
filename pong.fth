@@ -48,63 +48,55 @@ create segmap
 4 constant seg_thickness
 
 \ Rectangles for each segment, x, y, width, height
-create seg0 0 , 0 , seg_length , seg_thickness ,
-create seg1 0 , 0 , seg_thickness , seg_length ,
-create seg2 seg_length seg_thickness - , 0 , seg_thickness , seg_length ,
-create seg3 0 , seg_length seg_thickness 2 / - , seg_length , seg_thickness ,
-create seg4 0 , seg_length , seg_thickness , seg_length ,
-create seg5 seg_length seg_thickness - , seg_length , seg_thickness , seg_length ,
-create seg6 0 , seg_length 2 * seg_thickness - , seg_length , seg_thickness ,
+create seg_locs
+0 , 0 , seg_length , seg_thickness , \ 0
+0 , 0 , seg_thickness , seg_length , \ 1
+seg_length seg_thickness - , 0 , seg_thickness , seg_length , \ 2
+0 , seg_length seg_thickness 2 / - , seg_length , seg_thickness , \ 3
+0 , seg_length , seg_thickness , seg_length , \ 4
+seg_length seg_thickness - , seg_length , seg_thickness , seg_length , \ 5
+0 , seg_length 2 * seg_thickness - , seg_length , seg_thickness , \ 6
 
-( seg_ptr x y -- )
+variable digit_x
+variable digit_y
+
+( seg_ptr -- )
 : draw_segment
     \ Read the 4 values onto the stack
-    3 pick @ 3 pick +
-    4 pick 4 + @ 3 pick +
-    5 pick 8 + @
-    6 pick 12 + @
+    dup @ digit_x @ +
+    over 4 + @ digit_y @ +
+    3 pick 8 + @
+    4 pick 12 + @
     fill_rect
-    drop drop drop
+    drop
 ;
 
-( x y value -- )
+( value -- )
 : draw_digit
-    cells segmap + @
+    cells segmap + @   \ Lookup table, each bit represents a segment
+    seg_locs
+    1
+    ( bitmap coord_ptr mask )
 
-    dup 1 and if
-        seg0 4 pick 4 pick draw_segment
-    then
-
-    dup 2 and if
-        seg1 4 pick 4 pick draw_segment
-    then
-
-    dup 4 and if
-        seg2 4 pick 4 pick draw_segment
-    then
-
-    dup 8 and if
-        seg3 4 pick 4 pick draw_segment
-    then
-
-    dup 16 and if
-        seg4 4 pick 4 pick draw_segment
-    then
-
-    dup 32 and if
-        seg5 4 pick 4 pick draw_segment
-    then
-
-    dup 64 and if
-        seg6 4 pick 4 pick draw_segment
-    then
+    begin
+        dup 64 <=
+    while
+        dup 4 pick and if
+            over draw_segment
+        then
+        swap 16 + swap
+        2 *
+    repeat
 
     drop drop drop
 ;
 
 : draw_score
-    90 4 score @ 10 / draw_digit
-    105 4 score @ 10 mod draw_digit
+    90 digit_x !
+    4 digit_y !
+    score @ 10 / draw_digit
+    102 digit_x !
+    score @ 10 mod draw_digit
 ;
 
 : update
@@ -161,7 +153,7 @@ create seg6 0 , seg_length 2 * seg_thickness - , seg_length , seg_thickness ,
 
     0 cls
     ball_x @ ball_y @ 1 1 0 draw_sprite
-    2 set_color
+    7 set_color
     0 paddle_y @ paddle_width paddle_height fill_rect
     draw_score
 ;

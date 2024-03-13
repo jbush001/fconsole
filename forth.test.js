@@ -674,3 +674,9 @@ test('case', () => {
   `)).toBe('999\n765\n800');
 });
 
+test('rot', () => {
+  expect(runCode(`
+    1 2 3 4 rot . . . .
+    5 6 7 8 -rot . . . .
+  `)).toBe('2\n4\n3\n1\n7\n6\n8\n5');
+});
