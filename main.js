@@ -28,12 +28,12 @@ const BUTTON_A = 16;
 const BUTTON_B = 32;
 
 const BUTTON_MAP = {
-  'w': BUTTON_U,
-  'a': BUTTON_L,
-  's': BUTTON_D,
-  'd': BUTTON_R,
-  ',': BUTTON_A,
-  '.': BUTTON_B,
+  'ArrowUp': BUTTON_U,
+  'ArrowLeft': BUTTON_L,
+  'ArrowDown': BUTTON_D,
+  'ArrowRight': BUTTON_R,
+  'z': BUTTON_A,
+  'x': BUTTON_B,
 };
 
 let buttonMask = 0;
@@ -53,6 +53,7 @@ function startup() {
   });
 
   document.addEventListener('keydown', function(event) {
+    console.log(event.key);
     if (event.key in BUTTON_MAP) {
       buttonMask |= BUTTON_MAP[event.key];
     }
@@ -222,15 +223,15 @@ function drawFrame(ctx) {
 }
 
 const GAME_BUILTINS = `
-${BUTTON_L} constant button_l
-${BUTTON_R} constant button_r
-${BUTTON_U} constant button_u
-${BUTTON_D} constant button_d
-${BUTTON_A} constant button_a
-${BUTTON_B} constant button_b
+${BUTTON_L} constant BUTTON_L
+${BUTTON_R} constant BUTTON_R
+${BUTTON_U} constant BUTTON_U
+${BUTTON_D} constant BUTTON_D
+${BUTTON_A} constant BUTTON_A
+${BUTTON_B} constant BUTTON_B
 
-128 constant screen_width
-128 constant screen_height
+128 constant SCREEN_WIDTH
+128 constant SCREEN_HEIGHT
 `;
 
 // eslint-disable-next-line no-unused-vars

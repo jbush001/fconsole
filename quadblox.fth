@@ -1,9 +1,9 @@
 \ Falling block puzzle game
-8 constant block_size
-4 constant well_x_offs
-4 constant well_y_offs
-10 constant well_width
-15 constant well_height
+8 constant BLOCK_SIZE
+4 constant WELL_X_OFFS
+4 constant WELL_Y_OFFS
+10 constant WELL_WIDTH
+15 constant WELL_HEIGHT
 
 \ Each piece consits of four blocks. Each block is stored here
 \ as an X and Y offset from the pivot point.
@@ -18,7 +18,7 @@ create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_
 
 \ Track which blocks in the well have pieces in them. This only tracks pieces
 \ that have fallen in the well, not the currently dropping pieces.
-create well_data well_width well_height * cells allot
+create well_data WELL_WIDTH WELL_HEIGHT * cells allot
 
 \ Score increment for number of rows cleared.
 create score_table 40 , 100 , 300 , 1200 ,
@@ -65,9 +65,9 @@ variable rotation
     rotate
 
     \ Convert to screen locations
-    piece_y @ + block_size * well_y_offs +
+    piece_y @ + BLOCK_SIZE * WELL_Y_OFFS +
     swap
-    piece_x @ + block_size * well_x_offs +
+    piece_x @ + BLOCK_SIZE * WELL_X_OFFS +
     swap
 
     7 7 fill_rect
@@ -101,7 +101,7 @@ variable rotation
 : lock_block
     transform_block_coords
 
-    well_width * + cells \ Convert to array offset
+    WELL_WIDTH * + cells \ Convert to array offset
     well_data +
 
     shape_color @ swap !
@@ -131,7 +131,7 @@ variable collision
         exit
     then
 
-    dup well_height >= if
+    dup WELL_HEIGHT >= if
         1 collision !
         drop drop
         exit
@@ -145,14 +145,14 @@ variable collision
         exit
     then
 
-    dup well_width >= if
+    dup WELL_WIDTH >= if
         1 collision !
         drop drop
         exit
     then
 
     swap
-    well_width * + cells \ Convert to array offset
+    WELL_WIDTH * + cells \ Convert to array offset
     well_data +
     @  \ Read
     if
@@ -188,7 +188,7 @@ variable x
 variable y
 variable blink_state
 variable blink_counter
-create finished_rows well_height cells allot
+create finished_rows WELL_HEIGHT cells allot
 
 : draw_well
     \ Draw the well sides
@@ -201,7 +201,7 @@ create finished_rows well_height cells allot
     \ Draw locked pieces inside well
     0 y !
     begin
-        y @ well_height <
+        y @ WELL_HEIGHT <
     while
         \ If this row is finished, it will blink before being removed.
         \ Check if the row is blinking before drawing
@@ -210,14 +210,14 @@ create finished_rows well_height cells allot
         0= if
             0 x !
             begin
-                x @ well_width <
+                x @ WELL_WIDTH <
             while
-                y @ well_width * x @ + cells well_data + @  \ read well block
+                y @ WELL_WIDTH * x @ + cells well_data + @  \ read well block
                 dup if
                     set_color
 
-                    x @ block_size * well_x_offs +
-                    y @ block_size * well_y_offs +
+                    x @ BLOCK_SIZE * WELL_X_OFFS +
+                    y @ BLOCK_SIZE * WELL_Y_OFFS +
                     7 7 fill_rect
                 else
                     drop
@@ -236,19 +236,19 @@ variable row_is_finished
 \ Check if any rows have all of their columns filled and
 \ need to disappear.
 : check_finished
-    finished_rows well_height zero_memory
+    finished_rows WELL_HEIGHT zero_memory
 
     0 finished_row_count !
     0 y !
     begin
-        y @ well_height <
+        y @ WELL_HEIGHT <
     while
         1 row_is_finished !
         0 x !
         begin
-            x @ well_width <
+            x @ WELL_WIDTH <
         while
-            y @ well_width * x @ + cells well_data + @
+            y @ WELL_WIDTH * x @ + cells well_data + @
             0= if
                 0 row_is_finished !
             then
@@ -272,7 +272,7 @@ variable dest_y
 \ Copy rows down to fill spaces left by rows that have been completed.
 : remove_finished_rows
     \ Walk from bottom up
-    well_height 1 -
+    WELL_HEIGHT 1 -
     dup
     y !  \ Y is source address
     dest_y !
@@ -283,9 +283,9 @@ variable dest_y
         y @ cells finished_rows + @   ( Is this row set as finished )
         0= if
             \ Not eliminated, copy
-            y @ well_width * cells well_data +  \ src
-            dest_y @ well_width * cells well_data +  \ dest
-            well_width \ count
+            y @ WELL_WIDTH * cells well_data +  \ src
+            dest_y @ WELL_WIDTH * cells well_data +  \ dest
+            WELL_WIDTH \ count
             copy_memory
             -1 dest_y +!
         then
@@ -295,7 +295,7 @@ variable dest_y
 
     \ Clear rows at top that are now exposed.
     well_data
-    dest_y @ well_width * cells
+    dest_y @ WELL_WIDTH * cells
     zero_memory
 ;
 
@@ -322,7 +322,7 @@ variable game_over
 
     \ top of stack is now buttons that have been pressed
     \ Check left
-    dup button_l and piece_x @ 0 > and if
+    dup BUTTON_L and piece_x @ 0 > and if
         piece_x @ 1 - piece_x !
         piece_collides if
             \ Collision, undo action
@@ -331,8 +331,8 @@ variable game_over
     then
 
     \ Check right
-    dup button_r and if
-        piece_x @ well_width < if
+    dup BUTTON_R and if
+        piece_x @ WELL_WIDTH < if
             piece_x @ 1 + piece_x !
             piece_collides if
                 \ Collision, undo action
@@ -342,7 +342,7 @@ variable game_over
     then
 
     \ Check up button, which rotates the piece.
-    button_u and if
+    BUTTON_A and if
         rotation @ 1 + 3 and rotation !
         piece_collides if
             \ Collision, undo action
@@ -352,7 +352,7 @@ variable game_over
 
     \ Check down button, which speeds up the descent.
     \ Unlike the others, this can be held
-    buttons button_d and if
+    buttons BUTTON_D and if
         1 drop_timer +!
     then
 
@@ -394,10 +394,10 @@ variable game_over
 
     \ Clear the well data structure
     well_data
-    well_width well_height *
+    WELL_WIDTH WELL_HEIGHT *
     zero_memory
 
-    finished_rows well_width zero_memory
+    finished_rows WELL_WIDTH zero_memory
 
     new_piece
 
