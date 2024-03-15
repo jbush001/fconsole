@@ -31,7 +31,7 @@ variable score
 \
 \ Bitmap represents which segments are on for each digit, 0-9
 create segmap
-2 base !
+binary
     1110111 ,  \ 0
     0100100 ,  \ 1
     1011101 ,  \ 2
@@ -42,7 +42,7 @@ create segmap
     0100101 ,  \ 7
     1111111 ,  \ 8
     1101111 ,  \ 9
-1010 base !
+decimal
 
 10 constant SEG_LENGTH
 4 constant SEG_THICKNESS

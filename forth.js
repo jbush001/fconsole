@@ -173,6 +173,17 @@ _get_time __rand_seed !
 
 : dup2 over over ;
 
+\\ Any literal numeric is interpreted in the current base, which means
+\\ the hex and decimal words would not necessarily be idempotent
+\\ if we didn't define these as constants up-front.
+16 constant _BASE16
+10 constant _BASE10
+2 constant _BASE2
+
+: hex immediate _BASE16 base ! ;
+: decimal immediate _BASE10 base ! ;
+: binary immediate _BASE2 base ! ;
+
 `;
 
 const MEMORY_SIZE = 8192;

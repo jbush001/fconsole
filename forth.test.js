@@ -529,7 +529,17 @@ test('bases', () => {
     1234 .
     12 base !  \\ Actually 10, since our numbers are octal now
     456 .
-  `)).toBe('15731388\n668\n456');
+
+    binary
+    1010110 .
+    hex
+    abcd123 .
+    hex
+    def .
+    decimal
+    12 .
+
+  `)).toBe('15731388\n668\n456\n86\n180146467\n3567\n12');
 });
 
 test('unknown word1', () => {
