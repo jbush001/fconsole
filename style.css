@@ -84,3 +84,8 @@ body, html {
     image-rendering: crisp-edges;
     height: 400px;
 }
+
+#sprite_edit {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}

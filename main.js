@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-let canvas = null;
-let context = null;
+let outputCanvas = null;
+let outputContext = null;
 let spriteSheet = null;
 
 const SPRITE_SIZE = 8;
@@ -40,8 +40,8 @@ let buttonMask = 0;
 
 // eslint-disable-next-line no-unused-vars
 function startup() {
-  canvas = document.getElementById('screen');
-  context = canvas.getContext('2d');
+  outputCanvas = document.getElementById('screen');
+  outputContext = outputCanvas.getContext('2d');
 
   // Intercept tab key so it inserts into the source instead of switching
   // to a different element in the page.
@@ -53,7 +53,6 @@ function startup() {
   });
 
   document.addEventListener('keydown', function(event) {
-    console.log(event.key);
     if (event.key in BUTTON_MAP) {
       buttonMask |= BUTTON_MAP[event.key];
     }
@@ -70,8 +69,15 @@ function startup() {
 
   const spriteSheetWidth = SPRITE_SHEET_W * SPRITE_SIZE;
   const spriteSheetHeight = SPRITE_SHEET_H * SPRITE_SIZE;
-  const spriteData = context.createImageData(spriteSheetWidth,
+  const spriteData = outputContext.createImageData(spriteSheetWidth,
       spriteSheetHeight);
+
+  for (let i = 0; i < spriteSheetWidth * spriteSheetHeight; i++) {
+    spriteData.data[i * 4] = 0;
+    spriteData.data[i * 4 + 1] = 0;
+    spriteData.data[i * 4 + 2] = 0;
+    spriteData.data[i * 4 + 3] = 0xff;
+  }
 
   function setPixel(x, y, value) {
     const doffs = x + y * 128;
@@ -118,6 +124,8 @@ function startup() {
 
   createImageBitmap(spriteData).then((bm) => {
     spriteSheet = bm;
+
+    initSpriteEditor(spriteSheet);
   });
 
   // window.addEventListener('beforeunload', () => {
@@ -171,27 +179,27 @@ const COLOR_STRS = [
 ];
 
 function clearScreen(color) {
-  context.fillStyle = COLOR_STRS[color];
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.stroke();
+  outputContext.fiStyle = COLOR_STRS[color];
+  outputContext.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+  outputContext.stroke();
 }
 
 function drawLine(left, top, right, bottom) {
-  context.beginPath();
-  context.moveTo(left, top);
-  context.lineTo(right, bottom);
-  context.stroke();
+  outputContext.beginPath();
+  outputContext.moveTo(left, top);
+  outputContext.lineTo(right, bottom);
+  outputContext.stroke();
 }
 
 function fillRect(left, top, width, height) {
-  context.beginPath();
-  context.fillRect(left, top, width, height);
-  context.stroke();
+  outputContext.beginPath();
+  outputContext.fillRect(left, top, width, height);
+  outputContext.stroke();
 }
 
 function setColor(color) {
-  context.strokeStyle = COLOR_STRS[color & 7];
-  context.fillStyle = COLOR_STRS[color & 7];
+  outputContext.strokeStyle = COLOR_STRS[color & 7];
+  outputContext.fillStyle = COLOR_STRS[color & 7];
 }
 
 function drawSprite(x, y, w, h, index) {
@@ -199,7 +207,7 @@ function drawSprite(x, y, w, h, index) {
   const sheetCol = index % SPRITE_SHEET_W;
   const pixWidth = w * SPRITE_SIZE;
   const pixHeight = h * SPRITE_SIZE;
-  context.drawImage(spriteSheet, sheetCol * SPRITE_SIZE, sheetRow * SPRITE_SIZE,
+  outputContext.drawImage(spriteSheet, sheetCol * SPRITE_SIZE, sheetRow * SPRITE_SIZE,
       pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
@@ -306,3 +314,4 @@ function openTab(pageName, element) {
   document.getElementById(pageName).style.display = 'block';
   element.className += ' active';
 }
+
