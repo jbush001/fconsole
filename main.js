@@ -179,7 +179,7 @@ const COLOR_STRS = [
 ];
 
 function clearScreen(color) {
-  outputContext.fiStyle = COLOR_STRS[color];
+  outputContext.fillStyle = COLOR_STRS[color];
   outputContext.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
   outputContext.stroke();
 }
