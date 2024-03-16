@@ -154,6 +154,7 @@ function saveToServer() {
   const content = document.getElementById('source').value;
   if (!saveFileName) {
     saveFileName = window.prompt('Enter filename:');
+    document.title = saveFileName;
   }
 
   if (!saveFileName) {
@@ -180,6 +181,7 @@ function saveToServer() {
 
 function doNew() {
   saveFileName = '';
+  document.title = 'Untitled';
   document.getElementById('source').value = '';
   createImageBitmap(spriteData).then((bm) => {
     spriteSheet = bm;
@@ -315,6 +317,7 @@ function playBeep(frequency, duration) {
 
 function handleFileSelect(event) {
   saveFileName = event.target.value;
+  document.title = saveFileName;
   fetch('games/' + saveFileName).then((response) => {
     if (!response.ok) {
       throw new Error('Network response was not ok');
