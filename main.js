@@ -12,11 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-let outputCanvas = null;
-let outputContext = null;
-let spriteSheet = null;
-let saveFileName = null;
-
 const SPRITE_BLOCK_SIZE = 8;
 const SPRITE_SHEET_W_BLKS = 16;
 const SPRITE_SHEET_H_BLKS = 16;
@@ -38,6 +33,25 @@ const BUTTON_MAP = {
   'z': BUTTON_A,
   'x': BUTTON_B,
 };
+
+// These are automatically kept in sync (spriteBitmap is recreated when
+// spriteData changes)
+let spriteData = new ImageData(SPRITE_SHEET_WIDTH,
+    SPRITE_SHEET_HEIGHT);
+for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
+  spriteData.data[i * 4] = 0;
+  spriteData.data[i * 4 + 1] = 0;
+  spriteData.data[i * 4 + 2] = 0;
+  spriteData.data[i * 4 + 3] = 0xff;
+}
+let spriteBitmap = null;
+createImageBitmap(spriteData).then((bm) => {
+  spriteBitmap = bm;
+});
+
+let outputCanvas = null;
+let outputContext = null;
+let saveFileName = null;
 
 let buttonMask = 0;
 
@@ -71,68 +85,11 @@ function startup() {
   openTab('outputtab', document.getElementsByClassName('tablink')[0]);
   clearScreen(0);
 
-  const spriteData = outputContext.createImageData(SPRITE_SHEET_WIDTH,
-      SPRITE_SHEET_HEIGHT);
-
-  for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
-    spriteData.data[i * 4] = 0;
-    spriteData.data[i * 4 + 1] = 0;
-    spriteData.data[i * 4 + 2] = 0;
-    spriteData.data[i * 4 + 3] = 0xff;
-  }
-
-  function setPixel(x, y, value) {
-    const doffs = x + y * 128;
-    spriteData.data[doffs * 4] = value & 0xff;
-    spriteData.data[doffs * 4 + 1] = (value >> 8) & 0xff;
-    spriteData.data[doffs * 4 + 2] = (value >> 16) & 0xff;
-    spriteData.data[doffs * 4 + 3] = (value >> 24) & 0xff;
-  }
-
-  const rawData = [
-    0xff000000, 0xff000000, 0xff000000, 0xffff0000,
-    0xffff0000, 0xff000000, 0xff000000, 0xff000000,
-    0xff000000, 0xff000000, 0xffff0000, 0xffff0000,
-    0xffff0000, 0xffff0000, 0xff000000, 0xff000000,
-    0xff000000, 0xffff0000, 0xffff0000, 0xffff0000,
-    0xffff0000, 0xffff0000, 0xffff0000, 0xff000000,
-    0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000,
-    0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000,
-    0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000,
-    0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000,
-    0xff000000, 0xffff0000, 0xffff0000, 0xffff0000,
-    0xffff0000, 0xffff0000, 0xffff0000, 0xff000000,
-    0xff000000, 0xff000000, 0xffff0000, 0xffff0000,
-    0xffff0000, 0xffff0000, 0xff000000, 0xff000000,
-    0xff000000, 0xff000000, 0xff000000, 0xffff0000,
-    0xffff0000, 0xff000000, 0xff000000, 0xff000000,
-  ];
-
-  for (let y = 0; y < SPRITE_BLOCK_SIZE; y++) {
-    for (let x = 0; x < SPRITE_BLOCK_SIZE; x++) {
-      const soffs = x + y * SPRITE_BLOCK_SIZE;
-      setPixel(x, y, rawData[soffs]);
-    }
-  }
-
-  setPixel(8, 0, 0xff00ff00);
-  setPixel(9, 1, 0xff00ff00);
-  setPixel(10, 2, 0xff00ff00);
-  setPixel(11, 3, 0xff00ff00);
-  setPixel(12, 4, 0xff00ff00);
-  setPixel(13, 5, 0xff00ff00);
-  setPixel(14, 6, 0xff00ff00);
-  setPixel(15, 7, 0xff00ff00);
-
-  createImageBitmap(spriteData).then((bm) => {
-    spriteSheet = bm;
-
-    initSpriteEditor(spriteSheet);
-  });
+  initSpriteEditor();
 
   const fileSelect = document.getElementById('fileSelect');
   fileSelect.addEventListener('change', function(event) {
-    handleFileSelect(event);
+    loadFromServer(event.target.value);
   });
 
   updateFileList();
@@ -149,9 +106,10 @@ function updateFileList() {
   });
 }
 
+const SPRITE_DELIMITER = '\n--------------------------------\n';
+
 function saveToServer() {
   console.log('Saving to server...');
-  const content = document.getElementById('source').value;
   if (!saveFileName) {
     saveFileName = window.prompt('Enter filename:');
     document.title = saveFileName;
@@ -160,6 +118,9 @@ function saveToServer() {
   if (!saveFileName) {
     return; // cancelled
   }
+
+  const content = document.getElementById('source').value +
+    SPRITE_DELIMITER + saveSprites();
 
   fetch(`/save/${saveFileName}`, {
     method: 'POST',
@@ -179,12 +140,59 @@ function saveToServer() {
   });
 }
 
+function loadFromServer(filename) {
+  stopRun();
+
+  console.log('loadFromServer', filename);
+  saveFileName = filename;
+  document.title = saveFileName;
+  fetch('games/' + saveFileName).then((response) => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    return response.text();
+  }).then((data) => {
+    // Split this into
+    const split = data.search(SPRITE_DELIMITER);
+    if (split != -1) {
+      const code = data.substring(0, split);
+      const sprites = data.substring(split + SPRITE_DELIMITER.length);
+      document.getElementById('source').value = code;
+      loadSprites(sprites);
+    } else {
+      document.getElementById('source').value = data;
+    }
+  }).catch((error) => {
+    alert('Error loading file');
+  });
+}
+
+function loadSprites(text) {
+  for (let i = 0; i < text.length; i += 2) {
+    spriteData.data[i / 2] = parseInt(text.substr(i, 2), 16);
+  }
+  createImageBitmap(spriteData).then((bm) => {
+    spriteBitmap = bm;
+    invalidate(); // Sprite editor
+  });
+}
+
+function saveSprites() {
+  function byteToHex(byte) {
+    return ('0' + byte.toString(16)).slice(-2);
+  }
+
+  return Array.from(spriteData.data, byteToHex).join('');
+}
+
 function doNew() {
   saveFileName = '';
   document.title = 'Untitled';
   document.getElementById('source').value = '';
   createImageBitmap(spriteData).then((bm) => {
-    spriteSheet = bm;
+    spriteBitmap = bm;
+    invalidate(); // Sprite editor
   });
 }
 
@@ -232,7 +240,7 @@ function drawSprite(x, y, w, h, index) {
   const sheetCol = index % SPRITE_SHEET_W_BLKS;
   const pixWidth = w * SPRITE_BLOCK_SIZE;
   const pixHeight = h * SPRITE_BLOCK_SIZE;
-  outputContext.drawImage(spriteSheet, sheetCol * SPRITE_BLOCK_SIZE, sheetRow *
+  outputContext.drawImage(spriteBitmap, sheetCol * SPRITE_BLOCK_SIZE, sheetRow *
     SPRITE_BLOCK_SIZE, pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
@@ -299,7 +307,10 @@ function doRun() {
 }
 
 function stopRun() {
-  clearTimeout(drawFrameTimer);
+  if (drawFrameTimer != -1) {
+    clearTimeout(drawFrameTimer);
+    drawFrameTimer = -1;
+  }
 }
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -313,22 +324,6 @@ function playBeep(frequency, duration) {
   setTimeout(() => {
     oscillator.stop();
   }, duration);
-}
-
-function handleFileSelect(event) {
-  saveFileName = event.target.value;
-  document.title = saveFileName;
-  fetch('games/' + saveFileName).then((response) => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-
-    return response.text();
-  }).then((data) => {
-    document.getElementById('source').value = data;
-  }).catch((error) => {
-    alert('Error loading file');
-  });
 }
 
 function openTab(pageName, element) {
