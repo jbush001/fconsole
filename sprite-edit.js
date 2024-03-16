@@ -107,24 +107,6 @@ function handleMouseMoved(event) {
 
 // ----------------------------------------------------------
 
-EDITOR_COLORS = [
-  0xff000000,
-  0xffff0000,
-  0xff00ff00,
-  0xff0000ff,
-  0xffff00ff,
-  0xffffff00,
-  0xff00ffff,
-  0xff808080,
-  0xff8080ff,
-  0xff80ff80,
-  0xffff8080,
-  0xffffff80,
-  0xff80ffff,
-  0xffff80ff,
-  0xff3080ff,
-  0xffffffff,
-];
 
 class SpriteEditorModel {
   constructor() {
@@ -237,7 +219,7 @@ class EditView extends View {
     const dy = Math.floor(y * size / this.height);
     const pixelIndex = ((top + dy) * spriteBitmap.width + left +
         dx) * 4;
-    const colorVal = EDITOR_COLORS[this.model.currentColor];
+    const colorVal = PALETTE[this.model.currentColor];
     const r = (colorVal >> 16) & 0xff;
     const g = (colorVal >> 8) & 0xff;
     const b = colorVal & 0xff;
@@ -253,10 +235,6 @@ class EditView extends View {
   }
 }
 
-function makeColorString(value) {
-  return `rgb(${(value >> 16) & 0xff}, ${(value >> 8) & 0xff}, ${(value & 0xff)})`;
-}
-
 class ColorPicker extends View {
   constructor(width, height, model) {
     super(width, height);
@@ -270,7 +248,7 @@ class ColorPicker extends View {
     const NUM_ROWS = 2;
     for (let col = 0; col < NUM_COLS; col++) {
       for (let row = 0; row < NUM_ROWS; row++) {
-        context.fillStyle = makeColorString(EDITOR_COLORS[row *
+        context.fillStyle = makeColorString(PALETTE[row *
             NUM_COLS + col]);
         context.fillRect(col * this.swatchWidth, row * this.swatchHeight,
             this.swatchWidth, this.swatchHeight);

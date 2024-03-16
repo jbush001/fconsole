@@ -34,6 +34,32 @@ const BUTTON_MAP = {
   'x': BUTTON_B,
 };
 
+const PALETTE = [
+  0xff000000,
+  0xffff0000,
+  0xff00ff00,
+  0xff0000ff,
+  0xffff00ff,
+  0xffffff00,
+  0xff00ffff,
+  0xff808080,
+  0xff8080ff,
+  0xff80ff80,
+  0xffff8080,
+  0xffffff80,
+  0xff80ffff,
+  0xffff80ff,
+  0xff3080ff,
+  0xffffffff,
+];
+
+const INVERSE_PALETTE = new Map();
+for (let i = 0; i < PALETTE.length; i++) {
+  INVERSE_PALETTE.set(PALETTE[i], i);
+}
+
+console.log(INVERSE_PALETTE);
+
 // These are automatically kept in sync (spriteBitmap is recreated when
 // spriteData changes)
 let spriteData = new ImageData(SPRITE_SHEET_WIDTH,
@@ -158,21 +184,40 @@ function loadFromServer(filename) {
 }
 
 function loadSprites(text) {
-  for (let i = 0; i < text.length; i += 2) {
-    spriteData.data[i / 2] = parseInt(text.substr(i, 2), 16);
+  let outIndex = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (!/\s/.test(text[i])) {
+      const rgba = PALETTE[parseInt(text[i], 16)];
+      spriteData.data[outIndex++] = rgba & 0xff;
+      spriteData.data[outIndex++] = (rgba >> 8) & 0xff;
+      spriteData.data[outIndex++] = (rgba >> 16) & 0xff;
+      spriteData.data[outIndex++] = (rgba >> 24) & 0xff;
+    }
   }
+
   createImageBitmap(spriteData).then((bm) => {
     spriteBitmap = bm;
     invalidate(); // Sprite editor
   });
 }
 
+function packRGBA(rgba) {
+  // the >>> 0 converts back to unsigned.
+  return ((rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0]) >>> 0;
+}
+
 function saveSprites() {
-  function byteToHex(byte) {
-    return ('0' + byte.toString(16)).slice(-2);
+  result = '';
+  for (let i = 0; i < spriteData.data.length; i += 4) {
+    const rgba = packRGBA(spriteData.data.slice(i, i + 4));
+    const index = INVERSE_PALETTE.get(rgba);
+    result += index.toString(16);
+    if (((i / 4) % SPRITE_SHEET_WIDTH) == SPRITE_SHEET_WIDTH - 1) {
+      result += '\n';
+    }
   }
 
-  return Array.from(spriteData.data, byteToHex).join('');
+  return result;
 }
 
 function doNew() {
@@ -201,19 +246,12 @@ function writeConsole(text) {
   document.getElementById('output').textContent += text;
 }
 
-const COLOR_STRS = [
-  'black',
-  'red',
-  'magenta',
-  'green',
-  'yellow',
-  'blue',
-  'cyan',
-  'white',
-];
+function makeColorString(value) {
+  return `rgb(${(value >> 16) & 0xff}, ${(value >> 8) & 0xff}, ${(value & 0xff)})`;
+}
 
 function clearScreen(color) {
-  outputContext.fillStyle = COLOR_STRS[color];
+  outputContext.fillStyle = makeColorString(PALETTE[color & 15]);
   outputContext.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
   outputContext.stroke();
 }
@@ -232,8 +270,9 @@ function fillRect(left, top, width, height) {
 }
 
 function setColor(color) {
-  outputContext.strokeStyle = COLOR_STRS[color & 7];
-  outputContext.fillStyle = COLOR_STRS[color & 7];
+  const colorStr = makeColorString(PALETTE[color & 15]);
+  outputContext.strokeStyle = colorStr;
+  outputContext.fillStyle = colorStr;
 }
 
 function drawSprite(x, y, w, h, index) {
