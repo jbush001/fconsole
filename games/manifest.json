@@ -1,4 +1,5 @@
 [
   "pong.fth",
-  "quadblox.fth"
+  "quadblox.fth",
+  "shmup.fth"
 ]
