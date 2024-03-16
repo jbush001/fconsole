@@ -42,6 +42,7 @@ let buttonMask = 0;
 function startup() {
   outputCanvas = document.getElementById('screen');
   outputContext = outputCanvas.getContext('2d');
+  outputContext.imageSmoothingEnabled = false;
 
   // Intercept tab key so it inserts into the source instead of switching
   // to a different element in the page.

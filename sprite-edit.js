@@ -106,17 +106,37 @@ function handleMouseMoved(event) {
 
 // ----------------------------------------------------------
 
+EDITOR_COLORS = [
+  0xff000000,
+  0xffff0000,
+  0xff00ff00,
+  0xff0000ff,
+  0xffff00ff,
+  0xffffff00,
+  0xff00ffff,
+  0xff808080,
+  0xff8080ff,
+  0xff80ff80,
+  0xffff8080,
+  0xffffff80,
+  0xff80ffff,
+  0xffff80ff,
+  0xff3080ff,
+  0xffffffff,
+];
+
 class SpriteEditorModel {
   constructor(spriteBitmap) {
     this.selectedRow = 0;
     this.selectedCol = 0;
     this.spriteBitmap = spriteBitmap;
+    this.currentColor = 0;
   }
 }
 
 const MAP_SIZE = 400;
-const MAP_X_OFFSET = 16;
-const MAP_Y_OFFSET = 16;
+const MAP_X_OFFSET = 4;
+const MAP_Y_OFFSET = 4;
 
 class SpriteMapView extends View {
   constructor(width, height, model) {
@@ -131,20 +151,6 @@ class SpriteMapView extends View {
     context.strokeRect(MAP_X_OFFSET - 1, MAP_Y_OFFSET - 1,
         MAP_SIZE + 2, MAP_SIZE + 2);
 
-    context.font = '16px monospace';
-    context.fillStyle = 'black';
-    for (let i = 0; i < SPRITE_SHEET_W; i++) {
-      const label = i.toString(16);
-      const metrics = spriteContext.measureText(label);
-      const xOffs = i * MAP_SIZE / SPRITE_SHEET_W +
-        (MAP_SIZE / SPRITE_SHEET_W - metrics.width) / 2;
-      context.fillText(label, xOffs + MAP_X_OFFSET, MAP_Y_OFFSET - 4);
-      const yOffs = i * MAP_SIZE / SPRITE_SHEET_H +
-        metrics.fontBoundingBoxAscent;
-      context.fillText(label, MAP_X_OFFSET - 4 - metrics.width,
-          yOffs + MAP_Y_OFFSET + 8);
-    }
-
     const spriteWidth = MAP_SIZE / SPRITE_SHEET_W;
     const spriteHeight = MAP_SIZE / SPRITE_SHEET_H;
 
@@ -154,6 +160,8 @@ class SpriteMapView extends View {
     const selectTop = this.model.selectedRow * spriteHeight + MAP_Y_OFFSET;
     context.strokeRect(selectLeft, selectTop, spriteWidth, spriteHeight);
 
+    context.font = '16px monospace';
+    context.fillStyle = 'black';
     context.fillText('sprite ' + (this.model.selectedRow * SPRITE_SHEET_W +
         this.model.selectedCol), MAP_X_OFFSET, MAP_SIZE + MAP_Y_OFFSET + 16);
   }
@@ -182,18 +190,77 @@ class EditView extends View {
     context.drawImage(this.model.spriteBitmap, left, top, SPRITE_SIZE,
         SPRITE_SIZE, 0, 0, this.width, this.height);
   }
+
+  mouseDown(x, y) {
+    const left = this.model.selectedCol * SPRITE_SIZE;
+    const top = this.model.selectedRow * SPRITE_SIZE;
+    const dx = Math.floor(x * SPRITE_SIZE / this.width);
+    const dy = Math.floor(y * SPRITE_SIZE / this.height);
+    const pixelIndex = ((top + dy) * this.model.spriteBitmap.width + left +
+        dx) * 4;
+    const colorVal = EDITOR_COLORS[this.model.currentColor];
+    const r = (colorVal >> 16) & 0xff;
+    const g = (colorVal >> 8) & 0xff;
+    const b = colorVal & 0xff;
+    console.log('setPixel', pixelIndex, r, g, b);
+  }
+}
+
+function makeColorString(value) {
+  return `rgb(${(value >> 16) & 0xff}, ${(value >> 8) & 0xff}, ${(value & 0xff)})`;
+}
+
+class ColorPicker extends View {
+  constructor(width, height, model) {
+    super(width, height);
+    this.model = model;
+    this.swatchWidth = width / 8;
+    this.swatchHeight = height / 2;
+  }
+
+  draw(context) {
+    const NUM_COLS = 8;
+    const NUM_ROWS = 2;
+    for (let col = 0; col < NUM_COLS; col++) {
+      for (let row = 0; row < NUM_ROWS; row++) {
+        context.fillStyle = makeColorString(EDITOR_COLORS[row *
+            NUM_COLS + col]);
+        context.fillRect(col * this.swatchWidth, row * this.swatchHeight,
+            this.swatchWidth, this.swatchHeight);
+      }
+    }
+
+    const selectedCol = Math.floor(this.model.currentColor % NUM_COLS);
+    const selectedRow = Math.floor(this.model.currentColor / NUM_COLS);
+    context.strokeStyle = 'black';
+    context.strokeRect(selectedCol * this.swatchWidth,
+        selectedRow * this.swatchHeight, this.swatchWidth, this.swatchHeight);
+    context.strokeStyle = 'white';
+    context.strokeRect(selectedCol * this.swatchWidth + 1,
+        selectedRow * this.swatchHeight + 1, this.swatchWidth - 2,
+        this.swatchHeight - 2);
+  }
+
+  mouseDown(x, y) {
+    const col = Math.floor(x / this.swatchWidth);
+    const row = Math.floor(y / this.swatchHeight);
+    this.model.currentColor = row * 8 + col;
+    invalidate();
+  }
 }
 
 function initSpriteEditor(spriteBitmap) {
   spriteCanvas = document.getElementById('sprite_edit');
   spriteContext = spriteCanvas.getContext('2d');
+  spriteContext.imageSmoothingEnabled = false;
 
   spriteCanvas.addEventListener('mousedown', handleMouseDown);
   spriteCanvas.addEventListener('mouseup', handleMouseUp);
   spriteCanvas.addEventListener('mousemoved', handleMouseMoved);
   root = new View(spriteCanvas.width, spriteCanvas.height);
   const model = new SpriteEditorModel(spriteBitmap);
-  root.addChild(new SpriteMapView(400, 400, model), 400, 32);
+  root.addChild(new SpriteMapView(512, 512, model), 400, 32);
   root.addChild(new EditView(350, 350, model), 5, 35);
+  root.addChild(new ColorPicker(350, 32, model), 5, 400);
   repaint();
 }
