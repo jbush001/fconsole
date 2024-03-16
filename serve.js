@@ -12,44 +12,64 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const http = require('http');
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const app = express();
 
-const server = http.createServer((req, res) => {
-  if (req.url == '/save') {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += JSON.parse(chunk.toString()).content;
-    });
+app.use(express.json());
 
-    req.on('end', () => {
-      const filePath = path.join(__dirname, 'game.fth');
-      fs.writeFile(filePath, body, (err) => {
-        if (err) {
-          res.writeHead(500, {'Content-Type': 'text/plain'});
-          res.end('Error saving file');
-          return;
-        }
+app.post('/save/:filename', (req, res) => {
+  let receivedData = '';
+  req.on('data', chunk => {
+    receivedData += chunk.toString(); // Concatenate received chunks
+  });
 
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.end('File saved successfully');
-      });
-    });
-  } else {
-    const filePath = path.join(__dirname, req.url);
-    fs.readFile(filePath, (err, content) => {
+  req.on('end', () => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'games', filename);
+
+    fs.writeFile(filePath, receivedData, (err) => {
       if (err) {
-        res.writeHead(404);
-        res.end('File Not Found');
+        console.error('Error saving file:', err);
+        res.status(500).send('Error saving file');
       } else {
-        res.writeHead(200);
-        res.end(content, 'utf-8');
+        console.log('File saved successfully:', filename);
+        res.status(200).send('File saved successfully');
       }
     });
-  }
+
+    writeManifest();
+  });
 });
 
-server.listen(3000, () => {
-  console.log(`Server running`);
+function writeManifest() {
+  const directoryPath = path.join(__dirname, 'games');
+  fs.readdir(directoryPath, (err, files) => {
+    if (err) {
+      console.error('Error reading directory:', err);
+      return;
+    }
+
+    const fthFiles = files.filter((file) => path.extname(file) === '.fth');
+    const fileNames = fthFiles.map((file) => path.parse(file).base);
+    const manifestFilePath = path.join(directoryPath, 'manifest.json');
+    fs.writeFile(manifestFilePath, JSON.stringify(fileNames, null, 2),
+        (err) => {
+          if (err) {
+            console.error('Error writing manifest file:', err);
+            return;
+          }
+          console.log('Manifest file created successfully:', manifestFilePath);
+        });
+  });
+}
+
+app.use(express.static(__dirname));
+
+writeManifest();
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

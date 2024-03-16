@@ -15,6 +15,7 @@
 let outputCanvas = null;
 let outputContext = null;
 let spriteSheet = null;
+let saveFileName = null;
 
 const SPRITE_BLOCK_SIZE = 8;
 const SPRITE_SHEET_W_BLKS = 16;
@@ -129,38 +130,59 @@ function startup() {
     initSpriteEditor(spriteSheet);
   });
 
-  // window.addEventListener('beforeunload', () => {
-  //   saveToServer();
-  // });
-
   const fileSelect = document.getElementById('fileSelect');
   fileSelect.addEventListener('change', function(event) {
     handleFileSelect(event);
   });
 
-  const files = ['pong.fth', 'quadblox.fth'];
-  const selectOptions = files.map((file) =>
-    `<option value="${file}">${file}</option>`);
-  fileSelect.innerHTML += selectOptions.join('');
+  updateFileList();
+}
+
+function updateFileList() {
+  fetch('/games/manifest.json').then((response) => {
+    return response.json();
+  }).then((files) => {
+    fileSelect.innerHTML = '<option value="">Select a file...</option>';
+    const selectOptions = files.map((file) =>
+      `<option value="${file}">${file}</option>`);
+    fileSelect.innerHTML += selectOptions.join('');
+  });
 }
 
 function saveToServer() {
-  console.log('saving text');
+  console.log('Saving to server...');
   const content = document.getElementById('source').value;
-  console.log('content', content);
-  fetch('/save', {
+  if (!saveFileName) {
+    saveFileName = window.prompt('Enter filename:');
+  }
+
+  if (!saveFileName) {
+    return; // cancelled
+  }
+
+  fetch(`/save/${saveFileName}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'text/plain',
     },
-    body: JSON.stringify({content}),
+    body: content,
   }).then((response) => {
     if (!response.ok) {
-      throw new Error('Failed to save text to server');
+      throw new Error('Unable to save to server');
     }
     console.log('Saved');
+
+    updateFileList();
   }).catch((error) => {
     alert('Error saving text to server:' + error);
+  });
+}
+
+function doNew() {
+  saveFileName = '';
+  document.getElementById('source').value = '';
+  createImageBitmap(spriteData).then((bm) => {
+    spriteSheet = bm;
   });
 }
 
@@ -274,6 +296,10 @@ function doRun() {
   }
 }
 
+function stopRun() {
+  clearTimeout(drawFrameTimer);
+}
+
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 function playBeep(frequency, duration) {
@@ -288,8 +314,8 @@ function playBeep(frequency, duration) {
 }
 
 function handleFileSelect(event) {
-  const selectedFile = event.target.value;
-  fetch(selectedFile).then((response) => {
+  saveFileName = event.target.value;
+  fetch('games/' + saveFileName).then((response) => {
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
@@ -297,7 +323,6 @@ function handleFileSelect(event) {
     return response.text();
   }).then((data) => {
     document.getElementById('source').value = data;
-    // setInterval(saveToServer, 10000);
   }).catch((error) => {
     alert('Error loading file');
   });
