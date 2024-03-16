@@ -96,7 +96,7 @@ function startup() {
 }
 
 function updateFileList() {
-  fetch('/games/manifest.json').then((response) => {
+  fetch('games/manifest.json').then((response) => {
     return response.json();
   }).then((files) => {
     fileSelect.innerHTML = '<option value="">Select a file...</option>';
