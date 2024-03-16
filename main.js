@@ -38,21 +38,10 @@ const BUTTON_MAP = {
 // spriteData changes)
 let spriteData = new ImageData(SPRITE_SHEET_WIDTH,
     SPRITE_SHEET_HEIGHT);
-for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
-  spriteData.data[i * 4] = 0;
-  spriteData.data[i * 4 + 1] = 0;
-  spriteData.data[i * 4 + 2] = 0;
-  spriteData.data[i * 4 + 3] = 0xff;
-}
 let spriteBitmap = null;
-createImageBitmap(spriteData).then((bm) => {
-  spriteBitmap = bm;
-});
-
 let outputCanvas = null;
 let outputContext = null;
 let saveFileName = null;
-
 let buttonMask = 0;
 
 // eslint-disable-next-line no-unused-vars
@@ -83,8 +72,8 @@ function startup() {
   });
 
   openTab('outputtab', document.getElementsByClassName('tablink')[0]);
-  clearScreen(0);
 
+  doNew();
   initSpriteEditor();
 
   const fileSelect = document.getElementById('fileSelect');
@@ -187,13 +176,25 @@ function saveSprites() {
 }
 
 function doNew() {
+  stopRun();
+
   saveFileName = '';
   document.title = 'Untitled';
   document.getElementById('source').value = '';
+
+  for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
+    spriteData.data[i * 4] = 0;
+    spriteData.data[i * 4 + 1] = 0;
+    spriteData.data[i * 4 + 2] = 0;
+    spriteData.data[i * 4 + 3] = 0xff;
+  }
+
   createImageBitmap(spriteData).then((bm) => {
     spriteBitmap = bm;
     invalidate(); // Sprite editor
   });
+
+  clearScreen(0);
 }
 
 function writeConsole(text) {
