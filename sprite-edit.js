@@ -130,8 +130,9 @@ class SpriteEditorModel {
     this.selectedRow = 0;
     this.selectedCol = 0;
     this.currentColor = 0;
-    this.spriteData = new ImageData(SPRITE_SHEET_W * SPRITE_SIZE,
-        SPRITE_SHEET_H * SPRITE_SIZE);
+    this.spriteSize = 1;
+    this.spriteData = new ImageData(SPRITE_SHEET_W * SPRITE_BLOCK_SIZE,
+        SPRITE_SHEET_H * SPRITE_BLOCK_SIZE);
     createImageBitmap(this.spriteData).then((bm) => {
       this.spriteBitmap = bm;
       repaint();
@@ -166,7 +167,9 @@ class SpriteMapView extends View {
     context.strokeStyle = 'red';
     const selectLeft = this.model.selectedCol * spriteWidth + MAP_X_OFFSET;
     const selectTop = this.model.selectedRow * spriteHeight + MAP_Y_OFFSET;
-    context.strokeRect(selectLeft, selectTop, spriteWidth, spriteHeight);
+    context.strokeRect(selectLeft, selectTop,
+        spriteWidth * this.model.spriteSize,
+        spriteHeight * this.model.spriteSize);
 
     context.font = '16px monospace';
     context.fillStyle = 'black';
@@ -179,6 +182,14 @@ class SpriteMapView extends View {
           x <= MAP_X_OFFSET + MAP_SIZE && y <= MAP_Y_OFFSET + MAP_SIZE) {
       this.model.selectedCol = Math.floor((x - MAP_X_OFFSET) / (MAP_SIZE /
         SPRITE_SHEET_W));
+      if (this.model.selectedCol + this.model.spriteSize > SPRITE_SHEET_W) {
+        this.model.selectedCol = SPRITE_SHEET_W - this.model.spriteSize;
+      }
+
+      if (this.model.selectedRow + this.model.spriteSize > SPRITE_SHEET_H) {
+        this.model.selectedRow = SPRITE_SHEET_H - this.model.spriteSize;
+      }
+
       this.model.selectedRow = Math.floor((y - MAP_Y_OFFSET) / (MAP_SIZE /
         SPRITE_SHEET_H));
       invalidate();
@@ -198,10 +209,11 @@ class EditView extends View {
       return; // Not initialized yet
     }
 
-    const left = this.model.selectedCol * SPRITE_SIZE;
-    const top = this.model.selectedRow * SPRITE_SIZE;
-    context.drawImage(this.model.spriteBitmap, left, top, SPRITE_SIZE,
-        SPRITE_SIZE, 0, 0, this.width, this.height);
+    const left = this.model.selectedCol * SPRITE_BLOCK_SIZE;
+    const top = this.model.selectedRow * SPRITE_BLOCK_SIZE;
+    const size = this.model.spriteSize * SPRITE_BLOCK_SIZE;
+    context.drawImage(this.model.spriteBitmap, left, top, size,
+        size, 0, 0, this.width, this.height);
   }
 
   mouseDown(x, y) {
@@ -220,10 +232,11 @@ class EditView extends View {
   }
 
   _setPixel(x, y) {
-    const left = this.model.selectedCol * SPRITE_SIZE;
-    const top = this.model.selectedRow * SPRITE_SIZE;
-    const dx = Math.floor(x * SPRITE_SIZE / this.width);
-    const dy = Math.floor(y * SPRITE_SIZE / this.height);
+    const size = this.model.spriteSize * SPRITE_BLOCK_SIZE;
+    const left = this.model.selectedCol * SPRITE_BLOCK_SIZE;
+    const top = this.model.selectedRow * SPRITE_BLOCK_SIZE;
+    const dx = Math.floor(x * size / this.width);
+    const dy = Math.floor(y * size / this.height);
     const pixelIndex = ((top + dy) * this.model.spriteBitmap.width + left +
         dx) * 4;
     const colorVal = EDITOR_COLORS[this.model.currentColor];
@@ -286,6 +299,36 @@ class ColorPicker extends View {
   }
 }
 
+class SpriteSizeControl extends View {
+  constructor(width, height, model) {
+    super(width, height);
+    this.model = model;
+  }
+
+  draw(context) {
+    context.fillStyle = 'red';
+    context.fillText(this.model.spriteSize.toString(), 4, this.height - 8);
+  }
+
+  mouseDown(x, y) {
+    this.model.spriteSize = this.model.spriteSize * 2;
+    if (this.model.spriteSize == 8) {
+      this.model.spriteSize = 1;
+    }
+
+    // Ensure this is in-bounds still
+    if (this.model.selectedCol + this.model.spriteSize > SPRITE_SHEET_W) {
+      this.model.selectedCol = SPRITE_SHEET_W - this.model.spriteSize;
+    }
+
+    if (this.model.selectedRow + this.model.spriteSize > SPRITE_SHEET_H) {
+      this.model.selectedRow = SPRITE_SHEET_H - this.model.spriteSize;
+    }
+
+    invalidate();
+  }
+}
+
 function initSpriteEditor(spriteBitmap) {
   spriteCanvas = document.getElementById('sprite_edit');
   spriteContext = spriteCanvas.getContext('2d');
@@ -299,5 +342,6 @@ function initSpriteEditor(spriteBitmap) {
   root.addChild(new SpriteMapView(512, 512, model), 400, 32);
   root.addChild(new EditView(350, 350, model), 5, 35);
   root.addChild(new ColorPicker(350, 32, model), 5, 400);
+  root.addChild(new SpriteSizeControl(32, 32, model), 368, 400);
   repaint();
 }

@@ -16,7 +16,7 @@ let outputCanvas = null;
 let outputContext = null;
 let spriteSheet = null;
 
-const SPRITE_SIZE = 8;
+const SPRITE_BLOCK_SIZE = 8;
 const SPRITE_SHEET_W = 16;
 const SPRITE_SHEET_H = 16;
 
@@ -68,8 +68,8 @@ function startup() {
   openTab('outputtab', document.getElementsByClassName('tablink')[0]);
   clearScreen(0);
 
-  const spriteSheetWidth = SPRITE_SHEET_W * SPRITE_SIZE;
-  const spriteSheetHeight = SPRITE_SHEET_H * SPRITE_SIZE;
+  const spriteSheetWidth = SPRITE_SHEET_W * SPRITE_BLOCK_SIZE;
+  const spriteSheetHeight = SPRITE_SHEET_H * SPRITE_BLOCK_SIZE;
   const spriteData = outputContext.createImageData(spriteSheetWidth,
       spriteSheetHeight);
 
@@ -107,9 +107,9 @@ function startup() {
     0xffff0000, 0xff000000, 0xff000000, 0xff000000,
   ];
 
-  for (let y = 0; y < SPRITE_SIZE; y++) {
-    for (let x = 0; x < SPRITE_SIZE; x++) {
-      const soffs = x + y * SPRITE_SIZE;
+  for (let y = 0; y < SPRITE_BLOCK_SIZE; y++) {
+    for (let x = 0; x < SPRITE_BLOCK_SIZE; x++) {
+      const soffs = x + y * SPRITE_BLOCK_SIZE;
       setPixel(x, y, rawData[soffs]);
     }
   }
@@ -206,9 +206,9 @@ function setColor(color) {
 function drawSprite(x, y, w, h, index) {
   const sheetRow = Math.floor(index / SPRITE_SHEET_W);
   const sheetCol = index % SPRITE_SHEET_W;
-  const pixWidth = w * SPRITE_SIZE;
-  const pixHeight = h * SPRITE_SIZE;
-  outputContext.drawImage(spriteSheet, sheetCol * SPRITE_SIZE, sheetRow * SPRITE_SIZE,
+  const pixWidth = w * SPRITE_BLOCK_SIZE;
+  const pixHeight = h * SPRITE_BLOCK_SIZE;
+  outputContext.drawImage(spriteSheet, sheetCol * SPRITE_BLOCK_SIZE, sheetRow * SPRITE_BLOCK_SIZE,
       pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
