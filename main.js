@@ -17,8 +17,10 @@ let outputContext = null;
 let spriteSheet = null;
 
 const SPRITE_BLOCK_SIZE = 8;
-const SPRITE_SHEET_W = 16;
-const SPRITE_SHEET_H = 16;
+const SPRITE_SHEET_W_BLKS = 16;
+const SPRITE_SHEET_H_BLKS = 16;
+const SPRITE_SHEET_WIDTH = SPRITE_SHEET_W_BLKS * SPRITE_BLOCK_SIZE;
+const SPRITE_SHEET_HEIGHT = SPRITE_SHEET_H_BLKS * SPRITE_BLOCK_SIZE;
 
 const BUTTON_L = 1;
 const BUTTON_R = 2;
@@ -68,12 +70,10 @@ function startup() {
   openTab('outputtab', document.getElementsByClassName('tablink')[0]);
   clearScreen(0);
 
-  const spriteSheetWidth = SPRITE_SHEET_W * SPRITE_BLOCK_SIZE;
-  const spriteSheetHeight = SPRITE_SHEET_H * SPRITE_BLOCK_SIZE;
-  const spriteData = outputContext.createImageData(spriteSheetWidth,
-      spriteSheetHeight);
+  const spriteData = outputContext.createImageData(SPRITE_SHEET_WIDTH,
+      SPRITE_SHEET_HEIGHT);
 
-  for (let i = 0; i < spriteSheetWidth * spriteSheetHeight; i++) {
+  for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
     spriteData.data[i * 4] = 0;
     spriteData.data[i * 4 + 1] = 0;
     spriteData.data[i * 4 + 2] = 0;
@@ -204,12 +204,12 @@ function setColor(color) {
 }
 
 function drawSprite(x, y, w, h, index) {
-  const sheetRow = Math.floor(index / SPRITE_SHEET_W);
-  const sheetCol = index % SPRITE_SHEET_W;
+  const sheetRow = Math.floor(index / SPRITE_SHEET_W_BLKS);
+  const sheetCol = index % SPRITE_SHEET_W_BLKS;
   const pixWidth = w * SPRITE_BLOCK_SIZE;
   const pixHeight = h * SPRITE_BLOCK_SIZE;
-  outputContext.drawImage(spriteSheet, sheetCol * SPRITE_BLOCK_SIZE, sheetRow * SPRITE_BLOCK_SIZE,
-      pixWidth, pixHeight, x, y, pixWidth, pixHeight);
+  outputContext.drawImage(spriteSheet, sheetCol * SPRITE_BLOCK_SIZE, sheetRow *
+    SPRITE_BLOCK_SIZE, pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
 function getButtons() {

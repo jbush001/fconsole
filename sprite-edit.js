@@ -131,8 +131,8 @@ class SpriteEditorModel {
     this.selectedCol = 0;
     this.currentColor = 0;
     this.spriteSize = 1;
-    this.spriteData = new ImageData(SPRITE_SHEET_W * SPRITE_BLOCK_SIZE,
-        SPRITE_SHEET_H * SPRITE_BLOCK_SIZE);
+    this.spriteData = new ImageData(SPRITE_SHEET_WIDTH,
+        SPRITE_SHEET_HEIGHT);
     createImageBitmap(this.spriteData).then((bm) => {
       this.spriteBitmap = bm;
       repaint();
@@ -151,8 +151,9 @@ class SpriteMapView extends View {
   }
 
   draw(context) {
-    if (!this.model.spriteBitmap)
+    if (!this.model.spriteBitmap) {
       return; // Not initialized yet
+    }
 
     context.drawImage(this.model.spriteBitmap, MAP_X_OFFSET, MAP_Y_OFFSET,
         MAP_SIZE, MAP_SIZE);
@@ -160,8 +161,8 @@ class SpriteMapView extends View {
     context.strokeRect(MAP_X_OFFSET - 1, MAP_Y_OFFSET - 1,
         MAP_SIZE + 2, MAP_SIZE + 2);
 
-    const spriteWidth = MAP_SIZE / SPRITE_SHEET_W;
-    const spriteHeight = MAP_SIZE / SPRITE_SHEET_H;
+    const spriteWidth = MAP_SIZE / SPRITE_SHEET_W_BLKS;
+    const spriteHeight = MAP_SIZE / SPRITE_SHEET_H_BLKS;
 
     context.beginPath();
     context.strokeStyle = 'red';
@@ -173,7 +174,7 @@ class SpriteMapView extends View {
 
     context.font = '16px monospace';
     context.fillStyle = 'black';
-    context.fillText('sprite ' + (this.model.selectedRow * SPRITE_SHEET_W +
+    context.fillText('sprite ' + (this.model.selectedRow * SPRITE_SHEET_W_BLKS +
         this.model.selectedCol), MAP_X_OFFSET, MAP_SIZE + MAP_Y_OFFSET + 16);
   }
 
@@ -181,17 +182,19 @@ class SpriteMapView extends View {
     if (x >= MAP_X_OFFSET && y >= MAP_Y_OFFSET &&
           x <= MAP_X_OFFSET + MAP_SIZE && y <= MAP_Y_OFFSET + MAP_SIZE) {
       this.model.selectedCol = Math.floor((x - MAP_X_OFFSET) / (MAP_SIZE /
-        SPRITE_SHEET_W));
-      if (this.model.selectedCol + this.model.spriteSize > SPRITE_SHEET_W) {
-        this.model.selectedCol = SPRITE_SHEET_W - this.model.spriteSize;
+        SPRITE_SHEET_W_BLKS));
+      if (this.model.selectedCol + this.model.spriteSize >
+        SPRITE_SHEET_W_BLKS) {
+        this.model.selectedCol = SPRITE_SHEET_W_BLKS - this.model.spriteSize;
       }
 
-      if (this.model.selectedRow + this.model.spriteSize > SPRITE_SHEET_H) {
-        this.model.selectedRow = SPRITE_SHEET_H - this.model.spriteSize;
+      if (this.model.selectedRow + this.model.spriteSize >
+        SPRITE_SHEET_H_BLKS) {
+        this.model.selectedRow = SPRITE_SHEET_H_BLKS - this.model.spriteSize;
       }
 
       this.model.selectedRow = Math.floor((y - MAP_Y_OFFSET) / (MAP_SIZE /
-        SPRITE_SHEET_H));
+        SPRITE_SHEET_H_BLKS));
       invalidate();
     }
   }
@@ -317,12 +320,12 @@ class SpriteSizeControl extends View {
     }
 
     // Ensure this is in-bounds still
-    if (this.model.selectedCol + this.model.spriteSize > SPRITE_SHEET_W) {
-      this.model.selectedCol = SPRITE_SHEET_W - this.model.spriteSize;
+    if (this.model.selectedCol + this.model.spriteSize > SPRITE_SHEET_W_BLKS) {
+      this.model.selectedCol = SPRITE_SHEET_W_BLKS - this.model.spriteSize;
     }
 
-    if (this.model.selectedRow + this.model.spriteSize > SPRITE_SHEET_H) {
-      this.model.selectedRow = SPRITE_SHEET_H - this.model.spriteSize;
+    if (this.model.selectedRow + this.model.spriteSize > SPRITE_SHEET_H_BLKS) {
+      this.model.selectedRow = SPRITE_SHEET_H_BLKS - this.model.spriteSize;
     }
 
     invalidate();
