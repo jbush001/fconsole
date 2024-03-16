@@ -129,8 +129,13 @@ class SpriteEditorModel {
   constructor(spriteBitmap) {
     this.selectedRow = 0;
     this.selectedCol = 0;
-    this.spriteBitmap = spriteBitmap;
     this.currentColor = 0;
+    this.spriteData = new ImageData(SPRITE_SHEET_W * SPRITE_SIZE,
+        SPRITE_SHEET_H * SPRITE_SIZE);
+    createImageBitmap(this.spriteData).then((bm) => {
+      this.spriteBitmap = bm;
+      repaint();
+    });
   }
 }
 
@@ -145,6 +150,9 @@ class SpriteMapView extends View {
   }
 
   draw(context) {
+    if (!this.model.spriteBitmap)
+      return; // Not initialized yet
+
     context.drawImage(this.model.spriteBitmap, MAP_X_OFFSET, MAP_Y_OFFSET,
         MAP_SIZE, MAP_SIZE);
     context.strokeStyle = 'black';
@@ -182,9 +190,14 @@ class EditView extends View {
   constructor(width, height, model) {
     super(width, height);
     this.model = model;
+    this.mouseIsDown = false;
   }
 
   draw(context) {
+    if (!this.model.spriteBitmap) {
+      return; // Not initialized yet
+    }
+
     const left = this.model.selectedCol * SPRITE_SIZE;
     const top = this.model.selectedRow * SPRITE_SIZE;
     context.drawImage(this.model.spriteBitmap, left, top, SPRITE_SIZE,
@@ -192,6 +205,21 @@ class EditView extends View {
   }
 
   mouseDown(x, y) {
+    this.mouseIsDown = true;
+    this._setPixel(x, y);
+  }
+
+  mouseUp(x, y) {
+    this.mouseIsDown = false;
+  }
+
+  mouseMoved(x, y) {
+    if (this.mouseIsDown) {
+      this._setPixel(x, y);
+    }
+  }
+
+  _setPixel(x, y) {
     const left = this.model.selectedCol * SPRITE_SIZE;
     const top = this.model.selectedRow * SPRITE_SIZE;
     const dx = Math.floor(x * SPRITE_SIZE / this.width);
@@ -202,7 +230,16 @@ class EditView extends View {
     const r = (colorVal >> 16) & 0xff;
     const g = (colorVal >> 8) & 0xff;
     const b = colorVal & 0xff;
-    console.log('setPixel', pixelIndex, r, g, b);
+    const pix = this.model.spriteData.data;
+    pix[pixelIndex] = r;
+    pix[pixelIndex + 1] = g;
+    pix[pixelIndex + 2] = b;
+    pix[pixelIndex + 3] = 0xff;
+    const self = this;
+    createImageBitmap(this.model.spriteData).then((bm) => {
+      self.model.spriteBitmap = bm;
+      repaint();
+    });
   }
 }
 
@@ -256,7 +293,7 @@ function initSpriteEditor(spriteBitmap) {
 
   spriteCanvas.addEventListener('mousedown', handleMouseDown);
   spriteCanvas.addEventListener('mouseup', handleMouseUp);
-  spriteCanvas.addEventListener('mousemoved', handleMouseMoved);
+  spriteCanvas.addEventListener('mousemove', handleMouseMoved);
   root = new View(spriteCanvas.width, spriteCanvas.height);
   const model = new SpriteEditorModel(spriteBitmap);
   root.addChild(new SpriteMapView(512, 512, model), 400, 32);
