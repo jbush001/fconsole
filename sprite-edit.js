@@ -118,8 +118,8 @@ class SpriteEditorModel {
 }
 
 const MAP_SIZE = 400;
-const MAP_X_OFFSET = 4;
-const MAP_Y_OFFSET = 4;
+const MAP_X_OFFSET = 1;
+const MAP_Y_OFFSET = 1;
 
 class SpriteMapView extends View {
   constructor(width, height, model) {
@@ -131,6 +131,13 @@ class SpriteMapView extends View {
     if (!spriteBitmap) {
       return; // Not initialized yet
     }
+
+    // This represents transparent areas. Ideally this would be some pattern
+    // like a checkerboard.
+    // XXX could use context.createPattern, then set the fillStyle to it.
+    context.fillStyle = 'lightgray';
+    context.fillRect(MAP_X_OFFSET, MAP_Y_OFFSET, MAP_SIZE, MAP_SIZE);
+
 
     context.drawImage(spriteBitmap, MAP_X_OFFSET, MAP_Y_OFFSET,
         MAP_SIZE, MAP_SIZE);
@@ -189,6 +196,12 @@ class EditView extends View {
       return; // Not initialized yet
     }
 
+    // This represents transparent areas. Ideally this would be some pattern
+    // like a checkerboard.
+    // XXX could use context.createPattern, then set the fillStyle to it.
+    context.fillStyle = 'lightgray';
+    context.fillRect(0, 0, this.width, this.height);
+
     const left = this.model.selectedCol * SPRITE_BLOCK_SIZE;
     const top = this.model.selectedRow * SPRITE_BLOCK_SIZE;
     const size = this.model.spriteSize * SPRITE_BLOCK_SIZE;
@@ -220,6 +233,7 @@ class EditView extends View {
     const pixelIndex = ((top + dy) * spriteBitmap.width + left +
         dx) * 4;
     const colorVal = PALETTE[this.model.currentColor];
+    const a = (colorVal >> 24) & 0xff;
     const r = (colorVal >> 16) & 0xff;
     const g = (colorVal >> 8) & 0xff;
     const b = colorVal & 0xff;
@@ -227,7 +241,7 @@ class EditView extends View {
     pix[pixelIndex] = r;
     pix[pixelIndex + 1] = g;
     pix[pixelIndex + 2] = b;
-    pix[pixelIndex + 3] = 0xff;
+    pix[pixelIndex + 3] = a;
     createImageBitmap(spriteData).then((bm) => {
       spriteBitmap = bm;
       repaint();
@@ -255,9 +269,18 @@ class ColorPicker extends View {
       }
     }
 
+    context.strokeStyle = 'red';
+    context.moveTo(0, 0);
+    context.lineTo(this.swatchWidth, this.swatchHeight);
+    context.moveTo(this.swatchWidth, 0);
+    context.lineTo(0, this.swatchHeight);
+    context.stroke();
+
+    context.strokeStyle = 'black';
+    context.strokeRect(0, 0, this.width, this.height);
+
     const selectedCol = Math.floor(this.model.currentColor % NUM_COLS);
     const selectedRow = Math.floor(this.model.currentColor / NUM_COLS);
-    context.strokeStyle = 'black';
     context.strokeRect(selectedCol * this.swatchWidth,
         selectedRow * this.swatchHeight, this.swatchWidth, this.swatchHeight);
     context.strokeStyle = 'white';
@@ -321,9 +344,9 @@ function initSpriteEditor() {
   spriteCanvas.addEventListener('mousemove', handleMouseMoved);
   root = new View(spriteCanvas.width, spriteCanvas.height);
   const model = new SpriteEditorModel();
-  root.addChild(new SpriteMapView(512, 512, model), 400, 32);
+  root.addChild(new SpriteMapView(512, 512, model), 395, 32);
   root.addChild(new EditView(350, 350, model), 5, 35);
   root.addChild(new ColorPicker(350, 32, model), 5, 400);
-  root.addChild(new SpriteSizeControl(32, 64, model), 368, 32);
+  root.addChild(new SpriteSizeControl(32, 64, model), 360, 32);
   repaint();
 }

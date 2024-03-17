@@ -35,22 +35,22 @@ const BUTTON_MAP = {
 };
 
 const PALETTE = [
-  0xff000000,
-  0xffff0000,
-  0xff00ff00,
-  0xff0000ff,
-  0xffff00ff,
-  0xffffff00,
-  0xff00ffff,
-  0xff808080,
-  0xff8080ff,
-  0xff80ff80,
-  0xffff8080,
-  0xffffff80,
-  0xff80ffff,
-  0xffff80ff,
-  0xff3080ff,
-  0xffffffff,
+  0x00000000, // transparent
+  0xff000000, // black
+  0xffff0000, // red
+  0xff00ff00, // light green
+  0xff0000ff, // blue
+  0xffff00ff, // magenta
+  0xffffff00, // yellow
+  0xff00ffff, // cyan
+  0xff808080, // gray
+  0xff00a5ff, // lightblue
+  0xffffa500, // orange
+  0xff800080, // purple
+  0xff008000, // dark green
+  0xffa0522d, // brown
+  0xffd97162, // salmon
+  0xffffffff, // white
 ];
 
 const INVERSE_PALETTE = new Map();
@@ -230,11 +230,8 @@ function saveSprites() {
 }
 
 function clearSprites() {
-  for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
-    spriteData.data[i * 4] = 0;
-    spriteData.data[i * 4 + 1] = 0;
-    spriteData.data[i * 4 + 2] = 0;
-    spriteData.data[i * 4 + 3] = 0xff;
+  for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT * 4; i++) {
+    spriteData.data[i] = 0;
   }
 
   createImageBitmap(spriteData).then((bm) => {
