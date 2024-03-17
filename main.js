@@ -58,8 +58,6 @@ for (let i = 0; i < PALETTE.length; i++) {
   INVERSE_PALETTE.set(PALETTE[i], i);
 }
 
-console.log(INVERSE_PALETTE);
-
 // These are automatically kept in sync (spriteBitmap is recreated when
 // spriteData changes)
 let spriteData = new ImageData(SPRITE_SHEET_WIDTH,

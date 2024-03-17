@@ -107,6 +107,7 @@ function handleMouseMoved(event) {
 
 // ----------------------------------------------------------
 
+let checkerPattern = null;
 
 class SpriteEditorModel {
   constructor() {
@@ -132,10 +133,8 @@ class SpriteMapView extends View {
       return; // Not initialized yet
     }
 
-    // This represents transparent areas. Ideally this would be some pattern
-    // like a checkerboard.
-    // XXX could use context.createPattern, then set the fillStyle to it.
-    context.fillStyle = 'lightgray';
+    // This represents transparent areas.
+    context.fillStyle = checkerPattern;
     context.fillRect(MAP_X_OFFSET, MAP_Y_OFFSET, MAP_SIZE, MAP_SIZE);
 
 
@@ -196,10 +195,8 @@ class EditView extends View {
       return; // Not initialized yet
     }
 
-    // This represents transparent areas. Ideally this would be some pattern
-    // like a checkerboard.
-    // XXX could use context.createPattern, then set the fillStyle to it.
-    context.fillStyle = 'lightgray';
+    // This represents transparent areas.
+    context.fillStyle = checkerPattern;
     context.fillRect(0, 0, this.width, this.height);
 
     const left = this.model.selectedCol * SPRITE_BLOCK_SIZE;
@@ -207,6 +204,9 @@ class EditView extends View {
     const size = this.model.spriteSize * SPRITE_BLOCK_SIZE;
     context.drawImage(spriteBitmap, left, top, size,
         size, 0, 0, this.width, this.height);
+
+    context.strokeStyle = 'black';
+    context.strokeRect(0, 0, this.width, this.height);
   }
 
   mouseDown(x, y) {
@@ -269,24 +269,20 @@ class ColorPicker extends View {
       }
     }
 
-    context.strokeStyle = 'red';
-    context.moveTo(0, 0);
-    context.lineTo(this.swatchWidth, this.swatchHeight);
-    context.moveTo(this.swatchWidth, 0);
-    context.lineTo(0, this.swatchHeight);
-    context.stroke();
+    context.fillStyle = checkerPattern;
+    context.fillRect(0, 0, this.swatchWidth, this.swatchHeight);
 
     context.strokeStyle = 'black';
     context.strokeRect(0, 0, this.width, this.height);
 
     const selectedCol = Math.floor(this.model.currentColor % NUM_COLS);
     const selectedRow = Math.floor(this.model.currentColor / NUM_COLS);
+    context.strokeStyle = 'black';
+    context.lineWidth = 4;
     context.strokeRect(selectedCol * this.swatchWidth,
-        selectedRow * this.swatchHeight, this.swatchWidth, this.swatchHeight);
-    context.strokeStyle = 'white';
-    context.strokeRect(selectedCol * this.swatchWidth + 1,
-        selectedRow * this.swatchHeight + 1, this.swatchWidth - 2,
-        this.swatchHeight - 2);
+        selectedRow * this.swatchHeight, this.swatchWidth,
+        this.swatchHeight);
+    context.lineWidth = 1;
   }
 
   mouseDown(x, y) {
@@ -338,6 +334,7 @@ function initSpriteEditor() {
   spriteCanvas = document.getElementById('sprite_edit');
   spriteContext = spriteCanvas.getContext('2d');
   spriteContext.imageSmoothingEnabled = false;
+  checkerPattern = makeCheckerPattern(spriteContext);
 
   spriteCanvas.addEventListener('mousedown', handleMouseDown);
   spriteCanvas.addEventListener('mouseup', handleMouseUp);
@@ -349,4 +346,22 @@ function initSpriteEditor() {
   root.addChild(new ColorPicker(350, 32, model), 5, 400);
   root.addChild(new SpriteSizeControl(32, 64, model), 360, 32);
   repaint();
+}
+
+function makeCheckerPattern(context) {
+  const checkerSize = 15;
+
+  const miniCanvas = document.createElement('canvas');
+  miniCanvas.width = checkerSize;
+  miniCanvas.height = checkerSize;
+  const miniCtx = miniCanvas.getContext('2d');
+
+  miniCtx.fillStyle = 'white';
+  miniCtx.fillRect(0, 0, checkerSize, checkerSize);
+
+  miniCtx.fillStyle = '#ccc';
+  miniCtx.fillRect(checkerSize / 2, 0, checkerSize / 2, checkerSize / 2);
+  miniCtx.fillRect(0, checkerSize / 2, checkerSize / 2, checkerSize / 2);
+
+  return context.createPattern(miniCanvas, 'repeat');
 }
