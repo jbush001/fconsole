@@ -337,6 +337,53 @@ test('fetch out of range 2', () => {
   expect(t).toThrow('Memory fetch out of range: 9999999');
 });
 
+
+test('byte store out of range 1', () => {
+  const t = () => {
+    runCode('2 -1 c!');
+  };
+  expect(t).toThrow('Memory store out of range: -1');
+});
+
+test('byte store out of range 2', () => {
+  const t = () => {
+    runCode('2 1000000 c!');
+  };
+  expect(t).toThrow('Memory store out of range: 1000000');
+});
+
+test('byte fetch out of range 1', () => {
+  const t = () => {
+    runCode('-1 c@');
+  };
+  expect(t).toThrow('Memory fetch out of range: -1');
+});
+
+test('byte fetch out of range 2', () => {
+  const t = () => {
+    runCode('9999999 c@');
+  };
+  expect(t).toThrow('Memory fetch out of range: 9999999');
+});
+
+
+// This is a little tricky, because we need to cross the stack boundary
+// without triggering a stack overflow.
+test('out of memory 1', () => {
+  const t = () => {
+    runCode('0 0 0 0 0 0 0 0 0 0 0 8190 here ! , , , , , , , , ');
+  };
+  expect(t).toThrow('out of memory');
+});
+
+test('out of memory 2', () => {
+  const t = () => {
+    runCode('8190 here ! s" This string will go past the end of memory"');
+  };
+  expect(t).toThrow('out of memory');
+});
+
+
 test('invoke native underflow', () => {
   const ctx = new forth.ForthContext();
   ctx.bindNative('foo', 1, (val) => {});
@@ -347,7 +394,6 @@ test('invoke native underflow', () => {
 
   expect(t).toThrow('stack underflow');
 });
-
 
 test('invoke native return', () => {
   const ctx = new forth.ForthContext();
@@ -744,4 +790,17 @@ test('string', () => {
 
     main
   `)).toBe('6\n97\n98\n99\n100\n101\n102\n6\n101\n102\n103\n104\n105\n106');
+});
+
+test('unterminated quote', () => {
+  const t = () => {
+    runCode(`
+    123 .
+    s" this
+    is a long multiline string
+    foo
+    bar
+    `);
+  };
+  expect(t).toThrow('Line 3: unterminated quote');
 });

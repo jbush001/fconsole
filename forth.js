@@ -349,20 +349,6 @@ class ForthContext {
   }
 
   /**
-   * Find a word in the dictionary.
-   * @param {string} name Name of the word to find.
-   * @return {number} Address of word in dictionary, or undefined
-   *   if it can't be found.
-   */
-  lookupWord(name) {
-    if (!(name in this.dictionary)) {
-      return undefined;
-    }
-
-    return this.dictionary[name].value;
-  }
-
-  /**
    * Remove top value from operand stack and return it.
    * @return {number|function}
    * @throws {Error} if the stack is empty.
@@ -411,6 +397,10 @@ class ForthContext {
    */
   _emitCode(value) {
     this.debugInfo.addLineMapping(this.memory[HERE_IDX], this.lineNumber);
+    if (this.memory[HERE_IDX] >= MEMORY_SIZE) {
+      throw new Error('out of memory');
+    }
+
     this.memory[this.memory[HERE_IDX] >> 2] = value;
     this.memory[HERE_IDX] += 4;
   }
@@ -754,12 +744,10 @@ class ForthContext {
     let curAddr = this.memory[HERE_IDX] + 8;
     while (true) {
       const ch = this._readChar();
-      console.log('processing', ch);
       if (ch == '"') {
         break;
       } else if (ch) {
         const shift = (curAddr % 4) * 8;
-        console.log('shift', shift, 'curAddr', curAddr, 'word', (curAddr >> 2));
         this.memory[curAddr >> 2] &= ~(0xff << shift);
         this.memory[curAddr >> 2] |= (ch.charCodeAt(0) & 0xff) << shift;
         curAddr++;
@@ -767,18 +755,17 @@ class ForthContext {
         throw new Error(`Line ${startLine}: unterminated quote`);
       }
 
-      // XXX bounds checking
+      if (curAddr >= MEMORY_SIZE) {
+        throw new Error('out of memory');
+      }
     }
 
     const length = curAddr - (startAddr + 8);
     curAddr = (curAddr + 3) & ~3;
-    console.log('patching', startAddr + 4, curAddr);
     this.memory[(startAddr >> 2) + 1] = curAddr; // Patch branch address
 
     // Align to next word boundary
     this.memory[HERE_IDX] = curAddr;
-
-    console.log('compiled string is', this.memory.slice(startAddr >> 2, curAddr >> 2));
 
     // Push start address and length on the stack
     if (this.memory[STATE_IDX] == STATE_COMPILE) {
@@ -930,11 +917,6 @@ class ForthContext {
       } else {
         this.returnStack.push(this.pc);
         this.pc = value;
-      }
-
-      // Debug: just before we exceed cycles, print line number trace
-      if (false && i > MAX_EXEC_CYCLES - 500) {
-        console.log('infinite loop, line', this.debugInfo.lookupLine(this.pc));
       }
     }
 
