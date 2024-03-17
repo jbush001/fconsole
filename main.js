@@ -170,13 +170,16 @@ function loadFromServer(filename) {
   }).then((data) => {
     // Split this into
     const split = data.search(SPRITE_DELIMITER);
-    if (split != -1) {
+    if (split == -1) {
+      // This file does not have any sprite data in it.
+      document.getElementById('source').value = data;
+      clearSprites();
+    } else {
+      // Load sprites
       const code = data.substring(0, split);
       const sprites = data.substring(split + SPRITE_DELIMITER.length);
       document.getElementById('source').value = code;
       loadSprites(sprites);
-    } else {
-      document.getElementById('source').value = data;
     }
 
     doReset();
@@ -226,13 +229,7 @@ function saveSprites() {
   return result;
 }
 
-function doNew() {
-  stopRun();
-
-  saveFileName = '';
-  document.title = 'Untitled';
-  document.getElementById('source').value = ': draw_frame ; ';
-
+function clearSprites() {
   for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
     spriteData.data[i * 4] = 0;
     spriteData.data[i * 4 + 1] = 0;
@@ -244,7 +241,16 @@ function doNew() {
     spriteBitmap = bm;
     invalidate(); // Sprite editor
   });
+}
 
+function doNew() {
+  stopRun();
+
+  saveFileName = '';
+  document.title = 'Untitled';
+  document.getElementById('source').value = ': draw_frame ; ';
+
+  clearSprites();
   clearScreen(0);
 }
 
