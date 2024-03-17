@@ -281,13 +281,20 @@ class SpriteSizeControl extends View {
   }
 
   draw(context) {
-    context.fillStyle = 'red';
-    context.fillText(this.model.spriteSize.toString(), 4, this.height - 8);
+    context.font = '12px monospace';
+    context.fillStyle = 'black';
+    context.fillText('size', 4, 10);
+    context.fillText('1' + (this.model.spriteSize == 1 ? ' *' : ''), 4, 20);
+    context.fillText('2' + (this.model.spriteSize == 2 ? ' *' : ''), 4, 40);
+    context.fillText('4' + (this.model.spriteSize == 4 ? ' *' : ''), 4, 60);
   }
 
   mouseDown(x, y) {
-    this.model.spriteSize = this.model.spriteSize * 2;
-    if (this.model.spriteSize == 8) {
+    if (y > 50) {
+      this.model.spriteSize = 4;
+    } else if (y > 30) {
+      this.model.spriteSize = 2;
+    } else {
       this.model.spriteSize = 1;
     }
 
@@ -317,6 +324,6 @@ function initSpriteEditor() {
   root.addChild(new SpriteMapView(512, 512, model), 400, 32);
   root.addChild(new EditView(350, 350, model), 5, 35);
   root.addChild(new ColorPicker(350, 32, model), 5, 400);
-  root.addChild(new SpriteSizeControl(32, 32, model), 368, 400);
+  root.addChild(new SpriteSizeControl(32, 64, model), 368, 32);
   repaint();
 }
