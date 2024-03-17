@@ -104,8 +104,6 @@ function handleMouseMoved(event) {
   });
 }
 
-// ----------------------------------------------------------
-
 let checkerPattern = null;
 
 class SpriteEditorModel {
@@ -121,6 +119,10 @@ const MAP_SIZE = 400;
 const MAP_X_OFFSET = 1;
 const MAP_Y_OFFSET = 1;
 
+/**
+ * This view has two purposes: show all of the sprites in the map,
+ * and selecting which sprites the editor view currently points to.
+ */
 class SpriteMapView extends View {
   constructor(width, height, model) {
     super(width, height);
@@ -181,6 +183,9 @@ class SpriteMapView extends View {
   }
 }
 
+/**
+ * This view allows turning individual pixels on and off.
+ */
 class EditView extends View {
   constructor(width, height, model) {
     super(width, height);
@@ -243,6 +248,9 @@ class EditView extends View {
   }
 }
 
+/**
+ * Select which color to paint, from the system palette of 16.
+ */
 class ColorPicker extends View {
   constructor(width, height, model) {
     super(width, height);
@@ -287,6 +295,10 @@ class ColorPicker extends View {
   }
 }
 
+/**
+ * Allows selecting how many 8x8 sprite chunks the editor window
+ * covers.
+ */
 class SpriteSizeControl extends View {
   constructor(width, height, model) {
     super(width, height);
@@ -324,6 +336,11 @@ class SpriteSizeControl extends View {
   }
 }
 
+/**
+ * Called once when page is initially loaded to set up resources related
+ * to the sprite editor.
+ */
+// eslint-disable-next-line no-unused-vars
 function initSpriteEditor() {
   spriteCanvas = document.getElementById('sprite_edit');
   spriteContext = spriteCanvas.getContext('2d');
@@ -342,6 +359,13 @@ function initSpriteEditor() {
   repaint();
 }
 
+/**
+ * This is a checkerboard pattern of white and gray squares, used to indicate
+ * areas of transparency.
+ * @param {CanvasRenderingContext2D} context The context that this will be
+ *     drawn onto.
+ * @returns {CanvasPattern} A pattern
+ */
 function makeCheckerPattern(context) {
   const checkerSize = 15;
 

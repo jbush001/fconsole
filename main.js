@@ -135,6 +135,7 @@ const SPRITE_DELIMITER = '\n( sprite data ---xx--xxx----x-xxx----xxxx----x--\n';
  * Copy source code and sprites to the web server (serve.js), which
  * will save on the local filesystem.
  */
+// eslint-disable-next-line no-unused-vars
 function saveToServer() {
   console.log('Saving to server...');
   if (!saveFileName) {
@@ -238,9 +239,9 @@ function loadSprites(text) {
 }
 
 /**
- * Convert array to packed vlaue
+ * Convert array to packed value
  * @param {number[]} rgba Uint8ClampedArray of four values.
- * @returns {number} Single packed integer.
+ * @return {number} Single packed integer.
  */
 function packRGBA(rgba) {
   // the >>> 0 converts back to unsigned.
@@ -250,7 +251,7 @@ function packRGBA(rgba) {
 /**
  * Takes the current sprite sheet and converts it to a string suitable for
  * storing in a text file. The format is described in loadSprites.
- * @returns {string} Hex representation of image data
+ * @return {string} Hex representation of image data
  * @see loadSprites
  */
 function saveSprites() {
@@ -320,9 +321,10 @@ function writeConsole(text) {
 /**
  * Convert a color value into a CSS string.
  * @param {number} value A packed RGBA value
- * @returns {string} CSS string representing the color.
+ * @return {string} CSS string representing the color.
  */
 function makeColorString(value) {
+  // eslint-disable-next-line max-len
   return `rgb(${(value >> 16) & 0xff}, ${(value >> 8) & 0xff}, ${(value & 0xff)})`;
 }
 
@@ -377,14 +379,13 @@ function drawSprite(x, y, w, h, index) {
 
 /**
  * Read virtual joystick buttons (up/down/left/right/a/b)
- * @returns {number} A bitmask of held buttons
+ * @return {number} A bitmask of held buttons
  */
 function getButtons() {
   return [buttonMask];
 }
 
 let drawFrameTimer = null;
-let drawFramcoloreAddr = -1;
 
 /**
  * Called to render a frame to the screen. This invokes the FORTH interpreter
@@ -425,7 +426,6 @@ ${BUTTON_B} constant BUTTON_B
 /**
  * Called to set up the interpreter and start running code.
  */
-// eslint-disable-next-line no-unused-vars
 function doReset() {
   try {
     const ctx = new ForthContext();
