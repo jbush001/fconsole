@@ -217,6 +217,8 @@ function loadFromServer(filename) {
  * @see saveSprites
  */
 function loadSprites(text) {
+  clearSprites();
+
   let outIndex = 0;
   for (let i = 0; i < text.length; i++) {
     if (!/\s/.test(text[i])) {
@@ -251,8 +253,21 @@ function packRGBA(rgba) {
  * @see loadSprites
  */
 function saveSprites() {
+  // We ignore any zeroes at the end to save space. Walk backward
+  // to determine how many there are.
+  const zero = PALETTE[0];
+  let dataEnd = spriteData.data.length;
+  while (dataEnd > 0) {
+    const rgba = packRGBA(spriteData.data.slice(dataEnd, dataEnd + 4));
+    if (rgba != zero) {
+      break;
+    }
+
+    dataEnd -= 4;
+  }
+
   result = '';
-  for (let i = 0; i < spriteData.data.length; i += 4) {
+  for (let i = 0; i <= dataEnd; i += 4) {
     const rgba = packRGBA(spriteData.data.slice(i, i + 4));
     const index = INVERSE_PALETTE.get(rgba);
     result += index.toString(16);
