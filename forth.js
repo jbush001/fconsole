@@ -303,6 +303,9 @@ class ForthContext {
       '_get_time': new Word(this._getTime),
       'rot': new Word(this._rot),
       '-rot': new Word(this._reverseRot),
+      's"': new Word(this._makeString, true),
+      'c@': new Word(this._fetchChar),
+      'c!': new Word(this._storeChar),
     };
 
     this.debugInfo = new DebugInfo();
@@ -732,6 +735,85 @@ class ForthContext {
     this._push(c);
     this._push(a);
     this._push(b);
+  }
+
+  /**
+   * This could be implemented in FORTH, but I was too lazy...
+   */
+  _makeString() {
+    const startLine = this.lineNumber;
+    const startAddr = this.memory[HERE_IDX];
+
+    // The tokenizer always pushes back the whitespace char,
+    // which is a bit of a hack to ensure the line number is correct.
+    // Discard this.
+    this._readChar();
+
+    // Create a jump over this string.
+    this.memory[startAddr >> 2] = this._branch;
+    let curAddr = this.memory[HERE_IDX] + 8;
+    while (true) {
+      const ch = this._readChar();
+      console.log('processing', ch);
+      if (ch == '"') {
+        break;
+      } else if (ch) {
+        const shift = (curAddr % 4) * 8;
+        console.log('shift', shift, 'curAddr', curAddr, 'word', (curAddr >> 2));
+        this.memory[curAddr >> 2] &= ~(0xff << shift);
+        this.memory[curAddr >> 2] |= (ch.charCodeAt(0) & 0xff) << shift;
+        curAddr++;
+      } else {
+        throw new Error(`Line ${startLine}: unterminated quote`);
+      }
+
+      // XXX bounds checking
+    }
+
+    const length = curAddr - (startAddr + 8);
+    curAddr = (curAddr + 3) & ~3;
+    console.log('patching', startAddr + 4, curAddr);
+    this.memory[(startAddr >> 2) + 1] = curAddr; // Patch branch address
+
+    // Align to next word boundary
+    this.memory[HERE_IDX] = curAddr;
+
+    console.log('compiled string is', this.memory.slice(startAddr >> 2, curAddr >> 2));
+
+    // Push start address and length on the stack
+    if (this.memory[STATE_IDX] == STATE_COMPILE) {
+      this._emitCode(this._lit);
+      this._emitCode(startAddr + 8);
+      this._emitCode(this._lit);
+      this._emitCode(length);
+    } else {
+      this._push(startAddr + 8);
+      this._push(length);
+    }
+  }
+
+  _fetchChar() {
+    const addr = this._pop();
+    if (addr < 0 || addr >= MEMORY_SIZE) {
+      throw new Error(`Memory fetch out of range: ${addr}\n` +
+        this._debugStackCrawl());
+    }
+
+    const shift = (addr % 4) * 8;
+    this._push((this.memory[addr >> 2] >> shift) & 0xff);
+  }
+
+  _storeChar() {
+    const addr = this._pop();
+    if (addr < 0 || addr >= MEMORY_SIZE) {
+      throw new Error(`Memory store out of range: ${addr}\n` +
+        this._debugStackCrawl());
+    }
+
+    const shift = (addr % 4) * 8;
+    const value = this._pop();
+    this.memory[addr >> 2] &= ~(0xff << shift);
+    this.memory[addr >> 2] |= (value & 0xff) << shift;
   }
 
   /**

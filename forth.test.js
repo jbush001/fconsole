@@ -690,3 +690,58 @@ test('rot', () => {
     5 6 7 8 -rot . . . .
   `)).toBe('2\n4\n3\n1\n7\n6\n8\n5');
 });
+
+
+test('load byte', () => {
+  expect(runCode(`
+    hex
+    create foo 12345678 ,
+    decimal
+
+    foo
+    dup 3 + c@ .
+    dup 2 + c@ .
+    dup 1 + c@ .
+    dup c@ .
+  `)).toBe('18\n52\n86\n120');
+});
+
+test('store byte', () => {
+  expect(runCode(`
+    create foo 0 ,
+
+    hex
+    foo
+    dup 3 + 12 swap c!
+    dup 2 + 34 swap c!
+    dup 1 + 56 swap c!
+    dup 78 swap c!
+    foo @ .
+  `)).toBe((0x12345678).toString(10));
+});
+
+test('string', () => {
+  expect(runCode(`
+    s" abcdef"
+    .
+    dup c@ .
+    dup 1 + c@ .
+    dup 2 + c@ .
+    dup 3 + c@ .
+    dup 4 + c@ .
+    dup 5 + c@ .
+
+    : main
+      s" efghij"
+      .
+      dup c@ .
+      dup 1 + c@ .
+      dup 2 + c@ .
+      dup 3 + c@ .
+      dup 4 + c@ .
+      dup 5 + c@ .
+    ;
+
+    main
+  `)).toBe('6\n97\n98\n99\n100\n101\n102\n6\n101\n102\n103\n104\n105\n106');
+});
