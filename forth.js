@@ -926,6 +926,20 @@ class ForthContext {
   }
 
   /**
+   * Find a word in the dictionary.
+   * @param {string} name Name of the word to find.
+   * @return {number} Address of word in dictionary, or undefined
+   *   if it can't be found.
+   */
+  lookupWord(name) {
+    if (!(name in this.dictionary)) {
+      return undefined;
+    }
+
+    return this.dictionary[name].value;
+  }
+
+  /**
    * Convert a string form of a number into an actual numeric form.
    * @param {string} tok A string containing the number.
    * @return {number} The numeric value
