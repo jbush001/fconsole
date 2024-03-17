@@ -225,7 +225,7 @@ function doNew() {
 
   saveFileName = '';
   document.title = 'Untitled';
-  document.getElementById('source').value = '';
+  document.getElementById('source').value = ': draw_frame ; ';
 
   for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT; i++) {
     spriteData.data[i * 4] = 0;
@@ -299,6 +299,10 @@ function drawFrame(ctx) {
       drawFrame(ctx);
     }, 16);
   } catch (err) {
+    clearTimeout(drawFrameTimer);
+    drawFrameTimer = -1;
+    updateStopButton();
+
     alert(err);
   }
 }
@@ -316,7 +320,7 @@ ${BUTTON_B} constant BUTTON_B
 `;
 
 // eslint-disable-next-line no-unused-vars
-function doRun() {
+function doReset() {
   try {
     const ctx = new ForthContext();
     ctx.bindNative('cls', 1, clearScreen);
@@ -341,7 +345,11 @@ function doRun() {
 
     clearTimeout(drawFrameTimer);
     drawFrame(ctx);
+    updateStopButton();
   } catch (err) {
+    clearTimeout(drawFrameTimer);
+    drawFrameTimer = -1;
+    updateStopButton();
     alert(err);
   }
 }
@@ -350,7 +358,12 @@ function stopRun() {
   if (drawFrameTimer != -1) {
     clearTimeout(drawFrameTimer);
     drawFrameTimer = -1;
+    updateStopButton();
   }
+}
+
+function updateStopButton() {
+  document.getElementById('stop_button').disabled = drawFrameTimer == -1;
 }
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
