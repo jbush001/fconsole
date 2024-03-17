@@ -804,3 +804,24 @@ test('unterminated quote', () => {
   };
   expect(t).toThrow('Line 3: unterminated quote');
 });
+
+
+test('lookup word', () => {
+  const ctx = new forth.ForthContext();
+  ctx.interpretSource(`
+    : foo
+       1234
+    ;
+
+    : bar
+      5678
+    ;
+
+    variable baz
+  `);
+  expect(ctx.lookupWord('foo')).not.toBe(null);
+  expect(ctx.lookupWord('bar')).not.toBe(null);
+  expect(ctx.lookupWord('baz')).not.toBe(null);
+  expect(ctx.lookupWord('boo')).toBe(null);
+});
+

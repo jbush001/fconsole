@@ -933,7 +933,7 @@ class ForthContext {
    */
   lookupWord(name) {
     if (!(name in this.dictionary)) {
-      return undefined;
+      return null;
     }
 
     return this.dictionary[name].value;

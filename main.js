@@ -445,7 +445,7 @@ function doReset() {
     document.getElementById('output').textContent = '';
 
     drawFrameAddr = ctx.lookupWord('draw_frame');
-    if (drawFrameAddr === undefined) {
+    if (drawFrameAddr === null) {
       throw new Error('draw_frame not defined');
     }
 
