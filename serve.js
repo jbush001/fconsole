@@ -15,13 +15,14 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+
 const app = express();
 
 app.use(express.json());
 
 app.post('/save/:filename', (req, res) => {
   let receivedData = '';
-  req.on('data', chunk => {
+  req.on('data', (chunk) => {
     receivedData += chunk.toString(); // Concatenate received chunks
   });
 

@@ -460,5 +460,6 @@ variable game_over
 
 init_game
 
---------------------------------
+( sprite data
 0
+)

@@ -129,7 +129,7 @@ function updateFileList() {
 
 // This separates the FORTH source code (above) from the text sprite
 // representation (below).
-const SPRITE_DELIMITER = '\n--------------------------------\n';
+const SPRITE_DELIMITER = '\n( sprite data\n';
 
 /**
  * Copy source code and sprites to the web server (serve.js), which
@@ -147,7 +147,7 @@ function saveToServer() {
   }
 
   const content = document.getElementById('source').value +
-    SPRITE_DELIMITER + saveSprites();
+    SPRITE_DELIMITER + saveSprites() + '\n)\n';
 
   fetch(`/save/${saveFileName}`, {
     method: 'POST',
@@ -186,7 +186,8 @@ function loadFromServer(filename) {
     return response.text();
   }).then((data) => {
     // Split this into
-    const split = data.search(SPRITE_DELIMITER);
+    const split = data.indexOf(SPRITE_DELIMITER);
+    console.log('split@', split);
     if (split == -1) {
       // This file does not have any sprite data in it.
       document.getElementById('source').value = data;
@@ -205,7 +206,7 @@ function loadFromServer(filename) {
     // input for the game ends up loading another file.
     document.getElementById('fileSelect').blur();
   }).catch((error) => {
-    alert('Error loading file');
+    alert('Error loading file: ' + error);
   });
 }
 
@@ -221,7 +222,7 @@ function loadSprites(text) {
 
   let outIndex = 0;
   for (let i = 0; i < text.length; i++) {
-    if (!/\s/.test(text[i])) {
+    if (!/[\s)]/.test(text[i])) {
       const rgba = PALETTE[parseInt(text[i], 16)];
       spriteData.data[outIndex++] = rgba & 0xff;
       spriteData.data[outIndex++] = (rgba >> 8) & 0xff;

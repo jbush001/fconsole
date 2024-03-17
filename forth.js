@@ -360,7 +360,7 @@ class ForthContext {
   }
 
   /**
-   * Remove top value from stack and return it.
+   * Remove top value from operand stack and return it.
    * @return {number|function}
    * @throws {Error} if the stack is empty.
    */
@@ -375,7 +375,7 @@ class ForthContext {
   }
 
   /**
-   * Put a value on top of the stack
+   * Put a value on top of the operand stack
    * @param {number|function} val What to push. If this is a number, it will
    *   be automatically converted to an integer.
    * @throws {Error} if the stack is full.
@@ -489,9 +489,9 @@ class ForthContext {
   /**
    * Push a constant value onto the stack (literal). This is usually generated
    * implicity by the interpreter when it encounters a numbers, but will in
-   * some cases be referenced explicitly, like by the tick operator. This is
-   * always invoked from compiled code. It will use the next program address as
-   * the value to be pushed.
+   * some cases be referenced explicitly, often paired with the tick operator.
+   * This can only be invoked from compiled code. It will use the next program
+   * address as the value to be pushed.
    */
   _lit() {
     this._push(this.memory[this.pc >> 2]);
@@ -631,7 +631,7 @@ class ForthContext {
   /**
    * Finish compilation of the current word, automatically generating
    * an implicit 'exit' word to return to the caller, and switching
-   * the stack from compiling back to interpeting.
+   * the state from compiling back to interpeting.
    */
   _semicolon() {
     if (this.memory[STATE_IDX] != STATE_COMPILE) {
@@ -763,6 +763,10 @@ class ForthContext {
     console.log(this._debugStackCrawl());
   }
 
+  /**
+   * Return number of elapsed seconds since epoch. Used to
+   * seed random number generator.
+   */
   _getTime() {
     this._push(Date.now());
   }
@@ -821,7 +825,8 @@ class ForthContext {
    * Each word in the prgram consists of either javascript function
    * references (for built-in words) or an integer number that is a call
    * address for a user defined word.
-   * @param {*} startAddress Address in FORTH address space to begin executing
+   * @param {number} startAddress Address in FORTH address space to begin
+   * execution.
    */
   exec(startAddress) {
     // Used to prevent infinite loops, which hang the browser.
@@ -859,7 +864,7 @@ class ForthContext {
   /**
    * Convert a string form of a number into an actual numeric form.
    * @param {string} tok A string containing the number.
-   * @returns {number} The numeric value
+   * @return {number} The numeric value
    * @throw {Error} if the format is incorrect.
    */
   _parseNumber(tok) {
@@ -900,7 +905,7 @@ class ForthContext {
 
   /**
    * Walk the return stack and show names of user defined words.
-   * @returns {string} A human readable stack crawl
+   * @return {string} A human readable stack crawl
    */
   _debugStackCrawl() {
     let crawlInfo = '(most recent call first)\n';

@@ -136,7 +136,6 @@ class SpriteMapView extends View {
     context.fillStyle = checkerPattern;
     context.fillRect(MAP_X_OFFSET, MAP_Y_OFFSET, MAP_SIZE, MAP_SIZE);
 
-
     context.drawImage(spriteBitmap, MAP_X_OFFSET, MAP_Y_OFFSET,
         MAP_SIZE, MAP_SIZE);
     context.strokeStyle = 'black';
@@ -227,20 +226,16 @@ class EditView extends View {
     const size = this.model.spriteSize * SPRITE_BLOCK_SIZE;
     const left = this.model.selectedCol * SPRITE_BLOCK_SIZE;
     const top = this.model.selectedRow * SPRITE_BLOCK_SIZE;
-    const dx = Math.floor(x * size / this.width);
-    const dy = Math.floor(y * size / this.height);
-    const pixelIndex = ((top + dy) * spriteBitmap.width + left +
-        dx) * 4;
+    const xoffs = Math.floor(x * size / this.width);
+    const yoffs = Math.floor(y * size / this.height);
+    const pixelIndex = ((top + yoffs) * spriteBitmap.width + left +
+        xoffs) * 4;
     const colorVal = PALETTE[this.model.currentColor];
-    const a = (colorVal >> 24) & 0xff;
-    const r = (colorVal >> 16) & 0xff;
-    const g = (colorVal >> 8) & 0xff;
-    const b = colorVal & 0xff;
     const pix = spriteData.data;
-    pix[pixelIndex] = r;
-    pix[pixelIndex + 1] = g;
-    pix[pixelIndex + 2] = b;
-    pix[pixelIndex + 3] = a;
+    pix[pixelIndex] = (colorVal >> 16) & 0xff;
+    pix[pixelIndex + 1] = (colorVal >> 8) & 0xff;
+    pix[pixelIndex + 2] = colorVal & 0xff;
+    pix[pixelIndex + 3] = (colorVal >> 24) & 0xff;
     createImageBitmap(spriteData).then((bm) => {
       spriteBitmap = bm;
       repaint();
