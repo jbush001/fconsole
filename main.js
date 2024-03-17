@@ -178,6 +178,12 @@ function loadFromServer(filename) {
     } else {
       document.getElementById('source').value = data;
     }
+
+    doReset();
+
+    // Important to move focus away from this, otherwise user
+    // input for the game ends up loading another file.
+    document.getElementById('fileSelect').blur();
   }).catch((error) => {
     alert('Error loading file');
   });
