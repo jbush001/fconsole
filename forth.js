@@ -16,6 +16,7 @@
 // Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
 
 // This contains words that implement the FORTH interpreter itself.
+// It is loaded automatically when the interpreter is initialized.
 const LIB = `
 : begin immediate
   here @
@@ -330,6 +331,12 @@ class ForthContext {
     });
   }
 
+  /**
+   * Find a word in the dictionary.
+   * @param {string} name Name of the word to find.
+   * @return {number} Address of word in dictionary, or undefined
+   *   if it can't be found.
+   */
   lookupWord(name) {
     if (!(name in this.dictionary)) {
       return undefined;
@@ -338,7 +345,11 @@ class ForthContext {
     return this.dictionary[name].value;
   }
 
-  // Pop the top value from the data stack, checking bounds.
+  /**
+   * Remove top value from stack and return it.
+   * @return {number|function}
+   * @throws {Error} if the stack is empty.
+   */
   _pop() {
     if (this.stackPointer >= MEMORY_SIZE) {
       throw new Error('stack underflow\n' + this._debugStackCrawl());
@@ -349,7 +360,12 @@ class ForthContext {
     return result;
   }
 
-  // Push a value on top of the data stack, checking bounds.
+  /**
+   * Put a value on top of the stack
+   * @param {number|function} val What to push. If this is a number, it will
+   *   be automatically converted to an integer.
+   * @throws {Error} if the stack is full.
+   */
   _push(val) {
     if (val === undefined) {
       throw new Error('internal error: undefined pushed on stack\n' +
@@ -371,17 +387,23 @@ class ForthContext {
     this.memory[this.stackPointer >> 2] = val;
   }
 
-  // During compilation, write a word at 'here' (next code address)
-  // and increment the pointer by one word.
+  /**
+   * During compilation, write a word at 'here' (next code address)
+   * and increment the pointer by one word.
+   * @param {number} value
+   */
   _emitCode(value) {
     this.debugInfo.addLineMapping(this.memory[HERE_IDX], this.lineNumber);
     this.memory[this.memory[HERE_IDX] >> 2] = value;
     this.memory[HERE_IDX] += 4;
   }
 
-  // Read the next character from input. Since we don't implement an
-  // actual REPL, this will always be pulled from the current source
-  // string.
+  /**
+   * Read the next character from input. Since we don't implement an
+   * actual REPL, this will always be pulled from the current source
+   * string.
+   * @return {string} next character.
+   */
   _readChar() {
     if (this.interpOffs == this.interpStr.length) {
       return '';
@@ -395,8 +417,11 @@ class ForthContext {
     return ch;
   }
 
-  // Read the next space delimited character sequence from input, calling
-  // into _readChar.
+  /**
+   * Read the next space delimited character sequence from input, calling
+   * into _readChar.
+   * @return {string} Next token, with leading and trailing whitespace stripped.
+   */
   _readWord() {
     let singleLineComment = false;
     let token = '';
@@ -426,7 +451,12 @@ class ForthContext {
     }
   }
 
-  // Add a word to the dictionary.
+  /**
+   * Add a word to the dictionary. The name for this word
+   * will be pulled from the next token in the input string. The
+   * value of this word will be the current 'here' address (next
+   * code to be emitted)
+   */
   _create() {
     if (this.memory[STATE_IDX] == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: create inside colon def`);
@@ -442,14 +472,24 @@ class ForthContext {
     this.debugInfo.startWord(name, this.memory[HERE_IDX]);
   }
 
-  // Push a constant value onto the stack (literal). This is usually generated
-  // implicity by the interpreter when it encounters a numbers, but will in
-  // some cases be referenced explicitly, like by the tick operator.
+  /**
+   * Push a constant value onto the stack (literal). This is usually generated
+   * implicity by the interpreter when it encounters a numbers, but will in
+   * some cases be referenced explicitly, like by the tick operator. This is
+   * always invoked from compiled code. It will use the next program address as
+   * the value to be pushed.
+   */
   _lit() {
     this._push(this.memory[this.pc >> 2]);
     this.pc += 4;
   }
 
+  /**
+   * Create a constant in the dictionary. The value for the constant is taken
+   * from the stack, and the name is pulled from the next token in the stream.
+   * e.g.
+   *     10 constant foo
+   */
   _constant() {
     if (this.memory[STATE_IDX] == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: constant inside colon def`);
@@ -517,6 +557,9 @@ class ForthContext {
     this._push(val);
   }
 
+  /**
+   * Return from the current function.
+   */
   _exit() {
     // In a normal FORTH interpreter, the REPL is an infinite loop. However,
     // we will return to the caller once a function completes. The continueExec
@@ -529,7 +572,9 @@ class ForthContext {
     }
   }
 
-  // Read a word from memory and push onto the stack
+  /**
+   * Read a word from memory and push onto the stack
+   */
   _fetch() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
@@ -540,7 +585,9 @@ class ForthContext {
     this._push(this.memory[addr >> 2]);
   }
 
-  // Pop address and value from the stack and store into memory.
+  /**
+   * Pop address and value from the stack and store into memory.
+   */
   _store() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
@@ -552,6 +599,11 @@ class ForthContext {
     this.memory[addr >> 2] = value;
   }
 
+  /**
+   * Begin compiling a new word. This will pull the next token from the
+   * stream and put that into the dictionary. It also sets the state
+   * to compiling.
+   */
   _colon() {
     if (this.memory[STATE_IDX] == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: nested colon def`);
@@ -562,6 +614,11 @@ class ForthContext {
     this.memory[STATE_IDX] = STATE_COMPILE;
   }
 
+  /**
+   * Finish compilation of the current word, automatically generating
+   * an implicit 'exit' word to return to the caller, and switching
+   * the stack from compiling back to interpeting.
+   */
   _semicolon() {
     if (this.memory[STATE_IDX] != STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: unmatched ;`);
@@ -572,6 +629,10 @@ class ForthContext {
     this.debugInfo.endWord(this.memory[HERE_IDX]);
   }
 
+  /**
+   * Mark the most recently emitted word to execute immediately
+   * when seen (instead of being compiled).
+   */
   _immediate() {
     if (this.currentWord) {
       this.currentWord.immediate = true;
@@ -597,9 +658,11 @@ class ForthContext {
     this._emitCode(this._pop());
   }
 
-  // Push the function address for the next word onto the stack.
-  // This only works in compiled code. It uses the trick from jonesforth
-  // which grabs the pointer from the next cell.
+  /**
+   * Push the function address for the next word onto the stack.
+   * This only works in compiled code. It uses the trick from jonesforth
+   * which grabs the pointer from the next cell.
+   */
   _tick() {
     this._push(this.memory[this.pc >> 2]);
     this.pc += 4;
@@ -664,7 +727,9 @@ class ForthContext {
     this._push(this.returnStack.pop());
   }
 
-  // Push the stack pointer.
+  /**
+   * Push the stack pointer.
+   */
   _dsp() {
     this._push(this.stackPointer);
   }
@@ -677,9 +742,13 @@ class ForthContext {
     this._push(Date.now());
   }
 
-  // Immedately execute code. This intepreter doesn't have an actual REPL, so
-  // we interpret code out of a string buffer. This implements what is
-  // formally known as the "outer interpreter."
+  /**
+   * @param {string} src The source code to interpret.
+   *
+   * Immedately execute code. This intepreter doesn't have an actual REPL, so
+   * we interpret code out of a string buffer. This implements what is
+   * formally known as the "outer interpreter."
+   */
   interpretSource(src) {
     this.interpStr = src;
     this.interpOffs = 0;
@@ -721,11 +790,14 @@ class ForthContext {
     }
   }
 
-  // Run compiled code. This is what is usually referred to as the "inner
-  // interpreter." It is basically an indirect threaded interpreter.
-  // Each word in the prgram consists of either javascript function
-  // references (for built-in words) or an integer number that is a call
-  // address for a user defined word.
+  /**
+   * Run compiled code. This is what is usually referred to as the "inner
+   * interpreter." It is basically an indirect threaded interpreter.
+   * Each word in the prgram consists of either javascript function
+   * references (for built-in words) or an integer number that is a call
+   * address for a user defined word.
+   * @param {*} startAddress Address in FORTH address space to begin executing
+   */
   exec(startAddress) {
     // Used to prevent infinite loops, which hang the browser.
     const MAX_EXEC_CYCLES = 100000;
@@ -759,6 +831,12 @@ class ForthContext {
     }
   }
 
+  /**
+   * Convert a string form of a number into an actual numeric form.
+   * @param {string} tok A string containing the number.
+   * @returns {number} The numeric value
+   * @throw {Error} if the format is incorrect.
+   */
   _parseNumber(tok) {
     let tokVal = 0;
     let digitval = 0;

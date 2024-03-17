@@ -43,6 +43,12 @@ app.post('/save/:filename', (req, res) => {
   });
 });
 
+/**
+ * Create a new manifest file on the local filesystem.
+ * The manifest file contains a list of all files that are in the games
+ * directory. While this could have been a REST call (e.g. list), that
+ * would preclude hosting files on a public server like github.
+ */
 function writeManifest() {
   const directoryPath = path.join(__dirname, 'games');
   fs.readdir(directoryPath, (err, files) => {

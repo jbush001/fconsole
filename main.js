@@ -58,14 +58,16 @@ for (let i = 0; i < PALETTE.length; i++) {
   INVERSE_PALETTE.set(PALETTE[i], i);
 }
 
-// These are automatically kept in sync (spriteBitmap is recreated when
-// spriteData changes)
-let spriteData = new ImageData(SPRITE_SHEET_WIDTH,
-    SPRITE_SHEET_HEIGHT);
+// spriteBitmap must be kept in sync with spriteData (since bitmaps
+// are immutable, we keep spriteData around to modify it).
+const spriteData = new ImageData(SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT);
 let spriteBitmap = null;
+
 let outputCanvas = null;
 let outputContext = null;
 let saveFileName = null;
+
+// Tracks which buttons are currently held.
 let buttonMask = 0;
 
 // eslint-disable-next-line no-unused-vars
@@ -108,6 +110,12 @@ function startup() {
   updateFileList();
 }
 
+/**
+ * Load the list of files on the server from a manifest file.
+ * This is explained more in serve.js, but the manifest file allows
+ * this to run with its custom server (allowing saving), or from
+ * a public web server like github for demo mode.
+ */
 function updateFileList() {
   fetch('games/manifest.json').then((response) => {
     return response.json();
@@ -119,6 +127,8 @@ function updateFileList() {
   });
 }
 
+// This separates the FORTH source code (above) from the text sprite
+// representation (below).
 const SPRITE_DELIMITER = '\n--------------------------------\n';
 
 function saveToServer() {
@@ -190,6 +200,13 @@ function loadFromServer(filename) {
   });
 }
 
+/**
+ * Given a string containing the sprite data (as stored in the file),m
+ * populate the spriteBitmap and spriteData. Each pixel is stored as a single
+ * digit, a hex value 0-15. These are references into the PALETTE table.
+ * @param {string} text Hex encoded version of sprite data
+ * @see saveSprites
+ */
 function loadSprites(text) {
   let outIndex = 0;
   for (let i = 0; i < text.length; i++) {
@@ -213,6 +230,12 @@ function packRGBA(rgba) {
   return ((rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0]) >>> 0;
 }
 
+/**
+ * Takes the current sprite sheet and converts it to a string suitable for
+ * storing in a text file. The format is described in loadSprites.
+ * @returns {string} Hex representation of image data
+ * @see loadSprites
+ */
 function saveSprites() {
   result = '';
   for (let i = 0; i < spriteData.data.length; i += 4) {
@@ -227,6 +250,9 @@ function saveSprites() {
   return result;
 }
 
+/**
+ * Set the current sprite sheet to be fully transparent.
+ */
 function clearSprites() {
   for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT * 4; i++) {
     spriteData.data[i] = 0;
@@ -238,6 +264,9 @@ function clearSprites() {
   });
 }
 
+/**
+ * Start a new project, clearing out source code, sprites, etc.
+ */
 function doNew() {
   stopRun();
 
@@ -253,6 +282,11 @@ function writeConsole(text) {
   document.getElementById('output').textContent += text;
 }
 
+/**
+ * Convert a color value into a CSS string.
+ * @param {number} value A packed RGBA value
+ * @returns {string} CSS string representing the color.
+ */
 function makeColorString(value) {
   return `rgb(${(value >> 16) & 0xff}, ${(value >> 8) & 0xff}, ${(value & 0xff)})`;
 }
@@ -276,12 +310,26 @@ function fillRect(left, top, width, height) {
   outputContext.stroke();
 }
 
+/**
+ * Set the color to be used by subsequent drawLine and fillRect
+ * calls. This is invoked as a FORTH word.
+ * @param {number} color Index into palette table, 0-15
+ */
 function setColor(color) {
   const colorStr = makeColorString(PALETTE[color & 15]);
   outputContext.strokeStyle = colorStr;
   outputContext.fillStyle = colorStr;
 }
 
+/**
+ * Draw a sprite onto the screen. This is invoked as a FORTH word.
+ * @param {number} x Horizontal offset, in pixels
+ * @param {number} y Vertical offset in pixels .
+ * @param {number} w Width, as a number of 8 pixel blocks.
+ * @param {number} h Height, as a number of 8 pixel blocks.
+ * @param {number} index Index into sprite array, in terms of 8x8 pixel blocks,
+ *     numbered left to right, top to bottom.
+ */
 function drawSprite(x, y, w, h, index) {
   const sheetRow = Math.floor(index / SPRITE_SHEET_W_BLKS);
   const sheetCol = index % SPRITE_SHEET_W_BLKS;
@@ -291,13 +339,23 @@ function drawSprite(x, y, w, h, index) {
     SPRITE_BLOCK_SIZE, pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
+/**
+ * Read virtual joystick buttons (up/down/left/right/a/b)
+ * @returns {number} A bitmask of held buttons
+ */
 function getButtons() {
   return [buttonMask];
 }
 
 let drawFrameTimer = null;
-let drawFrameAddr = -1;
+let drawFramcoloreAddr = -1;
 
+/**
+ * Called to render a frame to the screen. This invokes the FORTH interpreter
+ * to allow the game code to do the actual rendering of the frame, then
+ * sets a timer to call itself at the next frame interval.
+ * @param {ForthContext} ctx
+ */
 function drawFrame(ctx) {
   try {
     ctx.exec(drawFrameAddr);
@@ -314,6 +372,8 @@ function drawFrame(ctx) {
   }
 }
 
+// This code is invoked when the game interpreter is created to add
+// any game specific words.
 const GAME_BUILTINS = `
 ${BUTTON_L} constant BUTTON_L
 ${BUTTON_R} constant BUTTON_R
@@ -326,6 +386,9 @@ ${BUTTON_B} constant BUTTON_B
 128 constant SCREEN_HEIGHT
 `;
 
+/**
+ * Called to set up the interpreter and start running code.
+ */
 // eslint-disable-next-line no-unused-vars
 function doReset() {
   try {
@@ -369,6 +432,10 @@ function stopRun() {
   }
 }
 
+/**
+ * Set the stop button to be enabled/disabled depending on the state of the
+ * game engine.
+ */
 function updateStopButton() {
   document.getElementById('stop_button').disabled = drawFrameTimer == -1;
 }
