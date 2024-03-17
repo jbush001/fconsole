@@ -1,10 +1,93 @@
 variable ship_pos
+10 constant MAX_MISSILES
+
+create missile_active MAX_MISSILES cells allot
+create missile_x MAX_MISSILES cells allot
+create missile_y MAX_MISSILES cells allot
 
 
-: init
-  56 ship_pos !
+( -- index )
+: allocate_missile
+    0
+    begin
+       dup MAX_MISSILES <
+    while
+       dup cells missile_active + dup @ ( index address active )
+       0= if
+          1 swap !  \ Set this active
+          exit      \ return allocated slot
+       else
+          drop
+       then
+       1 +
+    repeat
+
+    drop -1 \ Return -1 to indicate no missiles available
 ;
 
+( -- )
+: fire_missile
+    allocate_missile
+    dup -1 = if
+        \ Can't fire a missile, too many on screen. Wait for
+        \ them to dispatch
+        drop
+        exit
+    then
+
+    \ Index of slot is now on stack
+    dup cells missile_x + ship_pos @ 8 + swap !
+    cells missile_y + SCREEN_HEIGHT 16 - swap !
+;
+
+( -- )
+: draw_missiles
+    1 set_color
+
+    0
+    begin
+       dup MAX_MISSILES <
+    while
+       dup cells missile_active + @
+       if
+            \ This missile is active, draw
+            dup cells missile_x + @ 
+            over cells missile_y + @ 
+            over 
+            over 4 -
+            draw_line
+       then
+       1 +
+    repeat
+
+    drop
+;
+
+: update_missiles
+    0
+    begin
+       dup MAX_MISSILES <
+    while
+       dup cells missile_active + @       ( index active )
+       if
+            dup cells missile_y + @   ( index y )
+            3 -                       ( index new_y )
+            dup 0 < if
+               \ Off top of screen
+               drop dup cells missile_active + 0 swap ! \ Make not active
+            else
+		\ Still moving
+                over cells missile_y + !  \ Save position
+            then
+       then
+       1 +
+    repeat
+
+    drop
+;
+
+
+variable last_button
 
 : draw_frame
     buttons BUTTON_L and if
@@ -19,11 +102,29 @@ variable ship_pos
         then
     then
 
+    buttons BUTTON_A and if
+        last_button @ 0= if
+           fire_missile
+        then
+        1 last_button !
+    else
+        0 last_button !
+    then
+
     0 cls
     ship_pos @ 112 2 2 0 draw_sprite
+    update_missiles
+    draw_missiles
 ;
 
+: init
+  56 ship_pos !
+  missile_active MAX_MISSILES zero_memory
+;
+
+
 init
+
 
 --------------------------------
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
