@@ -32,8 +32,6 @@ limitations under the License.
 
             <div id="outputtab" class="tabcontent">
                 <canvas id="screen" width="128" height="128"></canvas>
-                <div id="output">
-                </div>
                 <br/>
                 <label for="fileSelect">Load File:</label>
                 <select id="fileSelect">
@@ -44,9 +42,8 @@ limitations under the License.
                 <button onclick="saveToServer()">Save</button>
                 <button onclick="doNew()">New</button>
 
-                <div>
-                    Select a file from the drop down to load. Click 'run' to start.
-                    Use arrow keys to move directionally, z for A and x for B.
+                <div>Console output:</div>
+                <div id="output">
                 </div>
             </div>
 
