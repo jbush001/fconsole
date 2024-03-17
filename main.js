@@ -129,7 +129,7 @@ function updateFileList() {
 
 // This separates the FORTH source code (above) from the text sprite
 // representation (below).
-const SPRITE_DELIMITER = '\n( sprite data\n';
+const SPRITE_DELIMITER = '\n( sprite data ---xx--xxx----x-xxx----xxxx----x--\n';
 
 /**
  * Copy source code and sprites to the web server (serve.js), which
