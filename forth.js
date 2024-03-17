@@ -209,6 +209,11 @@ const ZERO_ASCII = '0'.charCodeAt(0);
 const LOWER_A_ASCII = 'a'.charCodeAt(0);
 const A_ASCII = 'A'.charCodeAt(0);
 
+/**
+ * Store information used to generate human readable traces,
+ * including mapping addresses to words and source control lines.
+ * @note This is still a little buggy.
+ */
 class DebugInfo {
   constructor() {
     this.lineMappings = {};
@@ -305,9 +310,18 @@ class ForthContext {
     this.interpretSource(LIB);
   }
 
-  // Used by code outside of the interpreter to add new forth words
-  // that call native functions (which effectively allows dependency
-  // injection so we can test the interpreter standalone).
+  /**
+   * Used by code outside of the interpreter to add new forth words
+   * that call native functions (which effectively allows dependency
+   * injection so we can test the interpreter standalone). The callback
+   * can return a list, which will be pushed back onto the stack.
+   * @param {string} name How this is referenced in the dictionary.
+   * @param {number} argCount The number of arguments will be popped off
+   *   the stack and passed to the called function.
+   * @param {function} callback A javascript function to call when this
+   *   word is executed.
+   * @throw {Error} If there is a stack underflow reading the arguments.
+   */
   bindNative(name, argCount, callback) {
     const self = this;
     this.dictionary[name] = new Word(() => {
@@ -686,6 +700,11 @@ class ForthContext {
     this._push(!this._pop());
   }
 
+  /**
+   * Return the next input character. In our implementation,
+   * this is always from the source code string we are interpreting.
+   * (since this interpreter doesn't have a true REPL).
+   */
   _key() {
     const val = this._readChar();
     if (val) {
@@ -715,10 +734,16 @@ class ForthContext {
     this._push(b);
   }
 
+  /**
+   * Pop a value from the operand stack and push onto the return stack.
+   */
   _pushReturn() {
     this.returnStack.push(this._pop());
   }
 
+  /**
+   * Pop a value from the return stack and push onto the operand stack.
+   */
   _popReturn() {
     if (this.returnStack.length == 0) {
       throw new Error(`return stack underflow\n` + this._debugStackCrawl());
@@ -873,6 +898,10 @@ class ForthContext {
     return tokVal;
   }
 
+  /**
+   * Walk the return stack and show names of user defined words.
+   * @returns {string} A human readable stack crawl
+   */
   _debugStackCrawl() {
     let crawlInfo = '(most recent call first)\n';
 

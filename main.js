@@ -131,6 +131,10 @@ function updateFileList() {
 // representation (below).
 const SPRITE_DELIMITER = '\n--------------------------------\n';
 
+/**
+ * Copy source code and sprites to the web server (serve.js), which
+ * will save on the local filesystem.
+ */
 function saveToServer() {
   console.log('Saving to server...');
   if (!saveFileName) {
@@ -139,7 +143,7 @@ function saveToServer() {
   }
 
   if (!saveFileName) {
-    return; // cancelled
+    return; // cancelled by user
   }
 
   const content = document.getElementById('source').value +
@@ -163,6 +167,11 @@ function saveToServer() {
   });
 }
 
+/**
+ * Load source code and sprites from the server. This just
+ * uses a normal GET.
+ * @param {string} filename Name of file to load
+ */
 function loadFromServer(filename) {
   stopRun();
 
@@ -225,6 +234,11 @@ function loadSprites(text) {
   });
 }
 
+/**
+ * Convert array to packed vlaue
+ * @param {number[]} rgba Uint8ClampedArray of four values.
+ * @returns {number} Single packed integer.
+ */
 function packRGBA(rgba) {
   // the >>> 0 converts back to unsigned.
   return ((rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0]) >>> 0;
@@ -251,7 +265,7 @@ function saveSprites() {
 }
 
 /**
- * Set the current sprite sheet to be fully transparent.
+ * Set the sprite sheet to be fully transparent.
  */
 function clearSprites() {
   for (let i = 0; i < SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT * 4; i++) {
@@ -278,6 +292,11 @@ function doNew() {
   clearScreen(0);
 }
 
+/**
+ * Copy text into an area in the web interface that shows program output.
+ * This is usually invoked from the forth '.' word.
+ * @param {string} text What to write.
+ */
 function writeConsole(text) {
   document.getElementById('output').textContent += text;
 }
@@ -291,10 +310,13 @@ function makeColorString(value) {
   return `rgb(${(value >> 16) & 0xff}, ${(value >> 8) & 0xff}, ${(value & 0xff)})`;
 }
 
+/**
+ * Erase the entire drawing area.
+ * @param {number} color Index (0-15) into the pallete for the color.
+ */
 function clearScreen(color) {
   outputContext.fillStyle = makeColorString(PALETTE[color & 15]);
   outputContext.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
-  outputContext.stroke();
 }
 
 function drawLine(left, top, right, bottom) {
@@ -305,9 +327,7 @@ function drawLine(left, top, right, bottom) {
 }
 
 function fillRect(left, top, width, height) {
-  outputContext.beginPath();
   outputContext.fillRect(left, top, width, height);
-  outputContext.stroke();
 }
 
 /**

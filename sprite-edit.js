@@ -42,7 +42,6 @@ let root = null;
 function repaint() {
   spriteContext.fillStyle = 'white';
   spriteContext.fillRect(0, 0, spriteCanvas.width, spriteCanvas.height);
-  spriteContext.stroke();
 
   function recurse(view) {
     spriteContext.save();
