@@ -22,11 +22,11 @@
 \ as an X and Y offset from the pivot point.
 create piece_l 0 , -1 , 0 , 0 , 0 , 1 , 1 , 1 ,
 create piece_j 0 , -1 , 0 , 0 , 0 , 1 , -1 , 1 ,
-create piece_i 0 , -2 , 0 , -1 , 0 , 0 , 0 , 1 ,
-create piece_t -1 , 0 , 0 , 0 , 1 , 0 , 0 , 1 ,
-create piece_o 0 , 0 , 1 , 0 , 1 , 1 , 0 , 1 ,
-create piece_s -1 , 1 , 0 , 1 , 0 , 0 , 1 , 0 ,
-create piece_z 1 , 1 , 0 , 1 , 0 , 0 , -1 , 0 ,
+create piece_i 0 , -1 , 0 , 0 , 0 , 1 , 0 , 2 ,
+create piece_t -1 , 0 , 0 , 0 , 1 , 0 , 0 , -1 ,
+create piece_o 0 , -1 , 1 , -1 , 1 , 0 , 0 , 0 ,
+create piece_s -1 , 0 , 0 , 0 , 0 , -1 , 1 , -1 ,
+create piece_z 1 , 0 , 0 , 0 , 0 , -1 , -1 , -1 ,
 create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_z ,
 
 create piece_colors 10 , 4 , 7 , 5 , 6 , 3 , 2 ,
@@ -453,7 +453,7 @@ variable game_over
 ( piece_addr -- piece_addr )
 : draw_next_block
     dup @ BLOCK_SIZE * 100 +       \ Read X
-    over 4 + @  BLOCK_SIZE * 90 + \ Read Y
+    over 4 + @  BLOCK_SIZE * 80 + \ Read Y
 
     7 7 fill_rect
 ;
