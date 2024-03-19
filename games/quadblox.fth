@@ -46,6 +46,8 @@ variable piece_y
 variable cur_shape
 variable shape_color
 variable rotation
+variable next_shape
+variable next_color
 
 \ Given an X and Y coordinate, rotate it according to current piece
 \ rotation.
@@ -90,6 +92,7 @@ variable rotation
 ;
 
 : draw_piece
+    shape_color @ set_color
     cur_shape @
     draw_block 8 +
     draw_block 8 +
@@ -188,15 +191,18 @@ variable collision
 ;
 
 : new_piece
-    random 7 mod
-
-    dup cells piece_colors + @ shape_color !
-
-    cells pieces + @
-    cur_shape !
-
+    \ Copy next piece to current.
+    next_shape @ cur_shape !
+    next_color @ shape_color !
     4 piece_x !
     2 piece_y !
+
+    \ Set next piece
+    random 7 mod
+    dup cells piece_colors + @ next_color !
+
+    cells pieces + @
+    next_shape !
 ;
 
 variable x
@@ -438,10 +444,30 @@ variable game_over
 : draw_score
     15 set_color
 
-    90 10 s" score" draw_text
+    90 10 s" Score" draw_text
     90 20 score_str 6 draw_text
-    90 30 s" lines" draw_text
+    90 30 s" Lines" draw_text
     90 40 lines_str 4 draw_text
+;
+
+( piece_addr -- piece_addr )
+: draw_next_block
+    dup @ BLOCK_SIZE * 100 +       \ Read X
+    over 4 + @  BLOCK_SIZE * 90 + \ Read Y
+
+    7 7 fill_rect
+;
+
+: draw_next
+    90 60 s" Next" draw_text
+
+    next_color @ set_color
+    next_shape @
+    draw_next_block 8 +
+    draw_next_block 8 +
+    draw_next_block 8 +
+    draw_next_block
+    drop
 ;
 
 : init_game
@@ -456,6 +482,9 @@ variable game_over
 
     finished_rows WELL_WIDTH zero_memory
 
+    \ Need to call this twice initially to initialize the next
+    \ piece indicator properly.
+    new_piece
     new_piece
 
     0 score !
@@ -495,11 +524,10 @@ variable game_over
     0 cls
 
     draw_well
-
     draw_score
+    draw_next
 
     \ Draw the currently falling piece
-    shape_color @ set_color
     blink_counter @ 0= if
         draw_piece
     then
