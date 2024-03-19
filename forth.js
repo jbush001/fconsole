@@ -781,13 +781,17 @@ class ForthContext {
 
   _fetchChar() {
     const addr = this._pop();
+    this._push(this.readByte(addr));
+  }
+
+  readByte(addr) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
       throw new Error(`Memory fetch out of range: ${addr}\n` +
         this._debugStackCrawl());
     }
 
     const shift = (addr % 4) * 8;
-    this._push((this.memory[addr >> 2] >> shift) & 0xff);
+    return (this.memory[addr >> 2] >> shift) & 0xff;
   }
 
   _storeChar() {

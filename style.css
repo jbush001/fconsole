@@ -76,7 +76,7 @@ body, html {
     font-family: monospace;
     white-space: pre;
     overflow-y: scroll;
-    height: 150px;
+    height: 128px;
 }
 
 #screen {

@@ -377,6 +377,11 @@ function drawSprite(x, y, w, h, index) {
     SPRITE_BLOCK_SIZE, pixWidth, pixHeight, x, y, pixWidth, pixHeight);
 }
 
+function drawText(x, y, str) {
+  outputContext.font = '10px monospace';
+  outputContext.fillText(str, x, y);
+}
+
 /**
  * Read virtual joystick buttons (up/down/left/right/a/b)
  * @return {number} A bitmask of held buttons
@@ -433,11 +438,19 @@ function doReset() {
     ctx.bindNative('set_color', 1, setColor);
     ctx.bindNative('draw_line', 4, drawLine);
     ctx.bindNative('draw_sprite', 5, drawSprite);
+    ctx.bindNative('draw_text', 4, (x, y, ptr, length) => {
+      let str = '';
+      for (let i = 0; i < length; i++) {
+        str += String.fromCharCode(ctx.readByte(ptr + i));
+      }
+
+      drawText(x, y, str);
+    });
+    ctx.bindNative('fill_rect', 4, fillRect);
     ctx.bindNative('.', 1, (val) => {
       writeConsole(val + '\n');
     });
     ctx.bindNative('buttons', 0, getButtons);
-    ctx.bindNative('fill_rect', 4, fillRect);
     ctx.bindNative('beep', 2, playBeep);
     ctx.interpretSource(GAME_BUILTINS);
 

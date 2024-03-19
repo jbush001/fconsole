@@ -38,6 +38,7 @@ create well_data WELL_WIDTH WELL_HEIGHT * cells allot
 \ Score increment for number of rows cleared.
 create score_table 40 , 100 , 300 , 1200 ,
 variable score
+variable total_lines
 
 \ Information about currently dropping piece.
 variable piece_x
@@ -324,6 +325,36 @@ variable button_mask
     swap button_mask !          ( update button msak)
 ;
 
+48 constant '0'
+
+\ Convert an integer value into ascii
+\ ( strptr value count -- )
+: itoa
+    rot over + 1 -  ( value count endptr)
+    begin
+        over
+    while
+        rot   ( count endptr value)
+        dup 10 mod '0' + ( count endptr value digit )
+        3 pick c! ( count endptr value )
+        10 /
+        -rot 1 - ( value count endptr )
+        swap 1 - swap
+    repeat
+;
+
+create score_str 8 allot
+create lines_str 4 allot
+
+\ We only convert the numeric scores to strings when the change,
+\ as an optimization.
+: update_score_str
+    \ There's a divide by four since copy_memory works in
+    \ terms of words, not bytes.
+    score_str score @ 6 itoa
+    lines_str total_lines @ 4 itoa
+;
+
 variable drop_timer
 variable drop_delay
 variable game_over
@@ -380,10 +411,13 @@ variable game_over
             piece_y @ 1 - piece_y ! \ Restore to place before collision
             lock_piece
             check_finished dup if
+                dup total_lines +!
+
                 \ Update score based on number of lines cleared
                 cells score_table + 1 - @
                 score @ + score !
-                score @ . \ print it for now (we can't draw text yet)
+
+                update_score_str
 
                 \ Kick off animation. We don't add the new piece here because
                 \ we need to wait for the animation to finish.
@@ -401,6 +435,15 @@ variable game_over
     then
 ;
 
+: draw_score
+    15 set_color
+
+    90 10 s" score" draw_text
+    90 20 score_str 6 draw_text
+    90 30 s" lines" draw_text
+    90 40 lines_str 4 draw_text
+;
+
 : init_game
     0 game_over !
     20 drop_delay !
@@ -416,6 +459,8 @@ variable game_over
     new_piece
 
     0 score !
+    0 total_lines !
+    update_score_str
 ;
 
 : draw_frame
@@ -450,6 +495,8 @@ variable game_over
     0 cls
 
     draw_well
+
+    draw_score
 
     \ Draw the currently falling piece
     shape_color @ set_color
