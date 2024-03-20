@@ -361,9 +361,18 @@ create lines_str 4 allot
     lines_str total_lines @ 4 itoa
 ;
 
+\ Minimum time to display game over screen. User can hit any key
+\ to restart after a game over, but it's possible they inadvertently
+\ do it if they are mashing buttons.
+variable game_over_delay
 variable drop_timer
 variable drop_delay
 variable game_over
+
+: trigger_game_over
+    1 game_over !
+    120 game_over_delay !
+;
 
 \ We check if the movement is legal by first moving to the new
 \ position and then checking if pieces are either out of bounds
@@ -434,7 +443,7 @@ variable game_over
                 \ carry on
                 new_piece
                 piece_collides if
-                    1 game_over !
+                    trigger_game_over
                 then
             then
         then
@@ -493,10 +502,31 @@ variable game_over
 ;
 
 : draw_frame
+    \ Draw
+    1 cls
+
+    draw_well
+    draw_score
+    draw_next
+
+    \ Draw the currently falling piece
+    blink_counter @ 0= if
+        draw_piece
+    then
+
     game_over @ if
-        \ User can press a button to restart
-        check_buttons if
-            init_game
+        1 set_color
+        18 64 58 16 fill_rect
+        15 set_color 
+        20 74 s" Game Over" draw_text
+
+        game_over_delay @ if
+            -1 game_over_delay +!
+        else
+            \ User can press a button to restart
+            check_buttons if
+                init_game
+            then
         then
     else
         blink_counter @ if
@@ -509,7 +539,7 @@ variable game_over
                 \ yes, so remove rows and start game again.
                 new_piece
                 piece_collides if
-                    1 game_over !
+                    trigger_game_over
                 then
                 remove_finished_rows
                 0 blink_counter !
@@ -517,19 +547,6 @@ variable game_over
         else
             move_piece
         then
-    then
-
-
-    \ Draw
-    0 cls
-
-    draw_well
-    draw_score
-    draw_next
-
-    \ Draw the currently falling piece
-    blink_counter @ 0= if
-        draw_piece
     then
 ;
 
