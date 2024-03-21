@@ -29,8 +29,6 @@ create piece_s -1 , 0 , 0 , 0 , 0 , -1 , 1 , -1 ,
 create piece_z 1 , 0 , 0 , 0 , 0 , -1 , -1 , -1 ,
 create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_z ,
 
-create piece_colors 10 , 4 , 7 , 5 , 6 , 3 , 2 ,
-
 \ Track which blocks in the well have pieces in them. This only tracks pieces
 \ that have fallen in the well, not the currently dropping pieces.
 create well_data WELL_WIDTH WELL_HEIGHT * cells allot
@@ -43,11 +41,11 @@ variable total_lines
 \ Information about currently dropping piece.
 variable piece_x
 variable piece_y
-variable cur_shape
-variable shape_color
 variable rotation
+variable cur_shape
+variable cur_pattern
 variable next_shape
-variable next_color
+variable next_pattern
 
 \ Given an X and Y coordinate, rotate it according to current piece
 \ rotation.
@@ -88,11 +86,10 @@ variable next_color
     piece_x @ + BLOCK_SIZE * WELL_X_OFFS +
     swap
 
-    7 7 fill_rect
+    1 1 cur_pattern @ 1 - draw_sprite
 ;
 
 : draw_piece
-    shape_color @ set_color
     cur_shape @
     draw_block 8 +
     draw_block 8 +
@@ -123,7 +120,7 @@ variable next_color
     WELL_WIDTH * + cells \ Convert to array offset
     well_data +
 
-    shape_color @ swap !
+    cur_pattern @ swap !
 ;
 
 \ When a piece cannot fall any more, copy its blocks
@@ -193,13 +190,13 @@ variable collision
 : new_piece
     \ Copy next piece to current.
     next_shape @ cur_shape !
-    next_color @ shape_color !
+    next_pattern @ cur_pattern !
     4 piece_x !
     2 piece_y !
 
     \ Set next piece
     random 7 mod
-    dup cells piece_colors + @ next_color !
+    dup 1 + next_pattern !
 
     cells pieces + @
     next_shape !
@@ -235,11 +232,11 @@ create finished_rows WELL_HEIGHT cells allot
             while
                 y @ WELL_WIDTH * x @ + cells well_data + @  \ read well block
                 dup if
-                    set_color
-
                     x @ BLOCK_SIZE * WELL_X_OFFS +
-                    y @ BLOCK_SIZE * WELL_Y_OFFS +
-                    7 7 fill_rect
+                    swap
+                    y @ BLOCK_SIZE * WELL_Y_OFFS +  
+                    swap
+                    1 swap 1 swap 1 - draw_sprite
                 else
                     drop
                 then
@@ -407,6 +404,8 @@ variable game_over
         piece_collides if
             \ Collision, undo action
             rotation @ 3 + 3 and rotation !
+        else
+            440 10 beep
         then
     then
 
@@ -464,13 +463,12 @@ variable game_over
     dup @ BLOCK_SIZE * 100 +       \ Read X
     over 4 + @  BLOCK_SIZE * 80 + \ Read Y
 
-    7 7 fill_rect
+    1 1 next_pattern @ 1 - draw_sprite
 ;
 
 : draw_next
     90 60 s" Next" draw_text
 
-    next_color @ set_color
     next_shape @
     draw_next_block 8 +
     draw_next_block 8 +
@@ -532,7 +530,12 @@ variable game_over
         blink_counter @ if
             \ Peforming a blink animation sequence to remove rows.
             1 blink_counter +!
-            blink_counter @ 6 / 1 and 0= blink_state !
+            blink_counter @ 6 / 1 and 0=  \ New blink state
+            dup blink_state @ = if        \ changed 0 to 1?
+               220 5 beep 
+            then
+
+            blink_state ! \ save new blink state
 
             \ Check if the animation sequence is finished.
             blink_counter @ 30 > if
@@ -553,5 +556,12 @@ variable game_over
 init_game
 
 ( sprite data ---xx--xxx----x-xxx----xxxx----x--
-0
+11111111111111111111111111111111111111111111111111111111000000000000000000000000000000000000000000000000000000000000000000000000
+1ff999911ff222211ff666611ff555511ff777711ff333311ff44441000000000000000000000000000000000000000000000000000000000000000000000000
+1f9999911f2222211f6666611f5555511f7777711f3333311f444441000000000000000000000000000000000000000000000000000000000000000000000000
+19999991122222211666666115555551177777711333333114444441000000000000000000000000000000000000000000000000000000000000000000000000
+19999991122222211666666115555551177777711333333114444441000000000000000000000000000000000000000000000000000000000000000000000000
+19999991122222211666666115555551177777711333333114444441000000000000000000000000000000000000000000000000000000000000000000000000
+19999991122222211666666115555551177777711333333114444441000000000000000000000000000000000000000000000000000000000000000000000000
+11111111111111111111111111111111111111111111111111111111
 )
