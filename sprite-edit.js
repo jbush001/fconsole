@@ -16,6 +16,9 @@ let spriteCanvas = null;
 let spriteContext = null;
 // spriteBitmap and spriteData are inherited from main.js
 
+/**
+ * Base class for any UI component.
+ */
 class View {
   constructor(width, height) {
     this.children = [];
@@ -116,8 +119,6 @@ class SpriteEditorModel {
 }
 
 const MAP_SIZE = 400;
-const MAP_X_OFFSET = 1;
-const MAP_Y_OFFSET = 1;
 
 /**
  * This view has two purposes: show all of the sprites in the map,
@@ -136,35 +137,28 @@ class SpriteMapView extends View {
 
     // This represents transparent areas.
     context.fillStyle = checkerPattern;
-    context.fillRect(MAP_X_OFFSET, MAP_Y_OFFSET, MAP_SIZE, MAP_SIZE);
+    context.fillRect(1, 1, MAP_SIZE, MAP_SIZE);
 
-    context.drawImage(spriteBitmap, MAP_X_OFFSET, MAP_Y_OFFSET,
+    context.drawImage(spriteBitmap, 1, 1,
         MAP_SIZE, MAP_SIZE);
     context.strokeStyle = 'black';
-    context.strokeRect(MAP_X_OFFSET - 1, MAP_Y_OFFSET - 1,
-        MAP_SIZE + 2, MAP_SIZE + 2);
+    context.strokeRect(0, 0, MAP_SIZE + 2, MAP_SIZE + 2);
 
     const spriteWidth = MAP_SIZE / SPRITE_SHEET_W_BLKS;
     const spriteHeight = MAP_SIZE / SPRITE_SHEET_H_BLKS;
 
     context.beginPath();
     context.strokeStyle = 'red';
-    const selectLeft = this.model.selectedCol * spriteWidth + MAP_X_OFFSET;
-    const selectTop = this.model.selectedRow * spriteHeight + MAP_Y_OFFSET;
+    const selectLeft = this.model.selectedCol * spriteWidth + 1;
+    const selectTop = this.model.selectedRow * spriteHeight + 1;
     context.strokeRect(selectLeft, selectTop,
         spriteWidth * this.model.spriteSize,
         spriteHeight * this.model.spriteSize);
-
-    context.font = '16px monospace';
-    context.fillStyle = 'black';
-    context.fillText('sprite ' + (this.model.selectedRow * SPRITE_SHEET_W_BLKS +
-        this.model.selectedCol), MAP_X_OFFSET, MAP_SIZE + MAP_Y_OFFSET + 16);
   }
 
   mouseDown(x, y) {
-    if (x >= MAP_X_OFFSET && y >= MAP_Y_OFFSET &&
-          x <= MAP_X_OFFSET + MAP_SIZE && y <= MAP_Y_OFFSET + MAP_SIZE) {
-      this.model.selectedCol = Math.floor((x - MAP_X_OFFSET) / (MAP_SIZE /
+    if (x <= MAP_SIZE + 2 && y <= MAP_SIZE + 2) {
+      this.model.selectedCol = Math.floor(x / (MAP_SIZE /
         SPRITE_SHEET_W_BLKS));
       if (this.model.selectedCol + this.model.spriteSize >
         SPRITE_SHEET_W_BLKS) {
@@ -176,7 +170,7 @@ class SpriteMapView extends View {
         this.model.selectedRow = SPRITE_SHEET_H_BLKS - this.model.spriteSize;
       }
 
-      this.model.selectedRow = Math.floor((y - MAP_Y_OFFSET) / (MAP_SIZE /
+      this.model.selectedRow = Math.floor(y / (MAP_SIZE /
         SPRITE_SHEET_H_BLKS));
       invalidate();
     }
@@ -303,21 +297,55 @@ class SpriteSizeControl extends View {
   constructor(width, height, model) {
     super(width, height);
     this.model = model;
+    this.dragging = false;
   }
 
   draw(context) {
-    context.font = '12px monospace';
+    context.strokeStyle = 'black';
+    context.strokeRect(4, 10, this.width - 8, 6);
+    context.moveTo(this.width / 2, 10);
+    context.lineTo(this.width / 2, 16);
+    context.stroke();
+    let index = 0;
+    if (this.model.spriteSize == 2) {
+      index = 1;
+    } else if (this.model.spriteSize == 4) {
+      index = 2;
+    }
+    const thumbX = 4 + ((this.width - 8) / 2 * index);
+    const thumbWidth = 10;
     context.fillStyle = 'black';
-    context.fillText('size', 4, 10);
-    context.fillText('1' + (this.model.spriteSize == 1 ? ' *' : ''), 4, 20);
-    context.fillText('2' + (this.model.spriteSize == 2 ? ' *' : ''), 4, 40);
-    context.fillText('4' + (this.model.spriteSize == 4 ? ' *' : ''), 4, 60);
+    context.strokeStyle = 'black';
+    context.beginPath();
+    context.moveTo(thumbX, 10);
+    context.lineTo(thumbX + thumbWidth / 2, 5);
+    context.lineTo(thumbX + thumbWidth / 2, 0);
+    context.lineTo(thumbX - thumbWidth / 2, 0);
+    context.lineTo(thumbX - thumbWidth / 2, 5);
+    context.lineTo(thumbX, 10);
+    context.fill();
+    context.fillText('Size', this.width / 2 - 8, 26);
   }
 
   mouseDown(x, y) {
-    if (y > 50) {
+    this._updateThumb(x);
+    this.dragging = true;
+  }
+
+  mouseUp(x, y) {
+    this.dragging = false;
+  }
+
+  mouseMoved(x, y) {
+    if (this.dragging) {
+      this._updateThumb(x);
+    }
+  }
+
+  _updateThumb(x) {
+    if (x > this.width * 2 / 3) {
       this.model.spriteSize = 4;
-    } else if (y > 30) {
+    } else if (x > this.width / 3) {
       this.model.spriteSize = 2;
     } else {
       this.model.spriteSize = 1;
@@ -333,6 +361,20 @@ class SpriteSizeControl extends View {
     }
 
     invalidate();
+  }
+}
+
+class SpriteIndexView extends View {
+  constructor(width, height, model) {
+    super(width, height);
+    this.model = model;
+  }
+
+  draw(context) {
+    context.font = '12px monospace';
+    context.fillStyle = 'black';
+    context.fillText('Sprite #' + (this.model.selectedRow *
+      SPRITE_SHEET_W_BLKS + this.model.selectedCol), 0, 12);
   }
 }
 
@@ -352,10 +394,12 @@ function initSpriteEditor() {
   spriteCanvas.addEventListener('mousemove', handleMouseMoved);
   root = new View(spriteCanvas.width, spriteCanvas.height);
   const model = new SpriteEditorModel();
-  root.addChild(new SpriteMapView(512, 512, model), 395, 32);
-  root.addChild(new EditView(350, 350, model), 5, 35);
-  root.addChild(new ColorPicker(350, 32, model), 5, 400);
-  root.addChild(new SpriteSizeControl(32, 64, model), 360, 32);
+
+  root.addChild(new EditView(320, 320, model), 30, 32);
+  root.addChild(new SpriteMapView(512, 512, model), 380, 24);
+  root.addChild(new ColorPicker(320, 32, model), 30, 360);
+  root.addChild(new SpriteSizeControl(64, 64, model), 30, 400);
+  root.addChild(new SpriteIndexView(32, 16, model), 148, 12);
   repaint();
 }
 
@@ -364,7 +408,7 @@ function initSpriteEditor() {
  * areas of transparency.
  * @param {CanvasRenderingContext2D} context The context that this will be
  *     drawn onto.
- * @returns {CanvasPattern} A pattern
+ * @return {CanvasPattern} A pattern
  */
 function makeCheckerPattern(context) {
   const checkerSize = 15;
