@@ -34,23 +34,27 @@ const BUTTON_MAP = {
   'x': BUTTON_B,
 };
 
+function rgb(r, g, b) {
+  return ((255 << 24) | (r << 16) | (g << 8) | b) >>> 0;
+}
+
 const PALETTE = [
-  0x00000000, // transparent
-  0xff000000, // black
-  0xffff0000, // red
-  0xff00ff00, // light green
-  0xff0000ff, // blue
-  0xffff00ff, // magenta
-  0xffffff00, // yellow
-  0xff00ffff, // cyan
-  0xff808080, // gray
-  0xff00a5ff, // lightblue
-  0xffffa500, // orange
-  0xff800080, // purple
-  0xff008000, // dark green
-  0xffa0522d, // brown
-  0xffd97162, // salmon
-  0xffffffff, // white
+  0, // transparent
+  rgb(0, 0, 0), // black
+  rgb(255, 0, 0), // red
+  rgb(0, 255, 0), // light green
+  rgb(0, 0, 255), // blue
+  rgb(255, 0, 255), // magenta
+  rgb(255, 255, 0), // yellow
+  rgb(0, 255, 255), // cyan
+  rgb(128, 128, 128), // gray
+  rgb(0, 165, 255),
+  rgb(255, 165, 0), // orange
+  rgb(128, 0, 128), // purple
+  rgb(0, 128, 0), // dark green
+  rgb(160, 82, 45), // brown
+  rgb(217, 113, 98), // salmon
+  rgb(255, 255, 255), // white
 ];
 
 const INVERSE_PALETTE = new Map();
@@ -148,7 +152,7 @@ function saveToServer() {
   }
 
   const content = document.getElementById('source').value +
-    SPRITE_DELIMITER + saveSprites() + '\n)\n';
+    SPRITE_DELIMITER + encodeSprites() + '\n)\n';
 
   fetch(`/save/${saveFileName}`, {
     method: 'POST',
@@ -188,7 +192,6 @@ function loadFromServer(filename) {
   }).then((data) => {
     // Split this into
     const split = data.indexOf(SPRITE_DELIMITER);
-    console.log('split@', split);
     if (split == -1) {
       // This file does not have any sprite data in it.
       document.getElementById('source').value = data;
@@ -198,7 +201,7 @@ function loadFromServer(filename) {
       const code = data.substring(0, split);
       const sprites = data.substring(split + SPRITE_DELIMITER.length);
       document.getElementById('source').value = code;
-      loadSprites(sprites);
+      decodeSprites(sprites);
     }
 
     doReset();
@@ -216,9 +219,9 @@ function loadFromServer(filename) {
  * populate the spriteBitmap and spriteData. Each pixel is stored as a single
  * digit, a hex value 0-15. These are references into the PALETTE table.
  * @param {string} text Hex encoded version of sprite data
- * @see saveSprites
+ * @see encodeSprites
  */
-function loadSprites(text) {
+function decodeSprites(text) {
   clearSprites();
 
   let outIndex = 0;
@@ -249,24 +252,30 @@ function packRGBA(rgba) {
 }
 
 /**
- * Takes the current sprite sheet and converts it to a string suitable for
- * storing in a text file. The format is described in loadSprites.
- * @return {string} Hex representation of image data
- * @see loadSprites
+ * Index of last non-zero value in array.
+ * @param {number} arr
+ * @return {number}
  */
-function saveSprites() {
+function findTrailingZeroes(arr) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] != 0) {
+      return i;
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * Takes the current sprite sheet and converts it to a string suitable for
+ * storing in a text file. The format is described in decodeSprites.
+ * @return {string} Hex representation of image data
+ * @see decodeSprites
+ */
+function encodeSprites() {
   // We ignore any zeroes at the end to save space. Walk backward
   // to determine how many there are.
-  const zero = PALETTE[0];
-  let dataEnd = spriteData.data.length;
-  while (dataEnd > 0) {
-    const rgba = packRGBA(spriteData.data.slice(dataEnd, dataEnd + 4));
-    if (rgba != zero) {
-      break;
-    }
-
-    dataEnd -= 4;
-  }
+  const dataEnd = findTrailingZeroes(spriteData.data);
 
   result = '';
   for (let i = 0; i <= dataEnd; i += 4) {
