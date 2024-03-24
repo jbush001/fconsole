@@ -67,7 +67,7 @@ function writeManifest() {
             console.error('Error writing manifest file:', err);
             return;
           }
-          console.log('Manifest file created successfully:', manifestFilePath);
+          console.log('Manifest file written to ', manifestFilePath);
         });
   });
 }

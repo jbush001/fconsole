@@ -103,7 +103,7 @@ function startup() {
 
   openTab('outputtab', document.getElementsByClassName('tablink')[0]);
 
-  doNew();
+  newProgram();
   initSpriteEditor();
 
   const fileSelect = document.getElementById('fileSelect');
@@ -204,7 +204,7 @@ function loadFromServer(filename) {
       decodeSprites(sprites);
     }
 
-    doReset();
+    resetInterpreter();
 
     // Important to move focus away from this, otherwise user
     // input for the game ends up loading another file.
@@ -307,7 +307,7 @@ function clearSprites() {
 /**
  * Start a new project, clearing out source code, sprites, etc.
  */
-function doNew() {
+function newProgram() {
   stopRun();
 
   saveFileName = '';
@@ -440,14 +440,14 @@ ${BUTTON_B} constant BUTTON_B
 /**
  * Called to set up the interpreter and start running code.
  */
-function doReset() {
+function resetInterpreter() {
   try {
     const ctx = new ForthContext();
-    ctx.bindNative('cls', 1, clearScreen);
-    ctx.bindNative('set_color', 1, setColor);
-    ctx.bindNative('draw_line', 4, drawLine);
-    ctx.bindNative('draw_sprite', 5, drawSprite);
-    ctx.bindNative('draw_text', 4, (x, y, ptr, length) => {
+    ctx.createBuiltinWord('cls', 1, clearScreen);
+    ctx.createBuiltinWord('set_color', 1, setColor);
+    ctx.createBuiltinWord('draw_line', 4, drawLine);
+    ctx.createBuiltinWord('draw_sprite', 5, drawSprite);
+    ctx.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
       let str = '';
       for (let i = 0; i < length; i++) {
         str += String.fromCharCode(ctx.readByte(ptr + i));
@@ -455,12 +455,12 @@ function doReset() {
 
       drawText(x, y, str);
     });
-    ctx.bindNative('fill_rect', 4, fillRect);
-    ctx.bindNative('.', 1, (val) => {
+    ctx.createBuiltinWord('fill_rect', 4, fillRect);
+    ctx.createBuiltinWord('.', 1, (val) => {
       writeConsole(val + '\n');
     });
-    ctx.bindNative('buttons', 0, getButtons);
-    ctx.bindNative('beep', 2, playBeep);
+    ctx.createBuiltinWord('buttons', 0, getButtons);
+    ctx.createBuiltinWord('beep', 2, playBeep);
     ctx.interpretSource(GAME_BUILTINS);
 
     ctx.interpretSource(document.getElementById('source').value);

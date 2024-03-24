@@ -300,7 +300,6 @@ class ForthContext {
       '>r': new Word(this._pushReturn),
       'r>': new Word(this._popReturn),
       'dsp@': new Word(this._dsp),
-      'stack_dump': new Word(this._stackDump),
       '_get_time': new Word(this._getTime),
       'rot': new Word(this._rot),
       '-rot': new Word(this._reverseRot),
@@ -326,7 +325,7 @@ class ForthContext {
    *   word is executed.
    * @throw {Error} If there is a stack underflow reading the arguments.
    */
-  bindNative(name, argCount, callback) {
+  createBuiltinWord(name, argCount, callback) {
     const self = this;
     this.dictionary[name] = new Word(() => {
       if (((MEMORY_SIZE - self.stackPointer - 4) >> 2) < argCount) {
@@ -736,7 +735,8 @@ class ForthContext {
     // Discard this.
     this._readChar();
 
-    // Create a jump over this string.
+    // Create a jump over the contents of the string, which is emitted
+    // in-line.
     this.memory[startAddr >> 2] = this._branch;
     let curAddr = this.memory[HERE_IDX] + 8;
     while (true) {
@@ -776,11 +776,21 @@ class ForthContext {
     }
   }
 
+  /**
+   * Read a byte from memory and push on operand stack. This byte
+   * is treated as unsigned and is not sign extended.
+   */
   _fetchChar() {
     const addr = this._pop();
     this._push(this.readByte(addr));
   }
 
+  /**
+   * Convenience function to read a byte from memory.
+   * @param {number} addr
+   * @return {number} Contents of location. This is treated as
+   *    unsigne and not sign extended.
+   */
   readByte(addr) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
       throw new Error(`Memory fetch out of range: ${addr}\n` +
@@ -791,6 +801,10 @@ class ForthContext {
     return (this.memory[addr >> 2] >> shift) & 0xff;
   }
 
+  /**
+   * Write a byte to memory, popping address and value from the
+   * operand stack. The upper bits of the byte will be truncated.
+   */
   _storeChar() {
     const addr = this._pop();
     if (addr < 0 || addr >= MEMORY_SIZE) {
@@ -827,10 +841,6 @@ class ForthContext {
    */
   _dsp() {
     this._push(this.stackPointer);
-  }
-
-  _stackDump() {
-    console.log(this._debugStackCrawl());
   }
 
   /**
@@ -927,10 +937,9 @@ class ForthContext {
   }
 
   /**
-   * Find a word in the dictionary.
+   * Find the address of a word in the dictionary.
    * @param {string} name Name of the word to find.
-   * @return {number} Address of word in dictionary, or undefined
-   *   if it can't be found.
+   * @return {number} Address or undefined if it doesn't exist.
    */
   lookupWord(name) {
     if (!(name in this.dictionary)) {

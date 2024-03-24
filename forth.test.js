@@ -17,7 +17,7 @@ const forth = require('./forth');
 function runCode(source) {
   const ctx = new forth.ForthContext();
   let strval = '';
-  ctx.bindNative('.', 1, (val) => {
+  ctx.createBuiltinWord('.', 1, (val) => {
     strval += val.toString() + '\n';
   });
 
@@ -386,7 +386,7 @@ test('out of memory 2', () => {
 
 test('invoke native underflow', () => {
   const ctx = new forth.ForthContext();
-  ctx.bindNative('foo', 1, (val) => {});
+  ctx.createBuiltinWord('foo', 1, (val) => {});
 
   const t = () => {
     ctx.interpretSource('foo');
@@ -397,11 +397,11 @@ test('invoke native underflow', () => {
 
 test('invoke native return', () => {
   const ctx = new forth.ForthContext();
-  ctx.bindNative('foo', 1, (val) => {
+  ctx.createBuiltinWord('foo', 1, (val) => {
     return [val + 1, val + 2];
   });
   let strval = '';
-  ctx.bindNative('.', 1, (val) => {
+  ctx.createBuiltinWord('.', 1, (val) => {
     strval += val.toString() + '\n';
   });
 
@@ -751,6 +751,17 @@ test('load byte', () => {
     dup c@ .
   `)).toBe('18\n52\n86\n120');
 });
+
+test('load byte sign extension', () => {
+  expect(runCode(`
+    hex
+    create foo ffffffff ,
+    decimal
+
+    foo c@ .
+  `)).toBe('255');
+});
+
 
 test('store byte', () => {
   expect(runCode(`
