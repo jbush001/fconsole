@@ -72,6 +72,8 @@ const LIB = `
   here @ swap !
 ;
 
+: 0= 0 = ;
+
 : > swap < ;
 : >= < 0= ;
 : <= swap < 0= ;
@@ -293,7 +295,6 @@ class ForthContext {
       '\'': new Word(this._tick),
       '0branch': new Word(this._branchIfZero),
       'branch': new Word(this._branch),
-      '0=': new Word(this._zeroEquals),
       'key': new Word(this._key),
       'exit': new Word(this._exit),
       '>r': new Word(this._pushReturn),
@@ -687,10 +688,6 @@ class ForthContext {
 
   _branch() {
     this.pc = this.memory[this.pc >> 2];
-  }
-
-  _zeroEquals() {
-    this._push(!this._pop());
   }
 
   /**

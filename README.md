@@ -27,6 +27,6 @@ To run tests:
 
 To run in browser:
 
-    npm run serve
+    npm start
 
 Open a web browser to <http://localhost:3000/index.html>
