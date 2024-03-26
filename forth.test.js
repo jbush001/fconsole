@@ -172,6 +172,19 @@ test('nested loop', () => {
   expect(runCode(src)).toBe('3\n5\n13\n15\n23\n25');
 });
 
+test('do loop', () => {
+  src = `
+  : main
+    10 1 do
+      i .
+    loop
+  ;
+  main
+  `;
+
+  expect(runCode(src)).toBe('1\n2\n3\n4\n5\n6\n7\n8\n9');
+});
+
 
 test('underflow', () => {
   const t = () => {

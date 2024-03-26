@@ -52,6 +52,34 @@ const LIB = `
   here @ swap !
 ;
 
+( limit index -- )
+: do immediate
+  ' >r , ' >r ,
+  here @ \\ Branch point
+;
+
+: loop immediate
+  ' r> , ' r> ,        ( limit index )
+  ' lit , 1 , ' + ,    \\ Increment index
+  ' dup , ' >r ,       \\ put back on return stack
+  ' over , ' >r ,
+  ' = ,                 \\ Is index greater than limit?
+  ' 0branch ,           \\ No, continue
+  , \\ branch address is top of loop
+  ' r> , ' drop ,
+  ' r> , ' drop ,
+;
+
+: i immediate
+  ' r> , ' r> ,  ( limit index )
+  ' dup , ' >r ,
+  ' over , ' >r ,
+  ' swap ,
+  ' drop ,
+;
+
+\\ XXX need to implement j
+
 : if immediate
   ' 0branch ,
   here @            \\ save on stack

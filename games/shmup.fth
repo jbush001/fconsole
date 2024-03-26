@@ -59,46 +59,33 @@ create missile_y MAX_MISSILES cells allot
 : draw_missiles
     2 set_color
 
-    0
-    begin
-       dup MAX_MISSILES <
-    while
-       dup cells missile_active + @
+    MAX_MISSILES 0 do
+       i cells missile_active + @
        if
             \ This missile is active, draw
-            dup cells missile_x + @
-            over cells missile_y + @
+            i cells missile_x + @
+            i cells missile_y + @
             over
             over 4 -
             draw_line
        then
-       1 +
-    repeat
-
-    drop
+    loop
 ;
 
 : update_missiles
-    0
-    begin
-       dup MAX_MISSILES <
-    while
-       dup cells missile_active + @       ( index active )
-       if
-            dup cells missile_y + @   ( index y )
-            3 -                       ( index new_y )
+    MAX_MISSILES 0 do
+       i cells missile_active + @ if
+            i cells missile_y + @
+            3 -                     \ new_y_pos
             dup 0 < if
                \ Off top of screen
-               drop dup cells missile_active + 0 swap ! \ Make not active
+               drop i cells missile_active + 0 swap ! \ Make not active
             else
-		\ Still moving
-                over cells missile_y + !  \ Save position
+   	            \ Still moving
+                i cells missile_y + !  \ Save position
             then
        then
-       1 +
-    repeat
-
-    drop
+    loop
 ;
 
 
