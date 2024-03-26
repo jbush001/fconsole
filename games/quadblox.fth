@@ -217,35 +217,26 @@ create finished_rows WELL_HEIGHT cells allot
     3 124 84 124 draw_line
 
     \ Draw locked pieces inside well
-    0 y !
-    begin
-        y @ WELL_HEIGHT <
-    while
+    WELL_HEIGHT 0 do
         \ If this row is finished, it will blink before being removed.
         \ Check if the row is blinking before drawing
-        y @ cells finished_rows + @   ( Is this row set as finished )
+        i cells finished_rows + @   ( Is this row set as finished )
         blink_state @ and             ( and we are the hide phase )
         0= if
-            0 x !
-            begin
-                x @ WELL_WIDTH <
-            while
-                y @ WELL_WIDTH * x @ + cells well_data + @  \ read well block
+            WELL_WIDTH 0 do
+                j WELL_WIDTH * i + cells well_data + @  \ read well block
                 dup if
-                    x @ BLOCK_SIZE * WELL_X_OFFS +
+                    i BLOCK_SIZE * WELL_X_OFFS +
                     swap
-                    y @ BLOCK_SIZE * WELL_Y_OFFS +  
+                    j BLOCK_SIZE * WELL_Y_OFFS +
                     swap
                     1 swap 1 swap 1 - draw_sprite
                 else
                     drop
                 then
-
-                1 x +!
-            repeat
+            loop
         then
-        1 y +!
-    repeat
+    loop
 ;
 
 variable finished_row_count
@@ -257,30 +248,20 @@ variable row_is_finished
     finished_rows WELL_HEIGHT zero_memory
 
     0 finished_row_count !
-    0 y !
-    begin
-        y @ WELL_HEIGHT <
-    while
+    WELL_HEIGHT 0 do
         1 row_is_finished !
-        0 x !
-        begin
-            x @ WELL_WIDTH <
-        while
-            y @ WELL_WIDTH * x @ + cells well_data + @
+        WELL_WIDTH 0 do
+            j WELL_WIDTH * i + cells well_data + @
             0= if
                 0 row_is_finished !
             then
-
-            1 x +!
-        repeat
+        loop
 
         row_is_finished @ if
-            1 y @ cells finished_rows + !
+            1 i cells finished_rows + !
             1 finished_row_count +!
         then
-
-        1 y +!
-    repeat
+    loop
 
     finished_row_count @
 ;
@@ -515,7 +496,7 @@ variable game_over
     game_over @ if
         1 set_color
         18 64 58 16 fill_rect
-        15 set_color 
+        15 set_color
         20 74 s" Game Over" draw_text
 
         game_over_delay @ if
@@ -532,7 +513,7 @@ variable game_over
             1 blink_counter +!
             blink_counter @ 6 / 1 and 0=  \ New blink state
             dup blink_state @ = if        \ changed 0 to 1?
-               220 5 beep 
+               220 5 beep
             then
 
             blink_state ! \ save new blink state

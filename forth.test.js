@@ -186,6 +186,23 @@ test('do loop', () => {
 });
 
 
+test('nested do loop', () => {
+  src = `
+  : main
+    4 1 do
+      100 97 do
+        j .
+        i .
+      loop
+    loop
+  ;
+  main
+  `;
+
+  expect(runCode(src)).toBe(
+      '1\n97\n1\n98\n1\n99\n2\n97\n2\n98\n2\n99\n3\n97\n3\n98\n3\n99');
+});
+
 test('underflow', () => {
   const t = () => {
     runCode('+');

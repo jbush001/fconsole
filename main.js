@@ -409,7 +409,7 @@ let drawFrameTimer = null;
  */
 function drawFrame(ctx) {
   try {
-    ctx.exec(drawFrameAddr);
+    ctx.callWord(drawFrameAddr);
 
     drawFrameTimer = setTimeout(() => {
       drawFrame(ctx);

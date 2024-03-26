@@ -73,12 +73,17 @@ const LIB = `
 : i immediate
   ' r> , ' r> ,  ( limit index )
   ' dup , ' >r ,
-  ' over , ' >r ,
-  ' swap ,
-  ' drop ,
+  ' swap , ' >r ,
 ;
 
-\\ XXX need to implement j
+: j immediate
+' r> , ' r> , ' r> , ' r> , ( limit index limit index* )
+' dup , ' >r ,
+' swap , ' >r ,
+' swap , ' >r ,
+' swap , ' >r ,
+;
+
 
 : if immediate
   ' 0branch ,
@@ -912,7 +917,7 @@ class ForthContext {
           } else if (word.literal) {
             this._push(word.value);
           } else {
-            this.exec(word.value);
+            this._exec(word.value);
           }
         }
       } else {
@@ -936,7 +941,7 @@ class ForthContext {
    * @param {number} startAddress Address in FORTH address space to begin
    * execution.
    */
-  exec(startAddress) {
+  _exec(startAddress) {
     // Used to prevent infinite loops, which hang the browser.
     const MAX_EXEC_CYCLES = 100000;
 
@@ -961,6 +966,19 @@ class ForthContext {
 
     if (this.continueExec) {
       throw new Error('Exceeded maximum cycles\n' + this._debugStackCrawl());
+    }
+  }
+
+  /**
+   * This is a wrapper for exec, but is called outside the outer interpreter
+   * and does some extra checking
+   * @param {number} startAddress
+   */
+  callWord(startAddress) {
+    this.stackPointer = MEMORY_SIZE - 4;
+    this._exec(startAddress);
+    if (this.stackPointer != MEMORY_SIZE - 4) {
+      console.log(`WARNING: stack leaked ${(MEMORY_SIZE - 4 - this.stackPointer) / 4} words`);
     }
   }
 
