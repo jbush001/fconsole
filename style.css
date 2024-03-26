@@ -79,10 +79,20 @@ body, html {
     height: 128px;
 }
 
+.screencontainer {
+    display: grid;
+}
+
 #screen {
+    display: inline-block;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     height: 400px;
+}
+
+#instructions {
+    display: inline-block;
+    vertical-align: top;
 }
 
 #sprite_edit {

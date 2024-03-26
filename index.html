@@ -31,7 +31,15 @@ limitations under the License.
             </div>
 
             <div id="outputtab" class="tabcontent">
-                <canvas id="screen" width="128" height="128"></canvas>
+                <div class=".screencontainer">
+                    <canvas id="screen" width="128" height="128"></canvas>
+                    <div id="instructions">
+                        <b>Controls</b><br>
+                        Arrow Keys: Up/down/right/left<br>
+                        Z: button 0<br>
+                        X: button 1
+                    </div>
+                </div>
                 <br/>
                 <label for="fileSelect">Load File:</label>
                 <select id="fileSelect">
