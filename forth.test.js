@@ -845,3 +845,26 @@ test('lookup word', () => {
   expect(ctx.lookupWord('boo')).toBe(null);
 });
 
+test('call word', () => {
+  const ctx = new forth.ForthContext();
+  let strval = '';
+  ctx.createBuiltinWord('.', 1, (val) => {
+    strval = val.toString();
+  });
+
+  ctx.interpretSource(`
+    : bar
+      8888 .
+      777   \\ xxx leak a word so we hit that code path
+    ;
+
+    : foo
+      9999 .
+    ;
+  `);
+
+  ctx.callWord(ctx.lookupWord('foo'));
+  expect(strval).toBe('9999');
+  ctx.callWord(ctx.lookupWord('bar'));
+  expect(strval).toBe('8888');
+});
