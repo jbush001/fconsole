@@ -1,8 +1,8 @@
 {
   "name": "fconsole",
   "version": "1.0.0",
-  "description": "",
-  "main": "main.js",
+  "description": "A fantasy console based on FORTH.",
+  "main": "server.js",
   "scripts": {
     "test": "jest --coverage",
     "start": "node server.js"
@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/jbush001/fconsole.git"
   },
-  "author": "Jeff Bush <jeffbush001@gmail.com>",
+  "author": "Jeff Bush",
   "license": "Apache",
   "bugs": {
     "url": "https://github.com/jbush001/fconsole/issues"

@@ -868,3 +868,14 @@ test('call word', () => {
   ctx.callWord(ctx.lookupWord('bar'));
   expect(strval).toBe('8888');
 });
+
+test('read byte', () => {
+  const ctx = new forth.ForthContext();
+  ctx.interpretSource('hex create foo 12345678 ,');
+  const fooAddr = ctx.lookupWord('foo');
+  expect(ctx.readByte(fooAddr)).toBe(0x78);
+  expect(ctx.readByte(fooAddr + 1)).toBe(0x56);
+  expect(ctx.readByte(fooAddr + 2)).toBe(0x34);
+  expect(ctx.readByte(fooAddr + 3)).toBe(0x12);
+});
+
