@@ -133,15 +133,11 @@ const LIB = `
 
 ( src dest count -- )
 : copy_memory
-    >r  \\ save count
-    begin
-        r> dup >r 0 >
-    while
-        over @ over !
-        4 + swap 4 + swap
-        r> 1 - >r
-    repeat
-    r> drop \\ Remove saved count
+    0 do
+       over @ over !
+       4 + swap 4 + swap
+    loop
+    drop drop
 ;
 
 ( address count -- )
@@ -153,6 +149,7 @@ const LIB = `
         1 -                 \\ decrement counter
         swap 4 + swap       \\ increment data pointer
     repeat
+    drop drop
 ;
 
 variable __rand_seed

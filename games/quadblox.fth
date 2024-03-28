@@ -20,14 +20,14 @@
 
 \ Each piece consits of four blocks. Each block is stored here
 \ as an X and Y offset from the pivot point.
-create piece_l 0 , -1 , 0 , 0 , 0 , 1 , 1 , 1 ,
-create piece_j 0 , -1 , 0 , 0 , 0 , 1 , -1 , 1 ,
-create piece_i 0 , -1 , 0 , 0 , 0 , 1 , 0 , 2 ,
-create piece_t -1 , 0 , 0 , 0 , 1 , 0 , 0 , -1 ,
-create piece_o 0 , -1 , 1 , -1 , 1 , 0 , 0 , 0 ,
-create piece_s -1 , 0 , 0 , 0 , 0 , -1 , 1 , -1 ,
-create piece_z 1 , 0 , 0 , 0 , 0 , -1 , -1 , -1 ,
-create pieces piece_l , piece_j , piece_i , piece_t , piece_o , piece_s , piece_z ,
+create pieces
+    0 , -1 , 0 , 0 , 0 , 1 , 1 , 1 ,   \ L
+    0 , -1 , 0 , 0 , 0 , 1 , -1 , 1 ,  \ J
+    0 , -1 , 0 , 0 , 0 , 1 , 0 , 2 ,   \ I
+    -1 , 0 , 0 , 0 , 1 , 0 , 0 , -1 ,  \ T
+    0 , -1 , 1 , -1 , 1 , 0 , 0 , 0 ,  \ O
+    -1 , 0 , 0 , 0 , 0 , -1 , 1 , -1 , \ S
+    1 , 0 , 0 , 0 , 0 , -1 , -1 , -1 , \ Z
 
 \ Track which blocks in the well have pieces in them. This only tracks pieces
 \ that have fallen in the well, not the currently dropping pieces.
@@ -198,8 +198,7 @@ variable collision
     random 7 mod
     dup 1 + next_pattern !
 
-    cells pieces + @
-    next_shape !
+    32 * pieces + next_shape !
 ;
 
 variable x
@@ -315,16 +314,13 @@ variable button_mask
 \ ( strptr value count -- )
 : itoa
     rot over + 1 -  ( value count endptr)
-    begin
-        over
-    while
-        rot   ( count endptr value)
-        dup 10 mod '0' + ( count endptr value digit )
-        3 pick c! ( count endptr value )
-        10 /
-        -rot 1 - ( value count endptr )
-        swap 1 - swap
-    repeat
+    swap 0 do ( value endptr )
+        over 10 mod '0' + ( value endptr digit )
+        over c!
+        swap 10 /
+        swap 1 -
+    loop
+    drop drop
 ;
 
 create score_str 8 allot
@@ -404,6 +400,7 @@ variable game_over
         piece_collides if
             \ Hit bottom and can no longer fall.
             piece_y @ 1 - piece_y ! \ Restore to place before collision
+
             lock_piece
             check_finished dup if
                 dup total_lines +!
