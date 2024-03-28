@@ -21,7 +21,19 @@ function runCode(source) {
     strval += val.toString() + '\n';
   });
 
+  const initialStack = ctx.stackPointer;
   ctx.interpretSource(source);
+  if (ctx.stackPointer != initialStack) {
+    let stackStr = '';
+    const stackIndex = ctx.stackPointer >> 2;
+    if (stackIndex >= 0 && stackIndex < ctx.memory.length) {
+      stackStr += ctx.memory.slice(stackIndex,
+          Math.min(stackIndex + 5, ctx.memory.length));
+    }
+
+    throw new Error('stack leak ' + stackStr);
+  }
+
   return strval.trim();
 }
 
@@ -124,6 +136,7 @@ test('while loop', () => {
     dup .
     1 -
   repeat
+  drop
   ;
 
   main`;
@@ -140,6 +153,7 @@ test('until loop', () => {
       1 -
       dup 0=
     until
+    drop
   ;
 
   main
@@ -319,14 +333,14 @@ test('lookup table', () => {
 
 test('array alloc', () => {
   expect(runCode(`
-    create array1 5 cells allot
+    create array1 5 cells allot drop
+
     variable foo
     5 array1 !
     7 array1 4 + !
     9 array1 8 + !
     13 array1 12 + !
     17 array1 16 + !
-
     99 foo !
 
     array1 @ .
@@ -450,7 +464,7 @@ test('branch zero', () => {
   const t = () => {
     runCode(': foo immediate \' branch , 0 , ;  : main foo ; main');
   };
-  expect(t).toThrow(Error);
+  expect(t).toThrow('invalid branch to zero');
 });
 
 test('branch out of range', () => {
@@ -539,14 +553,14 @@ test('return stack underflow 1', () => {
   const t = () => {
     runCode(': main r> r> ; main');
   };
-  expect(t).toThrow(Error);
+  expect(t).toThrow('stack underflow');
 });
 
 test('return stack underflow 2', () => {
   const t = () => {
     runCode(': main r> ; main');
   };
-  expect(t).toThrow(Error);
+  expect(t).toThrow('stack underflow');
 });
 
 test('missing word name', () => {
@@ -594,6 +608,7 @@ test('pick', () => {
     5 pick .
     6 pick .
     7 pick .
+    drop drop drop drop drop drop drop
   `)).toBe('1\n2\n3\n4\n5\n6\n7');
 });
 
@@ -673,8 +688,8 @@ test('stack overflow', () => {
 
 test('copy_memory', () => {
   expect(runCode(`
-    create foo 12 , 17 , 19 , 23 , 25 , 27 , 29
-    create bar 9 allot
+    create foo 12 , 17 , 19 , 23 , 25 , 27 , 29 ,
+    create bar 9 allot drop
 
     foo bar 8 + 5 copy_memory
 
@@ -757,7 +772,7 @@ test('load byte', () => {
     dup 3 + c@ .
     dup 2 + c@ .
     dup 1 + c@ .
-    dup c@ .
+    c@ .
   `)).toBe('18\n52\n86\n120');
 });
 
@@ -781,7 +796,7 @@ test('store byte', () => {
     dup 3 + 12 swap c!
     dup 2 + 34 swap c!
     dup 1 + 56 swap c!
-    dup 78 swap c!
+    78 swap c!
     foo @ .
   `)).toBe((0x12345678).toString(10));
 });
@@ -795,7 +810,7 @@ test('string', () => {
     dup 2 + c@ .
     dup 3 + c@ .
     dup 4 + c@ .
-    dup 5 + c@ .
+    5 + c@ .
 
     : main
       s" efghij"
@@ -805,7 +820,7 @@ test('string', () => {
       dup 2 + c@ .
       dup 3 + c@ .
       dup 4 + c@ .
-      dup 5 + c@ .
+      5 + c@ .
     ;
 
     main
