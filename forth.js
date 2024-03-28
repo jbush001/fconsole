@@ -292,9 +292,9 @@ class ForthContext {
     // Memory is an array of 32-bit words, although pointers are byte oriented.
     this.memory = Array(Math.floor(MEMORY_SIZE / CELL_SIZE)).fill(0);
     this.stackPointer = MEMORY_SIZE - CELL_SIZE;
-    this._storeCell(HERE_PTR, 12); // Account for built-in variables
-    this._storeCell(BASE_PTR, 10);
-    this._storeCell(STATE_PTR, STATE_INTERP);
+    this.here = 12; // Account for built-in variables
+    this.base = 10;
+    this.state = STATE_INTERP;
     this.dictionary = {
       'create': new Word(this._create),
       'lit': new Word(this._lit),
@@ -397,6 +397,31 @@ class ForthContext {
     this.memory[index] |= (value & 0xff) << shift;
   }
 
+  // Getters/setters for built-in words
+  get here() {
+    return this.memory[HERE_PTR / CELL_SIZE];
+  }
+
+  set here(value) {
+    this.memory[HERE_PTR / CELL_SIZE] = value;
+  }
+
+  get state() {
+    return this.memory[STATE_PTR / CELL_SIZE];
+  }
+
+  set state(value) {
+    this.memory[STATE_PTR / CELL_SIZE] = value;
+  }
+
+  get base() {
+    return this.memory[BASE_PTR / CELL_SIZE];
+  }
+
+  set base(value) {
+    this.memory[BASE_PTR / CELL_SIZE] = value;
+  }
+
   /**
    * Used by code outside of the interpreter to add new forth words
    * that call native functions (which effectively allows dependency
@@ -461,7 +486,7 @@ class ForthContext {
           this._debugStackCrawl());
     }
 
-    if (this.stackPointer < this._fetchCell(HERE_PTR)) {
+    if (this.stackPointer < this.here) {
       throw new Error('stack overflow\n' + this._debugStackCrawl());
     }
 
@@ -482,13 +507,13 @@ class ForthContext {
    * @param {number} value
    */
   _emitCode(value) {
-    this.debugInfo.addLineMapping(this._fetchCell(HERE_PTR), this.lineNumber);
-    if (this._fetchCell(HERE_PTR) >= MEMORY_SIZE) {
+    this.debugInfo.addLineMapping(this.here, this.lineNumber);
+    if (this.here >= MEMORY_SIZE) {
       throw new Error('out of memory');
     }
 
-    this._storeCell(this._fetchCell(HERE_PTR), value);
-    this._storeCell(HERE_PTR, this._fetchCell(HERE_PTR) + CELL_SIZE);
+    this._storeCell(this.here, value);
+    this.here = this.here + CELL_SIZE;
   }
 
   /**
@@ -551,7 +576,7 @@ class ForthContext {
    * code to be emitted)
    */
   _create() {
-    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
+    if (this.state == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: create inside colon def`);
     }
 
@@ -560,9 +585,9 @@ class ForthContext {
       throw new Error(`Line ${this.lineNumber}: missing word name`);
     }
 
-    this.currentWord = new Word(this._fetchCell(HERE_PTR), false, true);
+    this.currentWord = new Word(this.here, false, true);
     this.dictionary[name] = this.currentWord;
-    this.debugInfo.startWord(name, this._fetchCell(HERE_PTR));
+    this.debugInfo.startWord(name, this.here);
   }
 
   /**
@@ -584,7 +609,7 @@ class ForthContext {
    *     10 constant foo
    */
   _constant() {
-    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
+    if (this.state == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: constant inside colon def`);
     }
 
@@ -687,13 +712,13 @@ class ForthContext {
    * to compiling.
    */
   _colon() {
-    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
+    if (this.state == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: nested colon def`);
     }
 
     this._create();
     this.currentWord.literal = false;
-    this._storeCell(STATE_PTR, STATE_COMPILE);
+    this.state = STATE_COMPILE;
   }
 
   /**
@@ -702,13 +727,13 @@ class ForthContext {
    * the state from compiling back to interpeting.
    */
   _semicolon() {
-    if (this._fetchCell(STATE_PTR) != STATE_COMPILE) {
+    if (this.state != STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: unmatched ;`);
     }
 
-    this._storeCell(STATE_PTR, STATE_INTERP);
+    this.state = STATE_INTERP;
     this._emitCode(this._exit);
-    this.debugInfo.endWord(this._fetchCell(HERE_PTR));
+    this.debugInfo.endWord(this.here);
   }
 
   /**
@@ -803,7 +828,7 @@ class ForthContext {
    */
   _makeString() {
     const startLine = this.lineNumber;
-    const startAddr = this._fetchCell(HERE_PTR);
+    const startAddr = this.here;
 
     // The tokenizer always pushes back the whitespace char,
     // which is a bit of a hack to ensure the line number is correct.
@@ -813,7 +838,7 @@ class ForthContext {
     // Create a jump over the contents of the string, which is emitted
     // in-line.
     this._storeCell(startAddr, this._branch);
-    let curAddr = this._fetchCell(HERE_PTR) + 8;
+    let curAddr = this.here + 8;
     while (true) {
       if (curAddr >= MEMORY_SIZE) {
         throw new Error('out of memory');
@@ -834,10 +859,10 @@ class ForthContext {
     this._storeCell(startAddr + CELL_SIZE, curAddr); // Patch branch address
 
     // Align to next word boundary
-    this._storeCell(HERE_PTR, curAddr);
+    this.here = curAddr;
 
     // Push start address and length on the stack
-    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
+    if (this.state == STATE_COMPILE) {
       this._emitCode(this._lit);
       this._emitCode(startAddr + 8);
       this._emitCode(this._lit);
@@ -918,7 +943,7 @@ class ForthContext {
         break;
       }
 
-      const isCompiling = this._fetchCell(STATE_PTR) == STATE_COMPILE;
+      const isCompiling = this.state == STATE_COMPILE;
       if (tok in this.dictionary) {
         const word = this.dictionary[tok];
         if (isCompiling && !word.immediate) {
@@ -1018,7 +1043,7 @@ class ForthContext {
   _parseNumber(tok) {
     let tokVal = 0;
     let digitval = 0;
-    const base = this._fetchCell(BASE_PTR);
+    const base = this.base;
     let i = 0;
     let isNeg = false;
     if (tok[0] == '-') {
