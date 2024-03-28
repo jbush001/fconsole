@@ -17,6 +17,14 @@
 
 // This contains words that implement the FORTH interpreter itself.
 // It is loaded automatically when the interpreter is initialized.
+
+const MEMORY_SIZE = 8192;
+
+// Number of bytes in the default machine integer data type (we'd normally
+// call this the machine 'word', but that name has a specific meaning in
+// FORTH, so we use the term 'cell' instead).
+const CELL_SIZE = 4;
+
 const LIB = `
 : begin immediate
   here @
@@ -120,7 +128,7 @@ const LIB = `
   here !       ( start_address )
 ;
 
-: cells 4 * ;
+: cells ${CELL_SIZE} * ;
 
 : variable immediate
   create 0 ,
@@ -128,14 +136,14 @@ const LIB = `
 
 ( offset -- value )
 : pick
-  4 * dsp@ + @
+  ${CELL_SIZE} * dsp@ + @
 ;
 
 ( src dest count -- )
 : copy_memory
     0 do
        over @ over !
-       4 + swap 4 + swap
+       ${CELL_SIZE} + swap ${CELL_SIZE} + swap
     loop
     drop drop
 ;
@@ -147,7 +155,7 @@ const LIB = `
     while
         over 0 swap !       \\ write 0
         1 -                 \\ decrement counter
-        swap 4 + swap       \\ increment data pointer
+        swap ${CELL_SIZE} + swap       \\ increment data pointer
     repeat
     drop drop
 ;
@@ -219,8 +227,6 @@ _get_time __rand_seed !
 
 `;
 
-const MEMORY_SIZE = 8192;
-
 class Word {
   constructor(value, immediate=false, literal=false) {
     this.immediate = immediate;
@@ -233,9 +239,9 @@ const STATE_INTERP = 0;
 const STATE_COMPILE = 1;
 
 // Indices into the memory array for built-in variables.
-const HERE_IDX = 0;
-const BASE_IDX = 1;
-const STATE_IDX = 2;
+const HERE_PTR = 0;
+const BASE_PTR = 4;
+const STATE_PTR = 8;
 
 const ZERO_ASCII = '0'.charCodeAt(0);
 const LOWER_A_ASCII = 'a'.charCodeAt(0);
@@ -284,11 +290,11 @@ class ForthContext {
     this.returnStack = [];
 
     // Memory is an array of 32-bit words, although pointers are byte oriented.
-    this.memory = Array(MEMORY_SIZE >> 2).fill(0);
-    this.stackPointer = MEMORY_SIZE - 4;
-    this.memory[HERE_IDX] = 12; // Account for built-in variables
-    this.memory[BASE_IDX] = 10;
-    this.memory[STATE_IDX] = STATE_INTERP;
+    this.memory = Array(Math.floor(MEMORY_SIZE / CELL_SIZE)).fill(0);
+    this.stackPointer = MEMORY_SIZE - CELL_SIZE;
+    this._storeCell(HERE_PTR, 12); // Account for built-in variables
+    this._storeCell(BASE_PTR, 10);
+    this._storeCell(STATE_PTR, STATE_INTERP);
     this.dictionary = {
       'create': new Word(this._create),
       'lit': new Word(this._lit),
@@ -313,13 +319,13 @@ class ForthContext {
       'swap': new Word(this._swap),
       'over': new Word(this._over),
       'here': new Word(() => {
-        this._push(HERE_IDX * 4);
+        this._push(HERE_PTR);
       }),
       'base': new Word(() => {
-        this._push(BASE_IDX * 4);
+        this._push(BASE_PTR);
       }),
       'state': new Word(() => {
-        this._push(STATE_IDX * 4);
+        this._push(STATE_PTR);
       }),
       ',': new Word(this._comma),
       '\'': new Word(this._tick),
@@ -344,6 +350,54 @@ class ForthContext {
   }
 
   /**
+   * Helper function to read a cell of memory. This will silently
+   * align the pointer if it is not. It will throw an exception if the
+   * address is out of bounds.
+   * @param {number} addr
+   * @return {number} memory value at address
+   */
+  _fetchCell(addr) {
+    if (addr < 0 || addr >= MEMORY_SIZE) {
+      throw new Error(`Memory fetch out of range: ${addr}\n` +
+        this._debugStackCrawl());
+    }
+
+    return this.memory[Math.floor(addr / CELL_SIZE)];
+  }
+
+  _storeCell(addr, value) {
+    if (addr < 0 || addr >= MEMORY_SIZE) {
+      throw new Error(`Memory store out of range: ${addr}\n` +
+        this._debugStackCrawl());
+    }
+
+    this.memory[Math.floor(addr / CELL_SIZE)] = value;
+  }
+
+  /**
+   * Convenience function to read a byte from memory.
+   * @param {number} addr
+   * @return {number} Contents of location. This is treated as
+   *    unsigne and not sign extended.
+   */
+  fetchByte(addr) {
+    const shift = (addr % CELL_SIZE) * 8;
+    return (this._fetchCell(addr) >> shift) & 0xff;
+  }
+
+  _storeByte(addr, value) {
+    if (addr < 0 || addr >= MEMORY_SIZE) {
+      throw new Error(`Memory store out of range: ${addr}\n` +
+        this._debugStackCrawl());
+    }
+
+    const shift = (addr % 4) * 8;
+    const index = Math.floor(addr / CELL_SIZE);
+    this.memory[index] &= ~(0xff << shift);
+    this.memory[index] |= (value & 0xff) << shift;
+  }
+
+  /**
    * Used by code outside of the interpreter to add new forth words
    * that call native functions (which effectively allows dependency
    * injection so we can test the interpreter standalone). The callback
@@ -358,17 +412,19 @@ class ForthContext {
   createBuiltinWord(name, argCount, callback) {
     const self = this;
     this.dictionary[name] = new Word(() => {
-      if (((MEMORY_SIZE - self.stackPointer - 4) >> 2) < argCount) {
+      if ((MEMORY_SIZE - self.stackPointer - CELL_SIZE) <
+          argCount * CELL_SIZE) {
         throw new Error('stack underflow\n' + this._debugStackCrawl());
       }
 
       const args = [];
-      let argIndex = (this.stackPointer >> 2) + argCount - 1;
+      let argPtr = this.stackPointer + (argCount - 1) * CELL_SIZE;
       for (let i = 0; i < argCount; i++) {
-        args.push(self.memory[argIndex--]);
+        args.push(self._fetchCell(argPtr));
+        argPtr -= CELL_SIZE;
       }
 
-      self.stackPointer += argCount * 4;
+      self.stackPointer += argCount * CELL_SIZE;
       const result = callback(...args);
       if (result) {
         for (const elem of result) {
@@ -388,8 +444,8 @@ class ForthContext {
       throw new Error('stack underflow\n' + this._debugStackCrawl());
     }
 
-    const result = this.memory[this.stackPointer >> 2];
-    this.stackPointer += 4;
+    const result = this._fetchCell(this.stackPointer);
+    this.stackPointer += CELL_SIZE;
     return result;
   }
 
@@ -405,19 +461,19 @@ class ForthContext {
           this._debugStackCrawl());
     }
 
-    if (this.stackPointer < this.memory[HERE_IDX]) {
+    if (this.stackPointer < this._fetchCell(HERE_PTR)) {
       throw new Error('stack overflow\n' + this._debugStackCrawl());
     }
 
     // the '| 0' forces this to fit in an int. We always keep the stack
     // as integer types (unless they are function references, used for
     // built-in words).
-    this.stackPointer -= 4;
+    this.stackPointer -= CELL_SIZE;
     if (!(val instanceof Function)) {
       val |= 0;
     }
 
-    this.memory[this.stackPointer >> 2] = val;
+    this._storeCell(this.stackPointer, val);
   }
 
   /**
@@ -426,13 +482,13 @@ class ForthContext {
    * @param {number} value
    */
   _emitCode(value) {
-    this.debugInfo.addLineMapping(this.memory[HERE_IDX], this.lineNumber);
-    if (this.memory[HERE_IDX] >= MEMORY_SIZE) {
+    this.debugInfo.addLineMapping(this._fetchCell(HERE_PTR), this.lineNumber);
+    if (this._fetchCell(HERE_PTR) >= MEMORY_SIZE) {
       throw new Error('out of memory');
     }
 
-    this.memory[this.memory[HERE_IDX] >> 2] = value;
-    this.memory[HERE_IDX] += 4;
+    this._storeCell(this._fetchCell(HERE_PTR), value);
+    this._storeCell(HERE_PTR, this._fetchCell(HERE_PTR) + CELL_SIZE);
   }
 
   /**
@@ -495,7 +551,7 @@ class ForthContext {
    * code to be emitted)
    */
   _create() {
-    if (this.memory[STATE_IDX] == STATE_COMPILE) {
+    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: create inside colon def`);
     }
 
@@ -504,9 +560,9 @@ class ForthContext {
       throw new Error(`Line ${this.lineNumber}: missing word name`);
     }
 
-    this.currentWord = new Word(this.memory[HERE_IDX], false, true);
+    this.currentWord = new Word(this._fetchCell(HERE_PTR), false, true);
     this.dictionary[name] = this.currentWord;
-    this.debugInfo.startWord(name, this.memory[HERE_IDX]);
+    this.debugInfo.startWord(name, this._fetchCell(HERE_PTR));
   }
 
   /**
@@ -517,8 +573,8 @@ class ForthContext {
    * address as the value to be pushed.
    */
   _lit() {
-    this._push(this.memory[this.pc >> 2]);
-    this.pc += 4;
+    this._push(this._fetchCell(this.pc));
+    this.pc += CELL_SIZE;
   }
 
   /**
@@ -528,7 +584,7 @@ class ForthContext {
    *     10 constant foo
    */
   _constant() {
-    if (this.memory[STATE_IDX] == STATE_COMPILE) {
+    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: constant inside colon def`);
     }
 
@@ -613,13 +669,7 @@ class ForthContext {
    * Read a word from memory and push onto the stack
    */
   _fetch() {
-    const addr = this._pop();
-    if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory fetch out of range: ${addr}\n` +
-        this._debugStackCrawl());
-    }
-
-    this._push(this.memory[addr >> 2]);
+    this._push(this._fetchCell(this._pop()));
   }
 
   /**
@@ -627,13 +677,8 @@ class ForthContext {
    */
   _store() {
     const addr = this._pop();
-    if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory store out of range: ${addr}\n` +
-        this._debugStackCrawl());
-    }
-
     const value = this._pop();
-    this.memory[addr >> 2] = value;
+    this._storeCell(addr, value);
   }
 
   /**
@@ -642,13 +687,13 @@ class ForthContext {
    * to compiling.
    */
   _colon() {
-    if (this.memory[STATE_IDX] == STATE_COMPILE) {
+    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: nested colon def`);
     }
 
     this._create();
     this.currentWord.literal = false;
-    this.memory[STATE_IDX] = STATE_COMPILE;
+    this._storeCell(STATE_PTR, STATE_COMPILE);
   }
 
   /**
@@ -657,13 +702,13 @@ class ForthContext {
    * the state from compiling back to interpeting.
    */
   _semicolon() {
-    if (this.memory[STATE_IDX] != STATE_COMPILE) {
+    if (this._fetchCell(STATE_PTR) != STATE_COMPILE) {
       throw new Error(`Line ${this.lineNumber}: unmatched ;`);
     }
 
-    this.memory[STATE_IDX] = STATE_INTERP;
+    this._storeCell(STATE_PTR, STATE_INTERP);
     this._emitCode(this._exit);
-    this.debugInfo.endWord(this.memory[HERE_IDX]);
+    this.debugInfo.endWord(this._fetchCell(HERE_PTR));
   }
 
   /**
@@ -688,7 +733,7 @@ class ForthContext {
   }
 
   _over() {
-    this._push(this.memory[(this.stackPointer + 4) >> 2]);
+    this._push(this._fetchCell(this.stackPointer + CELL_SIZE));
   }
 
   _comma() {
@@ -701,22 +746,22 @@ class ForthContext {
    * which grabs the pointer from the next cell.
    */
   _tick() {
-    this._push(this.memory[this.pc >> 2]);
-    this.pc += 4;
+    this._push(this._fetchCell(this.pc));
+    this.pc += CELL_SIZE;
   }
 
   _branchIfZero() {
     if (this._pop()) {
       // Don't branch
-      this.pc += 4;
+      this.pc += CELL_SIZE;
     } else {
       // Condition is false, branch
-      this.pc = this.memory[this.pc >> 2];
+      this.pc = this._fetchCell(this.pc);
     }
   }
 
   _branch() {
-    this.pc = this.memory[this.pc >> 2];
+    this.pc = this._fetchCell(this.pc);
   }
 
   /**
@@ -758,7 +803,7 @@ class ForthContext {
    */
   _makeString() {
     const startLine = this.lineNumber;
-    const startAddr = this.memory[HERE_IDX];
+    const startAddr = this._fetchCell(HERE_PTR);
 
     // The tokenizer always pushes back the whitespace char,
     // which is a bit of a hack to ensure the line number is correct.
@@ -767,35 +812,32 @@ class ForthContext {
 
     // Create a jump over the contents of the string, which is emitted
     // in-line.
-    this.memory[startAddr >> 2] = this._branch;
-    let curAddr = this.memory[HERE_IDX] + 8;
+    this._storeCell(startAddr, this._branch);
+    let curAddr = this._fetchCell(HERE_PTR) + 8;
     while (true) {
+      if (curAddr >= MEMORY_SIZE) {
+        throw new Error('out of memory');
+      }
+
       const ch = this._readChar();
       if (ch == '"') {
         break;
       } else if (ch) {
-        const shift = (curAddr % 4) * 8;
-        this.memory[curAddr >> 2] &= ~(0xff << shift);
-        this.memory[curAddr >> 2] |= (ch.charCodeAt(0) & 0xff) << shift;
-        curAddr++;
+        this._storeByte(curAddr++, ch.charCodeAt(0));
       } else {
         throw new Error(`Line ${startLine}: unterminated quote`);
-      }
-
-      if (curAddr >= MEMORY_SIZE) {
-        throw new Error('out of memory');
       }
     }
 
     const length = curAddr - (startAddr + 8);
     curAddr = (curAddr + 3) & ~3;
-    this.memory[(startAddr >> 2) + 1] = curAddr; // Patch branch address
+    this._storeCell(startAddr + CELL_SIZE, curAddr); // Patch branch address
 
     // Align to next word boundary
-    this.memory[HERE_IDX] = curAddr;
+    this._storeCell(HERE_PTR, curAddr);
 
     // Push start address and length on the stack
-    if (this.memory[STATE_IDX] == STATE_COMPILE) {
+    if (this._fetchCell(STATE_PTR) == STATE_COMPILE) {
       this._emitCode(this._lit);
       this._emitCode(startAddr + 8);
       this._emitCode(this._lit);
@@ -812,23 +854,7 @@ class ForthContext {
    */
   _fetchChar() {
     const addr = this._pop();
-    this._push(this.readByte(addr));
-  }
-
-  /**
-   * Convenience function to read a byte from memory.
-   * @param {number} addr
-   * @return {number} Contents of location. This is treated as
-   *    unsigne and not sign extended.
-   */
-  readByte(addr) {
-    if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory fetch out of range: ${addr}\n` +
-        this._debugStackCrawl());
-    }
-
-    const shift = (addr % 4) * 8;
-    return (this.memory[addr >> 2] >> shift) & 0xff;
+    this._push(this.fetchByte(addr));
   }
 
   /**
@@ -837,15 +863,8 @@ class ForthContext {
    */
   _storeChar() {
     const addr = this._pop();
-    if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory store out of range: ${addr}\n` +
-        this._debugStackCrawl());
-    }
-
-    const shift = (addr % 4) * 8;
     const value = this._pop();
-    this.memory[addr >> 2] &= ~(0xff << shift);
-    this.memory[addr >> 2] |= (value & 0xff) << shift;
+    this._storeByte(addr, value);
   }
 
   /**
@@ -899,7 +918,7 @@ class ForthContext {
         break;
       }
 
-      const isCompiling = this.memory[STATE_IDX] == STATE_COMPILE;
+      const isCompiling = this._fetchCell(STATE_PTR) == STATE_COMPILE;
       if (tok in this.dictionary) {
         const word = this.dictionary[tok];
         if (isCompiling && !word.immediate) {
@@ -945,12 +964,8 @@ class ForthContext {
     this.continueExec = true;
     this.pc = startAddress;
     for (let i = 0; i < MAX_EXEC_CYCLES && this.continueExec; i++) {
-      if (this.pc >= MEMORY_SIZE || this.pc < 0) {
-        throw new Error('PC out of range\n' + this._debugStackCrawl());
-      }
-
-      const value = this.memory[this.pc >> 2];
-      this.pc += 4;
+      const value = this._fetchCell(this.pc);
+      this.pc += CELL_SIZE;
       if (value == 0) {
         throw new Error(`invalid branch to zero\n` + this._debugStackCrawl());
       } else if (value instanceof Function) {
@@ -972,10 +987,12 @@ class ForthContext {
    * @param {number} startAddress
    */
   callWord(startAddress) {
-    this.stackPointer = MEMORY_SIZE - 4;
+    this.stackPointer = MEMORY_SIZE - CELL_SIZE;
     this._exec(startAddress);
-    if (this.stackPointer != MEMORY_SIZE - 4) {
-      console.log(`WARNING: stack leaked ${(MEMORY_SIZE - 4 - this.stackPointer) / 4} words`);
+    if (this.stackPointer != MEMORY_SIZE - CELL_SIZE) {
+      const leakedCells = (MEMORY_SIZE - CELL_SIZE - this.stackPointer) /
+        CELL_SIZE;
+      console.log(`WARNING: stack leaked ${leakedCells} cells`);
     }
   }
 
@@ -1001,7 +1018,7 @@ class ForthContext {
   _parseNumber(tok) {
     let tokVal = 0;
     let digitval = 0;
-    const base = this.memory[1];
+    const base = this._fetchCell(BASE_PTR);
     let i = 0;
     let isNeg = false;
     if (tok[0] == '-') {
@@ -1048,9 +1065,9 @@ class ForthContext {
       crawlInfo += `${wordDef} @${address} (line ${lineNo})\n`;
     }
 
-    addEntry(this.pc - 4);
+    addEntry(this.pc - CELL_SIZE);
     for (let i = this.returnStack.length - 1; i >= 0; i--) {
-      addEntry(this.returnStack[i] - 4);
+      addEntry(this.returnStack[i] - CELL_SIZE);
     }
 
     return crawlInfo;

@@ -471,7 +471,7 @@ test('branch out of range', () => {
   const t = () => {
     runCode(': foo immediate \' branch , 9999 , ;  : main foo ; main');
   };
-  expect(t).toThrow('PC out of range');
+  expect(t).toThrow('Memory fetch out of range: 9999');
 });
 
 test('single line comment', () => {
@@ -888,9 +888,9 @@ test('read byte', () => {
   const ctx = new forth.ForthContext();
   ctx.interpretSource('hex create foo 12345678 ,');
   const fooAddr = ctx.lookupWord('foo');
-  expect(ctx.readByte(fooAddr)).toBe(0x78);
-  expect(ctx.readByte(fooAddr + 1)).toBe(0x56);
-  expect(ctx.readByte(fooAddr + 2)).toBe(0x34);
-  expect(ctx.readByte(fooAddr + 3)).toBe(0x12);
+  expect(ctx.fetchByte(fooAddr)).toBe(0x78);
+  expect(ctx.fetchByte(fooAddr + 1)).toBe(0x56);
+  expect(ctx.fetchByte(fooAddr + 2)).toBe(0x34);
+  expect(ctx.fetchByte(fooAddr + 3)).toBe(0x12);
 });
 

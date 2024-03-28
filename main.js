@@ -450,7 +450,7 @@ function resetInterpreter() {
     ctx.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
       let str = '';
       for (let i = 0; i < length; i++) {
-        str += String.fromCharCode(ctx.readByte(ptr + i));
+        str += String.fromCharCode(ctx.fetchByte(ptr + i));
       }
 
       drawText(x, y, str);
