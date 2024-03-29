@@ -235,6 +235,7 @@ class EditView extends View {
     pix[pixelIndex + 1] = (colorVal >> 8) & 0xff;
     pix[pixelIndex + 2] = colorVal & 0xff;
     pix[pixelIndex + 3] = (colorVal >> 24) & 0xff;
+    setNeedsSave();
     createImageBitmap(spriteData).then((bm) => {
       spriteBitmap = bm;
       repaint();

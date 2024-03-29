@@ -87,6 +87,7 @@ function startup() {
       evt.preventDefault();
       document.execCommand('insertText', false, '\t');
     }
+    setNeedsSave();
   });
 
   document.addEventListener('keydown', function(event) {
@@ -112,6 +113,17 @@ function startup() {
   });
 
   updateFileList();
+
+  window.addEventListener('beforeunload', function(event) {
+    // Check if textarea has been modified
+    if (needsSave) {
+      // Display confirmation message
+      const confirmationMessage =
+        'Changes you made may not be saved. Are you sure you want to leave?';
+      (event || window.event).returnValue = confirmationMessage;
+      return confirmationMessage;
+    }
+  });
 }
 
 /**
@@ -135,9 +147,13 @@ function updateFileList() {
 // representation (below).
 const SPRITE_DELIMITER = '\n( sprite data ---xx--xxx----x-xxx----xxxx----x--\n';
 
+let needsSave = false;
+
 /**
  * Copy source code and sprites to the web server (serve.js), which
- * will save on the local filesystem.
+ * will save on the local filesystem. Note that we will save even
+ * if needSave is false, just to be safe (it's possible there could
+ * be a bug where needsSave doesn't get set).
  */
 // eslint-disable-next-line no-unused-vars
 function saveToServer() {
@@ -167,10 +183,26 @@ function saveToServer() {
     console.log('Saved');
 
     updateFileList();
+    needsSave = false;
+    updateTitleBar();
   }).catch((error) => {
     alert('Error saving text to server:' + error);
   });
 }
+
+function updateTitleBar() {
+  // The star indicates it needs saving.
+  document.title = (saveFileName ? saveFileName : 'Untitled') +
+    (needsSave ? '*' : '');
+}
+
+function setNeedsSave() {
+  if (!needsSave) {
+    needsSave = true;
+    updateTitleBar();
+  }
+}
+
 
 /**
  * Load source code and sprites from the server. This just
@@ -182,7 +214,7 @@ function loadFromServer(filename) {
 
   console.log('loadFromServer', filename);
   saveFileName = filename;
-  document.title = saveFileName;
+  updateTitleBar();
   fetch('games/' + saveFileName).then((response) => {
     if (!response.ok) {
       throw new Error('Network response was not ok');
@@ -209,6 +241,8 @@ function loadFromServer(filename) {
     // Important to move focus away from this, otherwise user
     // input for the game ends up loading another file.
     document.getElementById('fileSelect').blur();
+    needsSave = false;
+    updateTitleBar();
   }).catch((error) => {
     alert('Error loading file: ' + error);
   });
@@ -310,8 +344,16 @@ function clearSprites() {
 function newProgram() {
   stopRun();
 
+  if (needsSave) {
+    const result = confirm('You will lose unsaved changes. Are you sure?');
+    if (!result) {
+      return;
+    }
+  }
+
+  needsSave = false;
   saveFileName = '';
-  document.title = 'Untitled';
+  updateTitleBar();
   document.getElementById('source').value = ': draw_frame ; ';
 
   clearSprites();
