@@ -25,7 +25,16 @@ const MEMORY_SIZE = 8192;
 // FORTH, so we use the term 'cell' instead).
 const CELL_SIZE = 4;
 
+const HERE_PTR = 0;
+const BASE_PTR = 4;
+const STATE_PTR = 8;
+
 const LIB = `
+
+${HERE_PTR} constant here
+${BASE_PTR} constant base
+${STATE_PTR} constant state
+
 : begin immediate
   here @
 ;
@@ -238,11 +247,6 @@ class Word {
 const STATE_INTERP = 0;
 const STATE_COMPILE = 1;
 
-// Indices into the memory array for built-in variables.
-const HERE_PTR = 0;
-const BASE_PTR = 4;
-const STATE_PTR = 8;
-
 const ZERO_ASCII = '0'.charCodeAt(0);
 const LOWER_A_ASCII = 'a'.charCodeAt(0);
 const A_ASCII = 'A'.charCodeAt(0);
@@ -292,7 +296,7 @@ class ForthContext {
     // Memory is an array of 32-bit words, although pointers are byte oriented.
     this.memory = Array(Math.floor(MEMORY_SIZE / CELL_SIZE)).fill(0);
     this.stackPointer = MEMORY_SIZE - CELL_SIZE;
-    this.here = 12; // Account for built-in variables
+    this.here = CELL_SIZE * 3; // Account for built-in variables
     this.base = 10;
     this.state = STATE_INTERP;
     this.dictionary = {
@@ -318,15 +322,6 @@ class ForthContext {
       'drop': new Word(this._drop),
       'swap': new Word(this._swap),
       'over': new Word(this._over),
-      'here': new Word(() => {
-        this._push(HERE_PTR);
-      }),
-      'base': new Word(() => {
-        this._push(BASE_PTR);
-      }),
-      'state': new Word(() => {
-        this._push(STATE_PTR);
-      }),
       ',': new Word(this._comma),
       '\'': new Word(this._tick),
       '0branch': new Word(this._branchIfZero),
