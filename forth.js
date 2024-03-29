@@ -391,7 +391,7 @@ class ForthContext {
         this._debugStackCrawl());
     }
 
-    const shift = (addr % 4) * 8;
+    const shift = (addr % CELL_SIZE) * 8;
     const index = Math.floor(addr / CELL_SIZE);
     this.memory[index] &= ~(0xff << shift);
     this.memory[index] |= (value & 0xff) << shift;
@@ -838,7 +838,7 @@ class ForthContext {
     // Create a jump over the contents of the string, which is emitted
     // in-line.
     this._storeCell(startAddr, this._branch);
-    let curAddr = this.here + 8;
+    let curAddr = this.here + CELL_SIZE * 2;
     while (true) {
       if (curAddr >= MEMORY_SIZE) {
         throw new Error('out of memory');
@@ -854,8 +854,8 @@ class ForthContext {
       }
     }
 
-    const length = curAddr - (startAddr + 8);
-    curAddr = (curAddr + 3) & ~3;
+    const length = curAddr - (startAddr + CELL_SIZE * 2);
+    curAddr = (curAddr + CELL_SIZE - 1) & ~(CELL_SIZE - 1);
     this._storeCell(startAddr + CELL_SIZE, curAddr); // Patch branch address
 
     // Align to next word boundary
@@ -864,11 +864,11 @@ class ForthContext {
     // Push start address and length on the stack
     if (this.state == STATE_COMPILE) {
       this._emitCode(this._lit);
-      this._emitCode(startAddr + 8);
+      this._emitCode(startAddr + CELL_SIZE * 2);
       this._emitCode(this._lit);
       this._emitCode(length);
     } else {
-      this._push(startAddr + 8);
+      this._push(startAddr + CELL_SIZE * 2);
       this._push(length);
     }
   }

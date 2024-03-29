@@ -321,13 +321,13 @@ test('lookup table', () => {
     create foo 13 , 17 , 19 , 21 , 23 , 27 , 31 , 33 ,
 
     foo @ .
-    foo 4 + @ .
-    foo 8 + @ .
-    foo 12 + @ .
-    foo 16 + @ .
-    foo 20 + @ .
-    foo 24 + @ .
-    foo 28 + @ .
+    foo 1 cells + @ .
+    foo 2 cells + @ .
+    foo 3 cells + @ .
+    foo 4 cells + @ .
+    foo 5 cells + @ .
+    foo 6 cells + @ .
+    foo 7 cells + @ .
   `)).toBe('13\n17\n19\n21\n23\n27\n31\n33');
 });
 
@@ -337,17 +337,17 @@ test('array alloc', () => {
 
     variable foo
     5 array1 !
-    7 array1 4 + !
-    9 array1 8 + !
-    13 array1 12 + !
-    17 array1 16 + !
+    7 array1 1 cells + !
+    9 array1 2 cells + !
+    13 array1 3 cells + !
+    17 array1 4 cells + !
     99 foo !
 
     array1 @ .
-    array1 4 + @ .
-    array1 8 + @ .
-    array1 12 + @ .
-    array1 16 + @ .
+    array1 1 cells + @ .
+    array1 2 cells + @ .
+    array1 3 cells + @ .
+    array1 4 cells + @ .
 
     foo @ .
   `)).toBe('5\n7\n9\n13\n17\n99');
