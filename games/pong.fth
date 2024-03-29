@@ -12,7 +12,6 @@
 \ See the License for the specific language governing permissions and
 \ limitations under the License.
 
-0 constant COURT_TOP
 SCREEN_WIDTH 8 - constant COURT_RIGHT
 SCREEN_HEIGHT 8 - constant COURT_BOTTOM
 20 constant PADDLE_HEIGHT
@@ -63,13 +62,13 @@ decimal
 
 \ Rectangles for each segment, x, y, width, height
 create seg_locs
-0 , 0 , SEG_LENGTH , SEG_THICKNESS , \ 0
-0 , 0 , SEG_THICKNESS , SEG_LENGTH , \ 1
-SEG_LENGTH SEG_THICKNESS - , 0 , SEG_THICKNESS , SEG_LENGTH , \ 2
-0 , SEG_LENGTH SEG_THICKNESS 2 / - , SEG_LENGTH , SEG_THICKNESS , \ 3
-0 , SEG_LENGTH , SEG_THICKNESS , SEG_LENGTH , \ 4
-SEG_LENGTH SEG_THICKNESS - , SEG_LENGTH , SEG_THICKNESS , SEG_LENGTH , \ 5
-0 , SEG_LENGTH 2 * SEG_THICKNESS - , SEG_LENGTH , SEG_THICKNESS , \ 6
+    0 , 0 , SEG_LENGTH , SEG_THICKNESS , \ 0
+    0 , 0 , SEG_THICKNESS , SEG_LENGTH , \ 1
+    SEG_LENGTH SEG_THICKNESS - , 0 , SEG_THICKNESS , SEG_LENGTH , \ 2
+    0 , SEG_LENGTH SEG_THICKNESS 2 / - , SEG_LENGTH , SEG_THICKNESS , \ 3
+    0 , SEG_LENGTH , SEG_THICKNESS , SEG_LENGTH , \ 4
+    SEG_LENGTH SEG_THICKNESS - , SEG_LENGTH , SEG_THICKNESS , SEG_LENGTH , \ 5
+    0 , SEG_LENGTH 2 * SEG_THICKNESS - , SEG_LENGTH , SEG_THICKNESS , \ 6
 
 variable digit_x
 variable digit_y
@@ -115,8 +114,8 @@ variable digit_y
 
 : update
     \ Update ball position
-    ball_x @ ball_dx @ + ball_x !
-    ball_y @ ball_dy @ + ball_y !
+    ball_dx @ ball_x +!
+    ball_dy @ ball_y +!
 
     \ Right side
     ball_x @ COURT_RIGHT = if
@@ -125,8 +124,8 @@ variable digit_y
     then
 
     \ Top or bottom
-    ball_y @ COURT_TOP = ball_y @ COURT_BOTTOM = or if
-        0 ball_dy @ - ball_dy !
+    ball_y @ 0= ball_y @ COURT_BOTTOM = or if
+        ball_dy @ negate ball_dy !
         220 20 beep
     then
 
@@ -136,7 +135,7 @@ variable digit_y
         ball_y @ 8 + paddle_y @ >
         ball_y @ paddle_y @ PADDLE_HEIGHT + < and if
             \ Yes, on the paddle, bounce
-            0 ball_dx @ - ball_dx !
+            ball_dx @ negate ball_dx !
             220 20 beep
             1 score +!
         then
@@ -150,7 +149,7 @@ variable digit_y
 
     \ Move paddle
     buttons BUTTON_U and if
-        paddle_y @ COURT_TOP > if
+        paddle_y @ 0 > if
             paddle_y @ 1 - paddle_y !
         then
     then

@@ -198,7 +198,7 @@ variable collision
     random 7 mod
     dup 1 + next_pattern !
 
-    32 * pieces + next_shape !
+    8 * cells pieces + next_shape !
 ;
 
 variable x
