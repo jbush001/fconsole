@@ -101,7 +101,6 @@ ${STATE_PTR} constant state
 ' swap , ' >r ,
 ;
 
-
 : if immediate
   ' 0branch ,
   here @            \\ save on stack
@@ -120,6 +119,39 @@ ${STATE_PTR} constant state
   \\ Now patch previous branch
   swap
   here @ swap !
+;
+
+: case immediate
+    0 \\ stack delimiter
+;
+
+: of immediate
+    ' over ,
+    ' = ,
+    ' 0branch ,
+    here @      \\ Save address to patch
+    0 ,         \\ dummy branch offset
+    ' drop ,
+;
+
+: endof immediate
+    ' branch ,       \\ branch at end of previous block
+    here @           \\ Save new branch address
+    0 ,              \\ dummy branch offset
+
+    \\ Now patch previous branch
+    swap
+    here @ swap !
+;
+
+: endcase immediate
+    ' drop ,
+    begin
+        dup
+    while
+        here @ swap !     \\ patch branch
+    repeat
+    drop
 ;
 
 : 0= 0 = ;
@@ -186,39 +218,6 @@ _get_time __rand_seed !
 : +!
     swap over @
     + swap !
-;
-
-: case immediate
-    0 \\ stack delimiter
-;
-
-: of immediate
-    ' over ,
-    ' = ,
-    ' 0branch ,
-    here @      \\ Save address to patch
-    0 ,         \\ dummy branch offset
-    ' drop ,
-;
-
-: endof immediate
-    ' branch ,       \\ branch at end of previous block
-    here @           \\ Save new branch address
-    0 ,              \\ dummy branch offset
-
-    \\ Now patch previous branch
-    swap
-    here @ swap !
-;
-
-: endcase immediate
-    ' drop ,
-    begin
-        dup
-    while
-        here @ swap !     \\ patch branch
-    repeat
-    drop
 ;
 
 : dup2 over over ;
@@ -300,43 +299,52 @@ class ForthContext {
     this.base = 10;
     this.state = STATE_INTERP;
     this.dictionary = {
+      // Control flow/dictionary
       'create': new Word(this._create),
-      'lit': new Word(this._lit),
       'constant': new Word(this._constant, true),
-      '+': new Word(this._add),
-      '-': new Word(this._sub),
-      '*': new Word(this._mul),
-      '/': new Word(this._div),
-      'mod': new Word(this._mod),
-      'dup': new Word(this._dup),
-      'or': new Word(this._or),
-      'and': new Word(this._and),
-      'xor': new Word(this._xor),
-      '=': new Word(this._equals),
-      '<': new Word(this._lessThan),
-      '!': new Word(this._store),
-      '@': new Word(this._fetch),
       ':': new Word(this._colon, true),
       ';': new Word(this._semicolon, true),
       'immediate': new Word(this._immediate, true),
-      'drop': new Word(this._drop),
-      'swap': new Word(this._swap),
-      'over': new Word(this._over),
-      ',': new Word(this._comma),
       '\'': new Word(this._tick),
       '0branch': new Word(this._branchIfZero),
       'branch': new Word(this._branch),
       'key': new Word(this._key),
       'exit': new Word(this._exit),
+      's"': new Word(this._makeString, true),
+
+      // Stack operations
+      'lit': new Word(this._lit),
+      'dup': new Word(this._dup),
+      'drop': new Word(this._drop),
+      'swap': new Word(this._swap),
+      'over': new Word(this._over),
+      'rot': new Word(this._rot),
+      '-rot': new Word(this._reverseRot),
       '>r': new Word(this._pushReturn),
       'r>': new Word(this._popReturn),
       'dsp@': new Word(this._dsp),
-      '_get_time': new Word(this._getTime),
-      'rot': new Word(this._rot),
-      '-rot': new Word(this._reverseRot),
-      's"': new Word(this._makeString, true),
+
+      // Arithmetic
+      '+': new Word(this._add),
+      '-': new Word(this._sub),
+      '*': new Word(this._mul),
+      '/': new Word(this._div),
+      'mod': new Word(this._mod),
+      'or': new Word(this._or),
+      'and': new Word(this._and),
+      'xor': new Word(this._xor),
+      '=': new Word(this._equals),
+      '<': new Word(this._lessThan),
+
+      // Memory
+      '!': new Word(this._store),
+      '@': new Word(this._fetch),
       'c@': new Word(this._fetchChar),
       'c!': new Word(this._storeChar),
+      ',': new Word(this._comma),
+
+      // Misc
+      '_get_time': new Word(this._getTime),
     };
 
     this.debugInfo = new DebugInfo();
