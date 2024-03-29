@@ -17,6 +17,7 @@
 4 constant WELL_Y_OFFS
 10 constant WELL_WIDTH
 15 constant WELL_HEIGHT
+20 constant INIT_DROP_DELAY
 
 \ Each piece consits of four blocks. Each block is stored here
 \ as an X and Y offset from the pivot point.
@@ -36,6 +37,7 @@ create well_data WELL_WIDTH WELL_HEIGHT * cells allot
 \ Score increment for number of rows cleared.
 create score_table 40 , 100 , 300 , 1200 ,
 variable score
+variable level
 variable total_lines
 
 \ Information about currently dropping piece.
@@ -325,6 +327,7 @@ variable button_mask
 
 create score_str 8 allot
 create lines_str 4 allot
+create level_str 4 allot
 
 \ We only convert the numeric scores to strings when the change,
 \ as an optimization.
@@ -333,6 +336,7 @@ create lines_str 4 allot
     \ terms of words, not bytes.
     score_str score @ 6 itoa
     lines_str total_lines @ 4 itoa
+    level_str level @ 2 itoa
 ;
 
 \ Minimum time to display game over screen. User can hit any key
@@ -389,7 +393,7 @@ variable game_over
     \ Check down button, which speeds up the descent.
     \ Unlike the others, this can be held
     buttons BUTTON_D and if
-        1 drop_timer +!
+        2 drop_timer +!
     then
 
     \ Handle falling
@@ -408,6 +412,16 @@ variable game_over
                 \ Update score based on number of lines cleared
                 cells score_table + 1 - @
                 score @ + score !
+
+                \ Set current level
+                total_lines @ 10 / 1 + level !
+                level @ INIT_DROP_DELAY > if
+                    \ Max out speed
+                    1 drop_delay !
+                else
+                    \ Set speed based on level
+                    INIT_DROP_DELAY level @ - drop_delay !
+                then
 
                 update_score_str
 
@@ -432,20 +446,22 @@ variable game_over
 
     90 10 s" Score" draw_text
     90 20 score_str 6 draw_text
-    90 30 s" Lines" draw_text
-    90 40 lines_str 4 draw_text
+    90 30 s" Level" draw_text
+    90 40 level_str 4 draw_text
+    90 50 s" Lines" draw_text
+    90 60 lines_str 4 draw_text
 ;
 
 ( piece_addr -- piece_addr )
 : draw_next_block
     dup @ BLOCK_SIZE * 100 +       \ Read X
-    over 4 + @  BLOCK_SIZE * 80 + \ Read Y
+    over 4 + @  BLOCK_SIZE * 95 + \ Read Y
 
     1 1 next_pattern @ 1 - draw_sprite
 ;
 
 : draw_next
-    90 60 s" Next" draw_text
+    90 80 s" Next" draw_text
 
     next_shape @
     draw_next_block 8 +
@@ -457,7 +473,7 @@ variable game_over
 
 : init_game
     0 game_over !
-    20 drop_delay !
+    INIT_DROP_DELAY drop_delay !
     0 drop_timer !
 
     \ Clear the well data structure
@@ -474,6 +490,7 @@ variable game_over
 
     0 score !
     0 total_lines !
+    1 level !
     update_score_str
 ;
 
