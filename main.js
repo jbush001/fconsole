@@ -82,13 +82,16 @@ function startup() {
 
   // Intercept tab key so it inserts into the source instead of switching
   // to a different element in the page.
-  document.getElementById('source').addEventListener('keydown', (evt) => {
+  const source = document.getElementById('source');
+  source.addEventListener('keydown', (evt) => {
     if (evt.key === 'Tab') {
       evt.preventDefault();
       document.execCommand('insertText', false, '\t');
     }
-    setNeedsSave();
   });
+
+  source.addEventListener('input', setNeedsSave);
+  source.addEventListener('paste', setNeedsSave);
 
   document.addEventListener('keydown', function(event) {
     if (event.key in BUTTON_MAP) {
@@ -122,6 +125,14 @@ function startup() {
         'Changes you made may not be saved. Are you sure you want to leave?';
       (event || window.event).returnValue = confirmationMessage;
       return confirmationMessage;
+    }
+  });
+
+  // Save shortcut
+  document.addEventListener('keydown', function(event) {
+    if ((event.altKey || event.ctrlKey) && event.key === 's') {
+      event.preventDefault();
+      saveToServer();
     }
   });
 }
