@@ -94,9 +94,8 @@ create star_y MAX_STARS cells allot drop
 
 : update_stars
     MAX_STARS 0 do
-        i cells dup
-        star_x +     \  ( xptr )
-        over star_y +   ( xptr yptr )
+        i cells star_x +     ( xptr )
+        i cells star_y +     ( xptr yptr )
 
         dup @ 127 >= if
             \ Off bottom of screen, create a new one at top
@@ -109,6 +108,8 @@ create star_y MAX_STARS cells allot drop
             draw_line
 
        	    dup 1 swap +! \ increment y
+            drop
+            drop
         then
     loop
 ;
@@ -149,7 +150,7 @@ variable last_button
 
 : init
     56 ship_pos !
-    missile_active MAX_MISSILES zero_memory
+    missile_active MAX_MISSILES erase
 
     MAX_STARS 0 do
         random 127 mod i cells star_x + !

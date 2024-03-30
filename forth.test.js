@@ -44,6 +44,8 @@ test('maths', () => {
   -5 7 * .
   4 10 - .
   347 7 2 3 * + / 13 +  .
+  -20 abs .
+  31 abs .
 
   \\ Compiled
   : foo
@@ -51,11 +53,13 @@ test('maths', () => {
       8 3 - .
       -3 -4 * .
       123 4 5 6 * + / 7 + .
+      -19 abs .
+      77 abs .
   ;
   foo
   `;
 
-  expect(runCode(src)).toBe('3\n-35\n-6\n39\n2\n5\n12\n10');
+  expect(runCode(src)).toBe('3\n-35\n-6\n39\n20\n31\n2\n5\n12\n10\n19\n77');
 });
 
 test('variables', () => {
@@ -686,37 +690,37 @@ test('stack overflow', () => {
   expect(t).toThrow('stack overflow');
 });
 
-test('copy_memory', () => {
+test('move', () => {
   expect(runCode(`
     create foo 12 , 17 , 19 , 23 , 25 , 27 , 29 ,
     create bar 9 allot drop
 
-    foo bar 8 + 5 copy_memory
+    foo bar 2 cells + 5 move
 
     bar @ .
-    bar 4 + @ .
-    bar 8 + @ .
-    bar 12 + @ .
-    bar 16 + @ .
-    bar 20 + @ .
-    bar 24 + @ .
-    bar 28 + @ .
-    bar 32 + @ .
+    bar 1 cells + @ .
+    bar 2 cells + @ .
+    bar 3 cells + @ .
+    bar 4 cells + @ .
+    bar 5 cells + @ .
+    bar 6 cells + @ .
+    bar 7 cells + @ .
+    bar 8 cells + @ .
   `)).toBe('0\n0\n12\n17\n19\n23\n25\n0\n0');
 });
 
-test('zero_memory', () => {
+test('erase', () => {
   expect(runCode(`
     create foo 12 , 17 , 19 , 23 , 25 , 27 , 29 ,
-    foo 8 + 4 zero_memory
+    foo 2 cells + 4 erase
 
     foo @ .
-    foo 4 + @ .
-    foo 8 + @ .
-    foo 12 + @ .
-    foo 16 + @ .
-    foo 20 + @ .
-    foo 24 + @ .
+    foo 1 cells + @ .
+    foo 2 cells + @ .
+    foo 3 cells + @ .
+    foo 4 cells + @ .
+    foo 5 cells + @ .
+    foo 6 cells + @ .
 
   `)).toBe('12\n17\n0\n0\n0\n0\n29');
 });

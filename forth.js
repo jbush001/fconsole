@@ -181,7 +181,7 @@ ${STATE_PTR} constant state
 ;
 
 ( src dest count -- )
-: copy_memory
+: move
     0 do
        over @ over !
        ${CELL_SIZE} + swap ${CELL_SIZE} + swap
@@ -190,7 +190,7 @@ ${STATE_PTR} constant state
 ;
 
 ( address count -- )
-: zero_memory
+: erase
     begin
         dup 0 >
     while
@@ -335,6 +335,7 @@ class ForthContext {
       'xor': new Word(this._xor),
       '=': new Word(this._equals),
       '<': new Word(this._lessThan),
+      'abs': new Word(this._abs),
 
       // Memory
       '!': new Word(this._store),
@@ -670,6 +671,10 @@ class ForthContext {
     const a = this._pop();
     const b = this._pop();
     this._push(b < a);
+  }
+
+  _abs() {
+    this._push(Math.abs(this._pop()));
   }
 
   _dup() {

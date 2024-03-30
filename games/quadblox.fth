@@ -246,7 +246,7 @@ variable row_is_finished
 \ Check if any rows have all of their columns filled and
 \ need to disappear.
 : check_finished
-    finished_rows WELL_HEIGHT zero_memory
+    finished_rows WELL_HEIGHT erase
 
     0 finished_row_count !
     WELL_HEIGHT 0 do
@@ -286,7 +286,7 @@ variable dest_y
             y @ WELL_WIDTH * cells well_data +  \ src
             dest_y @ WELL_WIDTH * cells well_data +  \ dest
             WELL_WIDTH \ count
-            copy_memory
+            move
             -1 dest_y +!
         then
 
@@ -296,7 +296,7 @@ variable dest_y
     \ Clear rows at top that are now exposed.
     well_data
     dest_y @ WELL_WIDTH * cells
-    zero_memory
+    erase
 ;
 
 variable button_mask
@@ -332,7 +332,7 @@ create level_str 4 allot
 \ We only convert the numeric scores to strings when the change,
 \ as an optimization.
 : update_score_str
-    \ There's a divide by four since copy_memory works in
+    \ There's a divide by four since move works in
     \ terms of words, not bytes.
     score_str score @ 6 itoa
     lines_str total_lines @ 4 itoa
@@ -479,9 +479,9 @@ variable game_over
     \ Clear the well data structure
     well_data
     WELL_WIDTH WELL_HEIGHT *
-    zero_memory
+    erase
 
-    finished_rows WELL_WIDTH zero_memory
+    finished_rows WELL_WIDTH erase
 
     \ Need to call this twice initially to initialize the next
     \ piece indicator properly.
