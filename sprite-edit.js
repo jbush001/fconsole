@@ -202,6 +202,22 @@ class EditView extends View {
     context.drawImage(spriteBitmap, left, top, size,
         size, 0, 0, this.width, this.height);
 
+    // Draw grid lines
+    context.strokeStyle = '#808080';
+    const numLines = this.model.spriteSize * 8;
+    const pixelSize = this.width / numLines;
+    for (let i = 1; i < numLines; i++) {
+      const offs = i * pixelSize;
+      context.beginPath();
+      context.moveTo(offs, 0);
+      context.lineTo(offs, this.height);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(0, offs);
+      context.lineTo(this.width, offs);
+      context.stroke();
+    }
+
     context.strokeStyle = 'black';
     context.strokeRect(0, 0, this.width, this.height);
   }
@@ -412,7 +428,7 @@ function initSpriteEditor() {
  * @return {CanvasPattern} A pattern
  */
 function makeCheckerPattern(context) {
-  const checkerSize = 15;
+  const checkerSize = 10;
 
   const miniCanvas = document.createElement('canvas');
   miniCanvas.width = checkerSize;
@@ -422,7 +438,7 @@ function makeCheckerPattern(context) {
   miniCtx.fillStyle = 'white';
   miniCtx.fillRect(0, 0, checkerSize, checkerSize);
 
-  miniCtx.fillStyle = '#ccc';
+  miniCtx.fillStyle = '#ddd';
   miniCtx.fillRect(checkerSize / 2, 0, checkerSize / 2, checkerSize / 2);
   miniCtx.fillRect(0, checkerSize / 2, checkerSize / 2, checkerSize / 2);
 
