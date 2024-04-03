@@ -310,14 +310,12 @@ variable button_mask
     swap button_mask !          ( update button msak)
 ;
 
-48 constant '0'
-
 \ Convert an integer value into ascii
 \ ( strptr value count -- )
 : itoa
     rot over + 1 -  ( value count endptr)
     swap 0 do ( value endptr )
-        over 10 mod '0' + ( value endptr digit )
+        over 10 mod char 0 + ( value endptr digit )
         over c!
         swap 10 /
         swap 1 -

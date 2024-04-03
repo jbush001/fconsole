@@ -48,7 +48,7 @@ ${STATE_PTR} constant state
 : ( immediate
   begin      \\ consume until end of comment
     key dup
-    41 =     \\ close paren
+    char ) =
     swap -1 =  \\ end of input
     or
   until
@@ -305,12 +305,9 @@ class ForthContext {
       ':': new Word(this._colon, true),
       ';': new Word(this._semicolon, true),
       'immediate': new Word(this._immediate, true),
-      '\'': new Word(this._tick),
       '0branch': new Word(this._branchIfZero),
       'branch': new Word(this._branch),
-      'key': new Word(this._key),
       'exit': new Word(this._exit),
-      's"': new Word(this._makeString, true),
 
       // Stack operations
       'lit': new Word(this._lit),
@@ -346,6 +343,10 @@ class ForthContext {
 
       // Misc
       '_get_time': new Word(this._getTime),
+      's"': new Word(this._makeString, true),
+      '\'': new Word(this._tick),
+      'key': new Word(this._key),
+      'char': new Word(this._char, true),
     };
 
     this.debugInfo = new DebugInfo();
@@ -931,6 +932,16 @@ class ForthContext {
    */
   _getTime() {
     this._push(Date.now());
+  }
+
+  _char() {
+    const nextTok = this._readWord();
+    if (this.state == STATE_COMPILE) {
+      this._emitCode(this._lit);
+      this._emitCode(nextTok.charCodeAt(0));
+    } else {
+      this._push(nextTok.charCodeAt(0));
+    }
   }
 
   /**

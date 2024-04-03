@@ -898,3 +898,15 @@ test('read byte', () => {
   expect(ctx.fetchByte(fooAddr + 3)).toBe(0x12);
 });
 
+test('char', () => {
+  expect(runCode(`
+  char A . char BCD .
+
+  : main
+    char EF . char G .
+  ;
+  main
+`)).toBe('65\n66\n69\n71');
+});
+
+
