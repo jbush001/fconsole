@@ -246,6 +246,16 @@ test('over', () => {
       .toBe('2\n3\n2\n1');
 });
 
+test('nip', () => {
+  expect(runCode('1 2 3 nip . .'))
+      .toBe('3\n1');
+});
+
+test('tuck', () => {
+  expect(runCode('1 2 3 4 tuck . . . . .'))
+      .toBe('4\n3\n4\n2\n1');
+});
+
 test('2dup', () => {
   expect(runCode('27 31 over over . . . .'))
       .toBe('31\n27\n31\n27');

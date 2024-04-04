@@ -1,3 +1,5 @@
+'use strict';
+
 // Copyright 2024 Jeff Bush
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
@@ -453,6 +455,7 @@ function getButtons() {
 }
 
 let drawFrameTimer = null;
+let drawFrameAddr = null;
 
 /**
  * Called to render a frame to the screen. This invokes the FORTH interpreter

@@ -1,3 +1,5 @@
+'use strict';
+
 // Copyright 2024 Jeff Bush
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
@@ -222,6 +224,12 @@ _get_time __rand_seed !
 
 : dup2 over over ;
 
+( a b c -- a c )
+: nip swap drop ;
+
+( a b c d -- a b d c d )
+: tuck swap over ;
+
 \\ Any literal numeric is interpreted in the current base, which means
 \\ the hex and decimal words would not necessarily be idempotent
 \\ if we didn't define these as constants up-front.
@@ -311,10 +319,10 @@ class ForthContext {
 
       // Stack operations
       'lit': new Word(this._lit),
-      'dup': new Word(this._dup),
+'dup': new Word(this._dup),
       'drop': new Word(this._drop),
       'swap': new Word(this._swap),
-      'over': new Word(this._over),
+'over': new Word(this._over),
       'rot': new Word(this._rot),
       '-rot': new Word(this._reverseRot),
       '>r': new Word(this._pushReturn),
