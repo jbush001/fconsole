@@ -149,6 +149,7 @@ class SpriteEditorModel {
     this.selectedCol = 0;
     this.currentColor = 0;
     this.spriteSize = 1;
+    this.brushSize = 1;
     this.undoBuffer = new UndoBuffer();
   }
 }
@@ -342,26 +343,28 @@ class ColorPicker extends View {
  * Allows selecting how many 8x8 sprite chunks the editor window
  * covers.
  */
-class SpriteSizeControl extends View {
-  constructor(width, height, model) {
+class SliderControl extends View {
+  constructor(width, height, label, numDetents) {
     super(width, height);
-    this.model = model;
+    this.label = label;
+    this.numDetents = numDetents;
+    this.currentValue = 0;
     this.dragging = false;
   }
 
   draw(context) {
     context.strokeStyle = 'black';
-    context.strokeRect(4, 10, this.width - 8, 6);
-    context.moveTo(this.width / 2, 10);
-    context.lineTo(this.width / 2, 16);
-    context.stroke();
-    let index = 0;
-    if (this.model.spriteSize == 2) {
-      index = 1;
-    } else if (this.model.spriteSize == 4) {
-      index = 2;
+    context.strokeRect(0, 10, this.width, 6);
+    for (let i = 0; i < this.numDetents; i++) {
+      const x = Math.floor(this.width / (this.numDetents - 1) * i);
+      context.beginPath();
+      context.moveTo(x, 10);
+      context.lineTo(x, 16);
+      context.stroke();
     }
-    const thumbX = 4 + ((this.width - 8) / 2 * index);
+
+    const thumbX = Math.floor(this.width / (this.numDetents - 1) *
+      this.currentValue);
     const thumbWidth = 10;
     context.fillStyle = 'black';
     context.strokeStyle = 'black';
@@ -373,7 +376,10 @@ class SpriteSizeControl extends View {
     context.lineTo(thumbX - thumbWidth / 2, 5);
     context.lineTo(thumbX, 10);
     context.fill();
-    context.fillText('Size', this.width / 2 - 8, 26);
+    context.fillText(this.label, 4, 26);
+  }
+
+  setValue(val) {
   }
 
   mouseDown(x, y) {
@@ -392,13 +398,22 @@ class SpriteSizeControl extends View {
   }
 
   _updateThumb(x) {
-    if (x > this.width * 2 / 3) {
-      this.model.spriteSize = 4;
-    } else if (x > this.width / 3) {
-      this.model.spriteSize = 2;
-    } else {
-      this.model.spriteSize = 1;
-    }
+    this.currentValue = Math.min(Math.floor(x / (this.width / this.numDetents)),
+        this.numDetents - 1);
+    this.setValue(this.currentValue);
+    invalidate();
+  }
+}
+
+class SpriteSizeControl extends SliderControl {
+  constructor(width, height, model) {
+    super(width, height, 'Sprite Size', 3);
+    this.model = model;
+  }
+
+  setValue(value) {
+    const SIZES = [1, 2, 4];
+    this.model.spriteSize = SIZES[value];
 
     // Ensure this is in-bounds still
     if (this.model.selectedCol + this.model.spriteSize > SPRITE_SHEET_W_BLKS) {
@@ -485,9 +500,7 @@ async function copyCanvas(model) {
   const dataURL = canvas.toDataURL('image/png');
   const blob = await (await fetch(dataURL)).blob();
   const clipboardItem = new ClipboardItem({'image/png': blob});
-  navigator.clipboard.write([clipboardItem]).then(() => {
-    console.log('Portion of the ImageBitmap copied to clipboard successfully.');
-  }).catch((error) => {
+  navigator.clipboard.write([clipboardItem]).catch((error) => {
     console.error('Unable to copy to clipboard:', error);
   });
 }
@@ -540,7 +553,7 @@ function initSpriteEditor() {
   root.addChild(new EditView(320, 320, model), 30, 32);
   root.addChild(new SpriteMapView(512, 512, model), 380, 24);
   root.addChild(new ColorPicker(320, 32, model), 30, 360);
-  root.addChild(new SpriteSizeControl(64, 64, model), 30, 400);
+  root.addChild(new SpriteSizeControl(64, 32, model), 30, 400);
   root.addChild(new SpriteIndexView(32, 16, model), 148, 12);
   repaint();
 

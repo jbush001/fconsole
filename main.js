@@ -50,7 +50,7 @@ const PALETTE = [
   rgb(255, 255, 0), // yellow
   rgb(0, 255, 255), // cyan
   rgb(128, 128, 128), // gray
-  rgb(0, 165, 255),
+  rgb(0, 165, 255), // light blue
   rgb(255, 165, 0), // orange
   rgb(128, 0, 128), // purple
   rgb(0, 128, 0), // dark green
