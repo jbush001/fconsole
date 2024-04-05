@@ -37,11 +37,11 @@ const BUTTON_MAP = {
 };
 
 function rgb(r, g, b) {
-  return ((255 << 24) | (r << 16) | (g << 8) | b) >>> 0;
+  return [r, g, b, 0xff];
 }
 
 const PALETTE = [
-  0, // transparent
+  [0, 0, 0, 0], // transparent
   rgb(0, 0, 0), // black
   rgb(255, 0, 0), // red
   rgb(0, 255, 0), // light green
@@ -61,7 +61,7 @@ const PALETTE = [
 
 const INVERSE_PALETTE = new Map();
 for (let i = 0; i < PALETTE.length; i++) {
-  INVERSE_PALETTE.set(PALETTE[i], i);
+  INVERSE_PALETTE.set(PALETTE[i].toString(), i);
 }
 
 // spriteBitmap must be kept in sync with spriteData (since bitmaps
@@ -216,7 +216,6 @@ function setNeedsSave() {
   }
 }
 
-
 /**
  * Load source code and sprites from the server. This just
  * uses a normal GET.
@@ -262,7 +261,7 @@ function loadFromServer(filename) {
 }
 
 /**
- * Given a string containing the sprite data (as stored in the file),m
+ * Given a string containing the sprite data (as stored in the file),
  * populate the spriteBitmap and spriteData. Each pixel is stored as a single
  * digit, a hex value 0-15. These are references into the PALETTE table.
  * @param {string} text Hex encoded version of sprite data
@@ -275,10 +274,10 @@ function decodeSprites(text) {
   for (let i = 0; i < text.length; i++) {
     if (!/[\s)]/.test(text[i])) {
       const rgba = PALETTE[parseInt(text[i], 16)];
-      spriteData.data[outIndex++] = rgba & 0xff;
-      spriteData.data[outIndex++] = (rgba >> 8) & 0xff;
-      spriteData.data[outIndex++] = (rgba >> 16) & 0xff;
-      spriteData.data[outIndex++] = (rgba >> 24) & 0xff;
+      spriteData.data[outIndex++] = rgba[0];
+      spriteData.data[outIndex++] = rgba[1];
+      spriteData.data[outIndex++] = rgba[2];
+      spriteData.data[outIndex++] = rgba[3];
     }
   }
 
@@ -286,16 +285,6 @@ function decodeSprites(text) {
     spriteBitmap = bm;
     invalidate(); // Sprite editor
   });
-}
-
-/**
- * Convert array to packed value
- * @param {number[]} rgba Uint8ClampedArray of four values.
- * @return {number} Single packed integer.
- */
-function packRGBA(rgba) {
-  // the >>> 0 converts back to unsigned.
-  return ((rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0]) >>> 0;
 }
 
 /**
@@ -326,8 +315,8 @@ function encodeSprites() {
 
   let result = '';
   for (let i = 0; i <= dataEnd; i += 4) {
-    const rgba = packRGBA(spriteData.data.slice(i, i + 4));
-    const index = INVERSE_PALETTE.get(rgba);
+    const index = INVERSE_PALETTE.get(spriteData.data.slice(i, i + 4).
+        toString());
     if (index === undefined) {
       // This can happen if a pasted image has colors not in the
       // palette (or if there is some sort of bug). For now, just
@@ -392,12 +381,12 @@ function writeConsole(text) {
 
 /**
  * Convert a color value into a CSS string.
- * @param {number} value A packed RGBA value
+ * @param {number[]} value RGB[A] color.
  * @return {string} CSS string representing the color.
  */
 function makeColorString(value) {
   // eslint-disable-next-line max-len
-  return `rgb(${(value >> 16) & 0xff}, ${(value >> 8) & 0xff}, ${(value & 0xff)})`;
+  return `rgb(${value[0]}, ${value[1]}, ${value[2]})`;
 }
 
 /**

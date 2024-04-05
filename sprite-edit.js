@@ -249,10 +249,10 @@ class EditView extends View {
         xoffs) * 4;
     const colorVal = PALETTE[this.model.currentColor];
     const pix = spriteData.data;
-    pix[pixelIndex] = (colorVal >> 16) & 0xff;
-    pix[pixelIndex + 1] = (colorVal >> 8) & 0xff;
-    pix[pixelIndex + 2] = colorVal & 0xff;
-    pix[pixelIndex + 3] = (colorVal >> 24) & 0xff;
+    pix[pixelIndex] = colorVal[0];
+    pix[pixelIndex + 1] = colorVal[1];
+    pix[pixelIndex + 2] = colorVal[2];
+    pix[pixelIndex + 3] = colorVal[3];
     setNeedsSave();
     createImageBitmap(spriteData).then((bm) => {
       spriteBitmap = bm;
