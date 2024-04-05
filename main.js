@@ -324,11 +324,19 @@ function encodeSprites() {
   // to determine how many there are.
   const dataEnd = findTrailingZeroes(spriteData.data);
 
-  result = '';
+  let result = '';
   for (let i = 0; i <= dataEnd; i += 4) {
     const rgba = packRGBA(spriteData.data.slice(i, i + 4));
     const index = INVERSE_PALETTE.get(rgba);
-    result += index.toString(16);
+    if (index === undefined) {
+      // This can happen if a pasted image has colors not in the
+      // palette (or if there is some sort of bug). For now, just
+      // encode as transparent.
+      result += '0';
+    } else {
+      result += index.toString(16);
+    }
+
     if (((i / 4) % SPRITE_SHEET_WIDTH) == SPRITE_SHEET_WIDTH - 1) {
       result += '\n';
     }

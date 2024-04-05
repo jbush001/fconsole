@@ -398,6 +398,60 @@ class SpriteIndexView extends View {
 }
 
 /**
+ * Copy the currently edited sprite to the clipboard.
+ * @param {SpriteEditorModel} model
+ */
+async function copyCanvas(model) {
+  const canvas = document.createElement('canvas');
+  canvas.width = model.spriteSize * 8;
+  canvas.height = canvas.width;
+  const context = canvas.getContext('2d');
+
+  const left = model.selectedCol * SPRITE_BLOCK_SIZE;
+  const top = model.selectedRow * SPRITE_BLOCK_SIZE;
+  const size = model.spriteSize * SPRITE_BLOCK_SIZE;
+  context.drawImage(spriteBitmap, left, top, size,
+      size, 0, 0, canvas.width, canvas.height);
+
+  const dataURL = canvas.toDataURL('image/png');
+  const blob = await (await fetch(dataURL)).blob();
+  const clipboardItem = new ClipboardItem({'image/png': blob});
+  navigator.clipboard.write([clipboardItem]).then(() => {
+    console.log('Portion of the ImageBitmap copied to clipboard successfully.');
+  }).catch((error) => {
+    console.error('Unable to copy to clipboard:', error);
+  });
+}
+
+async function pasteCanvas(event, model) {
+  const items = event.clipboardData.items;
+  for (const item of items) {
+    if (item.type === 'image/png' || item.type === 'image/jpeg') {
+      const blob = item.getAsFile();
+      const pasteBitmap = await createImageBitmap(blob);
+      const left = model.selectedCol * SPRITE_BLOCK_SIZE;
+      const top = model.selectedRow * SPRITE_BLOCK_SIZE;
+      const size = model.spriteSize * SPRITE_BLOCK_SIZE;
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = spriteBitmap.width;
+      tempCanvas.height = spriteBitmap.height;
+      const tempContext = tempCanvas.getContext('2d');
+      tempContext.imageSmoothingEnabled = false;
+      tempContext.drawImage(spriteBitmap, 0, 0);
+      tempContext.drawImage(pasteBitmap, 0, 0,
+          pasteBitmap.width, pasteBitmap.height,
+          left, top, size, size, 0, 0);
+      spriteBitmap = await createImageBitmap(tempCanvas);
+      spriteData.data.set(tempContext.getImageData(0, 0,
+          tempCanvas.width, tempCanvas.height).data);
+      invalidate();
+      break;
+    }
+  }
+}
+
+/**
  * Called once when page is initially loaded to set up resources related
  * to the sprite editor.
  */
@@ -420,6 +474,24 @@ function initSpriteEditor() {
   root.addChild(new SpriteSizeControl(64, 64, model), 30, 400);
   root.addChild(new SpriteIndexView(32, 16, model), 148, 12);
   repaint();
+
+
+  const tab = document.getElementById('spritestab');
+  document.addEventListener('keydown', (event) => {
+    if (window.getComputedStyle(tab).display !== 'none') {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+        event.preventDefault();
+        copyCanvas(model);
+      }
+    }
+  });
+
+  document.addEventListener('paste', (event) => {
+    if (window.getComputedStyle(tab).display !== 'none') {
+      event.preventDefault();
+      pasteCanvas(event, model);
+    }
+  });
 }
 
 /**
