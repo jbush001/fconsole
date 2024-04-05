@@ -111,14 +111,48 @@ function handleMouseMoved(event) {
 
 let checkerPattern = null;
 
+class UndoBuffer {
+  constructor() {
+    this.actions = [];
+    this.undoIndex = 0;
+  }
+
+  do(action) {
+    if (this.undoIndex < this.actions.length) {
+      this.actions.length = this.undoIndex;
+    }
+
+    this.actions.push(action);
+    this.undoIndex = this.actions.length;
+  }
+
+  undo() {
+    if (this.undoIndex > 0) {
+      return this.actions[--this.undoIndex];
+    } else {
+      return null;
+    }
+  }
+
+  redo() {
+    if (this.undoIndex < this.actions.length) {
+      return this.actions[this.undoIndex++];
+    } else {
+      return null;
+    }
+  }
+}
+
 class SpriteEditorModel {
   constructor() {
     this.selectedRow = 0;
     this.selectedCol = 0;
     this.currentColor = 0;
     this.spriteSize = 1;
+    this.undoBuffer = new UndoBuffer();
   }
 }
+
 
 const MAP_SIZE = 400;
 
@@ -243,21 +277,17 @@ class EditView extends View {
     const size = this.model.spriteSize * SPRITE_BLOCK_SIZE;
     const left = this.model.selectedCol * SPRITE_BLOCK_SIZE;
     const top = this.model.selectedRow * SPRITE_BLOCK_SIZE;
-    const xoffs = Math.floor(x * size / this.width);
-    const yoffs = Math.floor(y * size / this.height);
-    const pixelIndex = ((top + yoffs) * spriteBitmap.width + left +
-        xoffs) * 4;
+    const coloffs = Math.floor(x * size / this.width);
+    const rowoffs = Math.floor(y * size / this.height);
     const colorVal = PALETTE[this.model.currentColor];
-    const pix = spriteData.data;
-    pix[pixelIndex] = colorVal[0];
-    pix[pixelIndex + 1] = colorVal[1];
-    pix[pixelIndex + 2] = colorVal[2];
-    pix[pixelIndex + 3] = colorVal[3];
-    setNeedsSave();
-    createImageBitmap(spriteData).then((bm) => {
-      spriteBitmap = bm;
-      repaint();
-    });
+    const col = left + coloffs;
+    const row = top + rowoffs;
+
+    const oldPixel = getPixel(col, row);
+    if (!oldPixel.every((val, index) => val === colorVal[index])) {
+      this.model.undoBuffer.do([col, row, oldPixel, colorVal]);
+      setPixel(col, row, colorVal);
+    }
   }
 }
 
@@ -397,6 +427,45 @@ class SpriteIndexView extends View {
   }
 }
 
+function getPixel(x, y) {
+  const pixelIndex = (y * spriteBitmap.width + x) * 4;
+  const pix = spriteData.data;
+  return [
+    pix[pixelIndex],
+    pix[pixelIndex + 1],
+    pix[pixelIndex + 2],
+    pix[pixelIndex + 3],
+  ];
+}
+
+function setPixel(x, y, colorVal) {
+  const pixelIndex = (y * spriteBitmap.width + x) * 4;
+  const pix = spriteData.data;
+  pix[pixelIndex] = colorVal[0];
+  pix[pixelIndex + 1] = colorVal[1];
+  pix[pixelIndex + 2] = colorVal[2];
+  pix[pixelIndex + 3] = colorVal[3];
+  setNeedsSave();
+  createImageBitmap(spriteData).then((bm) => {
+    spriteBitmap = bm;
+    repaint();
+  });
+}
+
+function undoAction(undoBuffer) {
+  const entry = undoBuffer.undo();
+  if (entry) {
+    setPixel(entry[0], entry[1], entry[2]);
+  }
+}
+
+function redoAction(undoBuffer) {
+  const entry = undoBuffer.redo();
+  if (entry) {
+    setPixel(entry[0], entry[1], entry[3]);
+  }
+}
+
 /**
  * Copy the currently edited sprite to the clipboard.
  * @param {SpriteEditorModel} model
@@ -482,6 +551,16 @@ function initSpriteEditor() {
       if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
         event.preventDefault();
         copyCanvas(model);
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+        event.preventDefault();
+        undoAction(model.undoBuffer);
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === 'y') {
+        event.preventDefault();
+        redoAction(model.undoBuffer);
       }
     }
   });
