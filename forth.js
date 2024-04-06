@@ -343,18 +343,18 @@ class ForthContext {
       'abs': new Word(this._abs),
 
       // Memory
-      '!': new Word(this._store),
       '@': new Word(this._fetch),
+      '!': new Word(this._store),
       'c@': new Word(this._fetchChar),
       'c!': new Word(this._storeChar),
       ',': new Word(this._comma),
 
       // Misc
-      '_get_time': new Word(this._getTime),
-      's"': new Word(this._makeString, true),
       '\'': new Word(this._tick),
       'key': new Word(this._key),
+      's"': new Word(this._makeString, true),
       'char': new Word(this._char, true),
+      '_get_time': new Word(this._getTime),
     };
 
     this.debugInfo = new DebugInfo();
@@ -604,18 +604,6 @@ class ForthContext {
   }
 
   /**
-   * Push a constant value onto the stack (literal). This is usually generated
-   * implicity by the interpreter when it encounters a numbers, but will in
-   * some cases be referenced explicitly, often paired with the tick operator.
-   * This can only be invoked from compiled code. It will use the next program
-   * address as the value to be pushed.
-   */
-  _lit() {
-    this._push(this._fetchCell(this.pc));
-    this.pc += CELL_SIZE;
-  }
-
-  /**
    * Create a constant in the dictionary. The value for the constant is taken
    * from the stack, and the name is pulled from the next token in the stream.
    * e.g.
@@ -632,95 +620,6 @@ class ForthContext {
     }
 
     this.dictionary[name] = new Word(this._pop(), false, true);
-  }
-
-  _add() {
-    this._push(this._pop() + this._pop());
-  }
-
-  _mul() {
-    this._push(this._pop() * this._pop());
-  }
-
-  _sub() {
-    const a = this._pop();
-    const b = this._pop();
-    this._push(b - a);
-  }
-
-  _div() {
-    const a = this._pop();
-    const b = this._pop();
-    this._push(b / a);
-  }
-
-  _mod() {
-    const a = this._pop();
-    const b = this._pop();
-    this._push(b % a);
-  }
-
-  _or() {
-    this._push(this._pop() | this._pop());
-  }
-
-  _and() {
-    this._push(this._pop() & this._pop());
-  }
-
-  _xor() {
-    this._push(this._pop() ^ this._pop());
-  }
-
-  _equals() {
-    this._push(this._pop() === this._pop());
-  }
-
-  _lessThan() {
-    const a = this._pop();
-    const b = this._pop();
-    this._push(b < a);
-  }
-
-  _abs() {
-    this._push(Math.abs(this._pop()));
-  }
-
-  _dup() {
-    const val = this._pop();
-    this._push(val);
-    this._push(val);
-  }
-
-  /**
-   * Return from the current function.
-   */
-  _exit() {
-    // In a normal FORTH interpreter, the REPL is an infinite loop. However,
-    // we will return to the caller once a function completes. The continueExec
-    // flag will be cleared if we return from the topmost called function.
-    // (this is checked by exec())
-    if (this.returnStack.length > 0) {
-      this.pc = this.returnStack.pop();
-    } else {
-      this.continueExec = false;
-    }
-  }
-
-  /**
-   * Read a word from memory and push onto the stack
-   */
-  _fetch() {
-    this._push(this._fetchCell(this._pop()));
-  }
-
-  /**
-   * Pop address and value from the stack and store into memory.
-   */
-  _store() {
-    const addr = this._pop();
-    const value = this._pop();
-    this._storeCell(addr, value);
   }
 
   /**
@@ -763,35 +662,6 @@ class ForthContext {
     }
   }
 
-  _drop() {
-    this._pop();
-  }
-
-  _swap() {
-    const a = this._pop();
-    const b = this._pop();
-    this._push(a);
-    this._push(b);
-  }
-
-  _over() {
-    this._push(this._fetchCell(this.stackPointer + CELL_SIZE));
-  }
-
-  _comma() {
-    this._emitCode(this._pop());
-  }
-
-  /**
-   * Push the function address for the next word onto the stack.
-   * This only works in compiled code. It uses the trick from jonesforth
-   * which grabs the pointer from the next cell.
-   */
-  _tick() {
-    this._push(this._fetchCell(this.pc));
-    this.pc += CELL_SIZE;
-  }
-
   _branchIfZero() {
     if (this._pop()) {
       // Don't branch
@@ -807,17 +677,51 @@ class ForthContext {
   }
 
   /**
-   * Return the next input character. In our implementation,
-   * this is always from the source code string we are interpreting.
-   * (since this interpreter doesn't have a true REPL).
+   * Return from the current function.
    */
-  _key() {
-    const val = this._readChar();
-    if (val) {
-      this._push(val.charCodeAt(0));
+  _exit() {
+    // In a normal FORTH interpreter, the REPL is an infinite loop. However,
+    // we will return to the caller once a function completes. The continueExec
+    // flag will be cleared if we return from the topmost called function.
+    // (this is checked by exec())
+    if (this.returnStack.length > 0) {
+      this.pc = this.returnStack.pop();
     } else {
-      this._push(-1);
+      this.continueExec = false;
     }
+  }
+
+  /**
+   * Push a constant value onto the stack (literal). This is usually generated
+   * implicity by the interpreter when it encounters a numbers, but will in
+   * some cases be referenced explicitly, often paired with the tick operator.
+   * This can only be invoked from compiled code. It will use the next program
+   * address as the value to be pushed.
+   */
+  _lit() {
+    this._push(this._fetchCell(this.pc));
+    this.pc += CELL_SIZE;
+  }
+
+  _dup() {
+    const val = this._pop();
+    this._push(val);
+    this._push(val);
+  }
+
+  _drop() {
+    this._pop();
+  }
+
+  _swap() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(a);
+    this._push(b);
+  }
+
+  _over() {
+    this._push(this._fetchCell(this.stackPointer + CELL_SIZE));
   }
 
   // ( a b c -- b c a )
@@ -838,6 +742,146 @@ class ForthContext {
     this._push(c);
     this._push(a);
     this._push(b);
+  }
+
+  /**
+   * Pop a value from the operand stack and push onto the return stack.
+   */
+  _pushReturn() {
+    this.returnStack.push(this._pop());
+  }
+
+  /**
+   * Pop a value from the return stack and push onto the operand stack.
+   */
+  _popReturn() {
+    if (this.returnStack.length == 0) {
+      throw new Error(`return stack underflow\n` + this._debugStackCrawl());
+    }
+
+    this._push(this.returnStack.pop());
+  }
+
+  /**
+   * Push the stack pointer.
+   */
+  _dsp() {
+    this._push(this.stackPointer);
+  }
+
+  _add() {
+    this._push(this._pop() + this._pop());
+  }
+
+  _sub() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(b - a);
+  }
+
+  _mul() {
+    this._push(this._pop() * this._pop());
+  }
+
+  _div() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(b / a);
+  }
+
+  _mod() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(b % a);
+  }
+
+  _or() {
+    this._push(this._pop() | this._pop());
+  }
+
+  _and() {
+    this._push(this._pop() & this._pop());
+  }
+
+  _xor() {
+    this._push(this._pop() ^ this._pop());
+  }
+
+  _equals() {
+    this._push(this._pop() === this._pop());
+  }
+
+  _lessThan() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(b < a);
+  }
+
+  _abs() {
+    this._push(Math.abs(this._pop()));
+  }
+
+  /**
+   * Read a word from memory and push onto the stack
+   */
+  _fetch() {
+    this._push(this._fetchCell(this._pop()));
+  }
+
+  /**
+   * Pop address and value from the stack and store into memory.
+   */
+  _store() {
+    const addr = this._pop();
+    const value = this._pop();
+    this._storeCell(addr, value);
+  }
+
+  /**
+   * Read a byte from memory and push on operand stack. This byte
+   * is treated as unsigned and is not sign extended.
+   */
+  _fetchChar() {
+    const addr = this._pop();
+    this._push(this.fetchByte(addr));
+  }
+
+  /**
+   * Write a byte to memory, popping address and value from the
+   * operand stack. The upper bits of the byte will be truncated.
+   */
+  _storeChar() {
+    const addr = this._pop();
+    const value = this._pop();
+    this._storeByte(addr, value);
+  }
+
+  _comma() {
+    this._emitCode(this._pop());
+  }
+
+  /**
+   * Push the function address for the next word onto the stack.
+   * This only works in compiled code. It uses the trick from jonesforth
+   * which grabs the pointer from the next cell.
+   */
+  _tick() {
+    this._push(this._fetchCell(this.pc));
+    this.pc += CELL_SIZE;
+  }
+
+  /**
+   * Return the next input character. In our implementation,
+   * this is always from the source code string we are interpreting.
+   * (since this interpreter doesn't have a true REPL).
+   */
+  _key() {
+    const val = this._readChar();
+    if (val) {
+      this._push(val.charCodeAt(0));
+    } else {
+      this._push(-1);
+    }
   }
 
   /**
@@ -890,58 +934,6 @@ class ForthContext {
     }
   }
 
-  /**
-   * Read a byte from memory and push on operand stack. This byte
-   * is treated as unsigned and is not sign extended.
-   */
-  _fetchChar() {
-    const addr = this._pop();
-    this._push(this.fetchByte(addr));
-  }
-
-  /**
-   * Write a byte to memory, popping address and value from the
-   * operand stack. The upper bits of the byte will be truncated.
-   */
-  _storeChar() {
-    const addr = this._pop();
-    const value = this._pop();
-    this._storeByte(addr, value);
-  }
-
-  /**
-   * Pop a value from the operand stack and push onto the return stack.
-   */
-  _pushReturn() {
-    this.returnStack.push(this._pop());
-  }
-
-  /**
-   * Pop a value from the return stack and push onto the operand stack.
-   */
-  _popReturn() {
-    if (this.returnStack.length == 0) {
-      throw new Error(`return stack underflow\n` + this._debugStackCrawl());
-    }
-
-    this._push(this.returnStack.pop());
-  }
-
-  /**
-   * Push the stack pointer.
-   */
-  _dsp() {
-    this._push(this.stackPointer);
-  }
-
-  /**
-   * Return number of elapsed seconds since epoch. Used to
-   * seed random number generator.
-   */
-  _getTime() {
-    this._push(Date.now());
-  }
-
   _char() {
     const nextTok = this._readWord();
     if (this.state == STATE_COMPILE) {
@@ -950,6 +942,14 @@ class ForthContext {
     } else {
       this._push(nextTok.charCodeAt(0));
     }
+  }
+
+  /**
+   * Return number of elapsed seconds since epoch. Used to
+   * seed random number generator.
+   */
+  _getTime() {
+    this._push(Date.now());
   }
 
   /**
