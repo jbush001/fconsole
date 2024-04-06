@@ -350,6 +350,62 @@ variable game_over
     120 game_over_delay !
 ;
 
+( -- )
+: try_complete_lines
+    check_finished dup if
+        dup total_lines +!
+
+        \ Update score based on number of lines cleared
+        cells score_table + 1 - @
+        score @ + score !
+
+        \ Set current level
+        total_lines @ 10 / 1 + level !
+        level @ INIT_DROP_DELAY > if
+            \ Max out speed
+            1 drop_delay !
+        else
+            \ Set speed based on level
+            INIT_DROP_DELAY level @ - drop_delay !
+        then
+
+        update_score_str
+
+        \ Kick off animation. We don't add the new piece here because
+        \ we need to wait for the animation to finish.
+        1 blink_counter !
+    else
+        drop \ Clear extra finished line count
+
+        \ carry on
+        new_piece
+        piece_collides if
+            trigger_game_over
+        then
+    then
+;
+
+( -- hit_bottom )
+: try_drop_piece
+    piece_y @ 1 + piece_y !
+    piece_collides if
+        \ Hit bottom and can no longer fall.
+        piece_y @ 1 - piece_y ! \ Restore to place before collision
+        lock_piece
+        try_complete_lines
+        1
+    else
+        0
+    then
+;
+
+: fast_drop_piece
+    begin
+        try_drop_piece 0=
+    while
+    repeat
+;
+
 \ We check if the movement is legal by first moving to the new
 \ position and then checking if pieces are either out of bounds
 \ or intersecting existing blocks. If so, we undo the movement.
@@ -377,8 +433,8 @@ variable game_over
         then
     then
 
-    \ Check up button, which rotates the piece.
-    BUTTON_A and if
+    \ Check A button, which rotates the piece.
+    dup BUTTON_A and if
         rotation @ 1 + 3 and rotation !
         piece_collides if
             \ Collision, undo action
@@ -388,54 +444,22 @@ variable game_over
         then
     then
 
+    \ Drop instantly
+    BUTTON_U and if
+        fast_drop_piece
+    then
+
     \ Check down button, which speeds up the descent.
     \ Unlike the others, this can be held
     buttons BUTTON_D and if
         4 drop_timer +!
     then
 
-    \ Handle falling
+    \ Handle normal falling
     1 drop_timer +!
     drop_timer @ drop_delay @ >= if
         0 drop_timer !
-        piece_y @ 1 + piece_y !
-        piece_collides if
-            \ Hit bottom and can no longer fall.
-            piece_y @ 1 - piece_y ! \ Restore to place before collision
-
-            lock_piece
-            check_finished dup if
-                dup total_lines +!
-
-                \ Update score based on number of lines cleared
-                cells score_table + 1 - @
-                score @ + score !
-
-                \ Set current level
-                total_lines @ 10 / 1 + level !
-                level @ INIT_DROP_DELAY > if
-                    \ Max out speed
-                    1 drop_delay !
-                else
-                    \ Set speed based on level
-                    INIT_DROP_DELAY level @ - drop_delay !
-                then
-
-                update_score_str
-
-                \ Kick off animation. We don't add the new piece here because
-                \ we need to wait for the animation to finish.
-                1 blink_counter !
-            else
-                drop \ Clear extra finished line count
-
-                \ carry on
-                new_piece
-                piece_collides if
-                    trigger_game_over
-                then
-            then
-        then
+        try_drop_piece drop
     then
 ;
 

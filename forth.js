@@ -1110,13 +1110,9 @@ class ForthContext {
   _debugStackCrawl() {
     let crawlInfo = '(most recent call first)\n';
 
-    console.log(this.debugInfo);
-    console.log('pc=', this.pc);
-
     const self = this;
     function addEntry(address) {
-      console.log(address);
-      const wordDef = self.debugInfo.lookupWord(address);
+            const wordDef = self.debugInfo.lookupWord(address);
       const lineNo = self.debugInfo.lookupLine(address);
       crawlInfo += `${wordDef} @${address} (line ${lineNo})\n`;
     }
