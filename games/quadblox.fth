@@ -17,7 +17,7 @@
 4 constant WELL_Y_OFFS
 10 constant WELL_WIDTH
 15 constant WELL_HEIGHT
-20 constant INIT_DROP_DELAY
+32 constant INIT_DROP_DELAY
 
 \ Each piece consits of four blocks. Each block is stored here
 \ as an X and Y offset from the pivot point.
@@ -391,7 +391,7 @@ variable game_over
     \ Check down button, which speeds up the descent.
     \ Unlike the others, this can be held
     buttons BUTTON_D and if
-        2 drop_timer +!
+        4 drop_timer +!
     then
 
     \ Handle falling

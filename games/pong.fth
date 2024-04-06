@@ -27,8 +27,8 @@ variable score
 : init
     SCREEN_WIDTH 2 / 4 - ball_x !
     SCREEN_HEIGHT 2 / 4 - ball_y !
-    1 ball_dx !
-    1 ball_dy !
+    2 ball_dx !
+    2 ball_dy !
     SCREEN_HEIGHT PADDLE_HEIGHT - 2 / paddle_y !
     0 score !
 
@@ -150,13 +150,13 @@ variable digit_y
     \ Move paddle
     buttons BUTTON_U and if
         paddle_y @ 0 > if
-            paddle_y @ 1 - paddle_y !
+            paddle_y @ 2 - paddle_y !
         then
     then
 
     buttons BUTTON_D and if
         paddle_y @ SCREEN_HEIGHT PADDLE_HEIGHT - < if
-            paddle_y @ 1 + paddle_y !
+            paddle_y @ 2 + paddle_y !
         then
     then
 ;

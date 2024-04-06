@@ -24,7 +24,6 @@ create missile_y MAX_MISSILES cells allot drop
 create star_x MAX_STARS cells allot drop
 create star_y MAX_STARS cells allot drop
 
-
 ( -- index )
 : allocate_missile
     0
@@ -59,6 +58,32 @@ create star_y MAX_STARS cells allot drop
     cells missile_y + SCREEN_HEIGHT 16 - swap !
 ;
 
+variable last_button
+
+: update_ship
+    buttons BUTTON_L and if
+        ship_pos @ 0 > if
+            ship_pos @ 2 - ship_pos !
+        then
+    then
+
+    buttons BUTTON_R and if
+        ship_pos @ SCREEN_WIDTH 16 - < if
+            ship_pos @ 2 + ship_pos !
+        then
+    then
+
+    buttons BUTTON_A and if
+        last_button @ 0= if
+           fire_missile
+           440 4 beep
+        then
+        1 last_button !
+    else
+        0 last_button !
+    then
+;
+
 ( -- )
 : draw_missiles
     2 set_color
@@ -80,7 +105,7 @@ create star_y MAX_STARS cells allot drop
     MAX_MISSILES 0 do
        i cells missile_active + @ if
             i cells missile_y + @
-            3 -                     \ new_y_pos
+            6 -                     \ new_y_pos
             dup 0 < if
                \ Off top of screen
                drop i cells missile_active + 0 swap ! \ Make not active
@@ -107,38 +132,15 @@ create star_y MAX_STARS cells allot drop
             over 1 - over
             draw_line
 
-       	    dup 1 swap +! \ increment y
+       	    dup 2 swap +! \ increment y
             drop
             drop
         then
     loop
 ;
 
-
-variable last_button
-
 : draw_frame
-    buttons BUTTON_L and if
-        ship_pos @ 0 > if
-            ship_pos @ 1 - ship_pos !
-        then
-    then
-
-    buttons BUTTON_R and if
-        ship_pos @ SCREEN_WIDTH 16 - < if
-            ship_pos @ 1 + ship_pos !
-        then
-    then
-
-    buttons BUTTON_A and if
-        last_button @ 0= if
-           fire_missile
-           440 4 beep
-        then
-        1 last_button !
-    else
-        0 last_button !
-    then
+    update_ship
 
     0 cls
     update_stars

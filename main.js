@@ -274,10 +274,9 @@ function decodeSprites(text) {
   for (let i = 0; i < text.length; i++) {
     if (!/[\s)]/.test(text[i])) {
       const rgba = PALETTE[parseInt(text[i], 16)];
-      spriteData.data[outIndex++] = rgba[0];
-      spriteData.data[outIndex++] = rgba[1];
-      spriteData.data[outIndex++] = rgba[2];
-      spriteData.data[outIndex++] = rgba[3];
+      for (let i = 0; i < 4; i++) {
+        spriteData.data[outIndex++] = rgba[i];
+      }
     }
   }
 
@@ -364,7 +363,12 @@ function newProgram() {
   needsSave = false;
   saveFileName = '';
   updateTitleBar();
-  document.getElementById('source').value = ': draw_frame ; ';
+  document.getElementById('source').value = `: draw_frame
+    1 cls
+    2 set_color
+    16 16 112 112 fill_rect
+;
+`;
 
   clearSprites();
   clearScreen(0);
@@ -385,7 +389,6 @@ function writeConsole(text) {
  * @return {string} CSS string representing the color.
  */
 function makeColorString(value) {
-  // eslint-disable-next-line max-len
   return `rgb(${value[0]}, ${value[1]}, ${value[2]})`;
 }
 
@@ -451,6 +454,17 @@ function getButtons() {
   return [buttonMask];
 }
 
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function playBeep(frequency, duration) {
+  const oscillator = audioContext.createOscillator();
+  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+  oscillator.connect(audioContext.destination);
+  oscillator.type = 'square';
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + duration / 1000);
+}
+
 let drawFrameTimer = null;
 let drawFrameAddr = null;
 
@@ -462,11 +476,13 @@ let drawFrameAddr = null;
  */
 function drawFrame(ctx) {
   try {
-    ctx.callWord(drawFrameAddr);
-
+    // Set the timeout before starting the draw routine so
+    // we get consistent timing.
     drawFrameTimer = setTimeout(() => {
       drawFrame(ctx);
-    }, 16);
+    }, 33);
+
+    ctx.callWord(drawFrameAddr);
   } catch (err) {
     clearTimeout(drawFrameTimer);
     drawFrameTimer = -1;
@@ -549,19 +565,6 @@ function stopRun() {
  */
 function updateStopButton() {
   document.getElementById('stop_button').disabled = drawFrameTimer == -1;
-}
-
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-function playBeep(frequency, duration) {
-  const oscillator = audioContext.createOscillator();
-  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-  oscillator.connect(audioContext.destination);
-  oscillator.type = 'square';
-  oscillator.start();
-  setTimeout(() => {
-    oscillator.stop();
-  }, duration);
 }
 
 function openTab(pageName, element) {
