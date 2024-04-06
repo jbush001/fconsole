@@ -319,10 +319,10 @@ class ForthContext {
 
       // Stack operations
       'lit': new Word(this._lit),
-'dup': new Word(this._dup),
+      'dup': new Word(this._dup),
       'drop': new Word(this._drop),
       'swap': new Word(this._swap),
-'over': new Word(this._over),
+      'over': new Word(this._over),
       'rot': new Word(this._rot),
       '-rot': new Word(this._reverseRot),
       '>r': new Word(this._pushReturn),

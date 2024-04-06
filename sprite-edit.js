@@ -444,22 +444,16 @@ class SpriteIndexView extends View {
 
 function getPixel(x, y) {
   const pixelIndex = (y * spriteBitmap.width + x) * 4;
-  const pix = spriteData.data;
-  return [
-    pix[pixelIndex],
-    pix[pixelIndex + 1],
-    pix[pixelIndex + 2],
-    pix[pixelIndex + 3],
-  ];
+  return spriteData.data.slice(pixelIndex, pixelIndex + 4);
 }
 
 function setPixel(x, y, colorVal) {
   const pixelIndex = (y * spriteBitmap.width + x) * 4;
   const pix = spriteData.data;
-  pix[pixelIndex] = colorVal[0];
-  pix[pixelIndex + 1] = colorVal[1];
-  pix[pixelIndex + 2] = colorVal[2];
-  pix[pixelIndex + 3] = colorVal[3];
+  for (let i = 0; i < 4; i++) {
+    pix[pixelIndex + i] = colorVal[i];
+  }
+
   setNeedsSave();
   createImageBitmap(spriteData).then((bm) => {
     spriteBitmap = bm;
