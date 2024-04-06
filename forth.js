@@ -283,7 +283,7 @@ class DebugInfo {
 
   lookupWord(address) {
     for (const [name, start, end] of this.wordMappings) {
-      if (address >= start && address <= end) {
+      if (address >= start && address < end) {
         return name;
       }
     }
@@ -1110,8 +1110,12 @@ class ForthContext {
   _debugStackCrawl() {
     let crawlInfo = '(most recent call first)\n';
 
+    console.log(this.debugInfo);
+    console.log('pc=', this.pc);
+
     const self = this;
     function addEntry(address) {
+      console.log(address);
       const wordDef = self.debugInfo.lookupWord(address);
       const lineNo = self.debugInfo.lookupLine(address);
       crawlInfo += `${wordDef} @${address} (line ${lineNo})\n`;
