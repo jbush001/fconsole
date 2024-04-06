@@ -521,6 +521,7 @@ async function pasteCanvas(event, model) {
       spriteBitmap = await createImageBitmap(tempCanvas);
       spriteData.data.set(tempContext.getImageData(0, 0,
           tempCanvas.width, tempCanvas.height).data);
+      setNeedsSave();
       invalidate();
       break;
     }
