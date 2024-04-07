@@ -500,6 +500,9 @@ async function copyCanvas(model) {
 }
 
 // @bug does not update undo history.
+// @bug This does not clamp the source image to the palette first,
+//   so, if the image is pasted from external source, it will
+//   create images that can't be saved properly.
 async function pasteCanvas(event, model) {
   const items = event.clipboardData.items;
   for (const item of items) {
@@ -514,8 +517,20 @@ async function pasteCanvas(event, model) {
       tempCanvas.width = spriteBitmap.width;
       tempCanvas.height = spriteBitmap.height;
       const tempContext = tempCanvas.getContext('2d');
-      tempContext.imageSmoothingEnabled = false; // Keep this pixeley
+
+      // We will always resize to the destination size when pasting. Without
+      // this flag, it will perform smoothing, which will create many
+      // colors that are not in the palette.
+      tempContext.imageSmoothingEnabled = false;
+
+      // Copy existing sprite sheet first, since we're only updating the
+      // sprite we are currently editing.
       tempContext.drawImage(spriteBitmap, 0, 0);
+
+      // Clear the destination image to (0, 0, 0, 0) first so any transparent
+      // pixels in the source are copied the destination rather than blending
+      // together the source and destinations (which just makes a big mess in
+      // most cases).
       tempContext.clearRect(left, top, size, size);
       tempContext.drawImage(pasteBitmap, 0, 0,
           pasteBitmap.width, pasteBitmap.height,
@@ -553,7 +568,6 @@ function initSpriteEditor() {
   root.addChild(new SpriteSizeControl(64, 32, model), 30, 400);
   root.addChild(new SpriteIndexView(32, 16, model), 148, 12);
   repaint();
-
 
   const tab = document.getElementById('spritestab');
   document.addEventListener('keydown', (event) => {
