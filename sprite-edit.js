@@ -499,6 +499,7 @@ async function copyCanvas(model) {
   });
 }
 
+// @bug does not update undo history.
 async function pasteCanvas(event, model) {
   const items = event.clipboardData.items;
   for (const item of items) {
@@ -513,12 +514,12 @@ async function pasteCanvas(event, model) {
       tempCanvas.width = spriteBitmap.width;
       tempCanvas.height = spriteBitmap.height;
       const tempContext = tempCanvas.getContext('2d');
-      tempContext.imageSmoothingEnabled = false;
+      tempContext.imageSmoothingEnabled = false; // Keep this pixeley
       tempContext.drawImage(spriteBitmap, 0, 0);
-      tempContext.globalCompositeOperation = 'copy';
+      tempContext.clearRect(left, top, size, size);
       tempContext.drawImage(pasteBitmap, 0, 0,
           pasteBitmap.width, pasteBitmap.height,
-          left, top, size, size, 0, 0);
+          left, top, size, size);
       spriteBitmap = await createImageBitmap(tempCanvas);
       spriteData.data.set(tempContext.getImageData(0, 0,
           tempCanvas.width, tempCanvas.height).data);
