@@ -88,7 +88,7 @@ variable next_pattern
     piece_x @ + BLOCK_SIZE * WELL_X_OFFS +
     swap
 
-    1 1 cur_pattern @ 1 - draw_sprite
+    cur_pattern @ 1 - 1 1 0 0 draw_sprite
 ;
 
 : draw_piece
@@ -231,7 +231,7 @@ create finished_rows WELL_HEIGHT cells allot
                     swap
                     j BLOCK_SIZE * WELL_Y_OFFS +
                     swap
-                    1 swap 1 swap 1 - draw_sprite
+                    1 - 1 1 0 0 draw_sprite
                 else
                     drop
                 then
@@ -479,7 +479,7 @@ variable game_over
     dup @ BLOCK_SIZE * 100 +       \ Read X
     over 4 + @  BLOCK_SIZE * 95 + \ Read Y
 
-    1 1 next_pattern @ 1 - draw_sprite
+    next_pattern @ 1 - 1 1 0 0 draw_sprite
 ;
 
 : draw_next

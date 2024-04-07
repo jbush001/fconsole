@@ -145,7 +145,7 @@ variable last_button
     0 cls
     update_stars
 
-    ship_pos @ 105 2 2 0 draw_sprite
+    ship_pos @ 105 0 2 2 0 0 draw_sprite
     update_missiles
     draw_missiles
 ;

@@ -427,18 +427,26 @@ function setColor(color) {
  * Draw a sprite onto the screen. This is invoked as a FORTH word.
  * @param {number} x Horizontal offset, in pixels
  * @param {number} y Vertical offset in pixels .
- * @param {number} w Width, as a number of 8 pixel blocks.
- * @param {number} h Height, as a number of 8 pixel blocks.
  * @param {number} index Index into sprite array, in terms of 8x8 pixel blocks,
  *     numbered left to right, top to bottom.
+ * @param {number} w Width, as a number of 8 pixel blocks.
+ * @param {number} h Height, as a number of 8 pixel blocks.
+ * @param {number} flipX 1 if this should be flipped left to right.
+ * @param {number} flipY 1 if this should be flipped top to bottom.
  */
-function drawSprite(x, y, w, h, index) {
+function drawSprite(x, y, index, w, h, flipX, flipY) {
   const sheetRow = Math.floor(index / SPRITE_SHEET_W_BLKS);
   const sheetCol = index % SPRITE_SHEET_W_BLKS;
   const pixWidth = w * SPRITE_BLOCK_SIZE;
   const pixHeight = h * SPRITE_BLOCK_SIZE;
+  const dx = flipX ? -x - pixWidth : x;
+  const dy = flipY ? -y - pixWidth : y;
+
+  outputContext.save();
+  outputContext.scale(flipX ? -1 : 1, flipY ? -1 : 1);
   outputContext.drawImage(spriteBitmap, sheetCol * SPRITE_BLOCK_SIZE, sheetRow *
-    SPRITE_BLOCK_SIZE, pixWidth, pixHeight, x, y, pixWidth, pixHeight);
+    SPRITE_BLOCK_SIZE, pixWidth, pixHeight, dx, dy, pixWidth, pixHeight);
+  outputContext.restore();
 }
 
 function drawText(x, y, str) {
@@ -515,7 +523,7 @@ function resetInterpreter() {
     ctx.createBuiltinWord('cls', 1, clearScreen);
     ctx.createBuiltinWord('set_color', 1, setColor);
     ctx.createBuiltinWord('draw_line', 4, drawLine);
-    ctx.createBuiltinWord('draw_sprite', 5, drawSprite);
+    ctx.createBuiltinWord('draw_sprite', 7, drawSprite);
     ctx.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
       let str = '';
       for (let i = 0; i < length; i++) {

@@ -1112,7 +1112,7 @@ class ForthContext {
 
     const self = this;
     function addEntry(address) {
-            const wordDef = self.debugInfo.lookupWord(address);
+      const wordDef = self.debugInfo.lookupWord(address);
       const lineNo = self.debugInfo.lookupLine(address);
       crawlInfo += `${wordDef} @${address} (line ${lineNo})\n`;
     }
