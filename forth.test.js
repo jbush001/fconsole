@@ -95,28 +95,28 @@ test('constant', () => {
 test('conditionals', () => {
   const src = `
 : main
-1 if
+true if
   17 .
 else
   18 .
 then
 
-0 if
+false if
   19 .
 else
   20 .
 then
 
-1 if
+true if
   21 .
 then
 
-0 if
+false if
   22 .
 then
 
-1 if
-  1 if
+true if
+  true if
      23 .
   then
 else
@@ -263,7 +263,7 @@ test('2dup', () => {
 
 test('0=', () => {
   expect(runCode('1 0= . 100 0= . 0 0= .'))
-      .toBe('0\n0\n1');
+      .toBe('0\n0\n-1');
 });
 
 test('comparisons', () => {
@@ -283,7 +283,7 @@ test('comparisons', () => {
     44 43 = .
     55 55 <> .
     54 53 <> .
-  `)).toBe('0\n1\n1\n1\n0\n1\n0\n1\n1\n0\n1\n1\n0\n0\n1');
+  `)).toBe('0\n-1\n-1\n-1\n0\n-1\n0\n-1\n-1\n0\n-1\n-1\n0\n0\n-1');
 });
 
 test('logical', () => {

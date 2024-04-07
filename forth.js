@@ -37,6 +37,9 @@ ${HERE_PTR} constant here
 ${BASE_PTR} constant base
 ${STATE_PTR} constant state
 
+-1 constant true
+0 constant false
+
 : begin immediate
   here @
 ;
@@ -808,13 +811,13 @@ class ForthContext {
   }
 
   _equals() {
-    this._push(this._pop() === this._pop());
+    this._push(this._pop() === this._pop() ? -1 : 0);
   }
 
   _lessThan() {
     const a = this._pop();
     const b = this._pop();
-    this._push(b < a);
+    this._push(b < a ? -1 : 0);
   }
 
   _abs() {

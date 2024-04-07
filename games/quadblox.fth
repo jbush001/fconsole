@@ -88,7 +88,7 @@ variable next_pattern
     piece_x @ + BLOCK_SIZE * WELL_X_OFFS +
     swap
 
-    cur_pattern @ 1 - 1 1 0 0 draw_sprite
+    cur_pattern @ 1 - 1 1 false false draw_sprite
 ;
 
 : draw_piece
@@ -144,13 +144,13 @@ variable collision
     ( x y )
     \ Check in bounds
     dup 0 < if
-        1 collision !
+        true collision !
         drop drop
         exit
     then
 
     dup WELL_HEIGHT >= if
-        1 collision !
+        true collision !
         drop drop
         exit
     then
@@ -158,13 +158,13 @@ variable collision
     swap
 
     dup 0 < if
-        1 collision !
+        true collision !
         drop drop
         exit
     then
 
     dup WELL_WIDTH >= if
-        1 collision !
+        true collision !
         drop drop
         exit
     then
@@ -174,12 +174,12 @@ variable collision
     well_data +
     @  \ Read
     if
-        1 collision !
+        true collision !
     then
 ;
 
 : piece_collides
-    0 collision !
+    false collision !
     cur_shape @
     block_collides 8 +
     block_collides 8 +
@@ -204,7 +204,7 @@ variable collision
 ;
 
 ( x y width height -- )
-: draw_rect 
+: draw_rect
     4 pick 4 pick 4 pick 3 pick + over draw_line \ Top
     4 pick 4 pick over over 5 pick + draw_line \ Left
     4 pick 3 pick + 4 pick over over 5 pick + draw_line \ Right
@@ -238,7 +238,7 @@ create finished_rows WELL_HEIGHT cells allot
                     swap
                     j BLOCK_SIZE * WELL_Y_OFFS +
                     swap
-                    1 - 1 1 0 0 draw_sprite
+                    1 - 1 1 false false draw_sprite
                 else
                     drop
                 then
@@ -257,16 +257,16 @@ variable row_is_finished
 
     0 finished_row_count !
     WELL_HEIGHT 0 do
-        1 row_is_finished !
+        true row_is_finished !
         WELL_WIDTH 0 do
             j WELL_WIDTH * i + cells well_data + @
             0= if
-                0 row_is_finished !
+                false row_is_finished !
             then
         loop
 
         row_is_finished @ if
-            1 i cells finished_rows + !
+            true i cells finished_rows + !
             1 finished_row_count +!
         then
     loop
@@ -353,7 +353,7 @@ variable drop_delay
 variable game_over
 
 : trigger_game_over
-    1 game_over !
+    true game_over !
     120 game_over_delay !
 ;
 
@@ -400,9 +400,9 @@ variable game_over
         piece_y @ 1 - piece_y ! \ Restore to place before collision
         lock_piece
         try_complete_lines
-        1
+        true
     else
-        0
+        false
     then
 ;
 
@@ -488,7 +488,7 @@ SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
     dup @ BLOCK_SIZE * STATUS_AREA_LEFT +       \ Read X
     over 4 + @  BLOCK_SIZE * 95 + \ Read Y
 
-    next_pattern @ 1 - 1 1 0 0 draw_sprite
+    next_pattern @ 1 - 1 1 false false draw_sprite
 ;
 
 : draw_next
@@ -503,7 +503,7 @@ SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
 ;
 
 : init_game
-    0 game_over !
+    false game_over !
     INIT_DROP_DELAY drop_delay !
     0 drop_timer !
 

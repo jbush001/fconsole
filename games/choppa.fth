@@ -18,12 +18,12 @@ variable xloc
         buttons BUTTON_R and if
            1 dir !
            1 xspeed +!
-        else 
+        else
           \ no buttons, decelerate
           xspeed @ 0 > if
              -1 xspeed +!
           then
-          xspeed @ 0 < if 
+          xspeed @ 0 < if
               1 xspeed +!
           then
         then
@@ -42,12 +42,12 @@ variable xloc
             buttons BUTTON_D and if
                 \ Descent
                 1 yspeed +!
-            else 
+            else
                 \ no buttons, decelerate
                 yspeed @ 0 > if
                     -1 yspeed +!
                 then
-                yspeed @ 0 < if 
+                yspeed @ 0 < if
                     1 yspeed +!
                 then
             then
@@ -66,7 +66,7 @@ variable xloc
     \ Draw chopper
     xloc @ FRAC_SIZE / yloc @ FRAC_SIZE /
     anim_frame @ if 2 else 0 then
-    2 2 dir @ 0 draw_sprite
+    2 2 dir @ false draw_sprite
     anim_frame @ 1 xor anim_frame !
 ;
 

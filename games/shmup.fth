@@ -33,7 +33,7 @@ create star_y MAX_STARS cells allot drop
     while
        dup cells missile_active + dup @ ( index address active )
        0= if
-          1 swap !  \ Set this active
+          true swap !  \ Set this active
           exit      \ return allocated slot
        else
           drop
@@ -79,9 +79,9 @@ variable last_button
            fire_missile
            440 4 beep
         then
-        1 last_button !
+        true last_button !
     else
-        0 last_button !
+        false last_button !
     then
 ;
 
