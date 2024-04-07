@@ -515,6 +515,7 @@ async function pasteCanvas(event, model) {
       const tempContext = tempCanvas.getContext('2d');
       tempContext.imageSmoothingEnabled = false;
       tempContext.drawImage(spriteBitmap, 0, 0);
+      tempContext.globalCompositeOperation = 'copy';
       tempContext.drawImage(pasteBitmap, 0, 0,
           pasteBitmap.width, pasteBitmap.height,
           left, top, size, size, 0, 0);
