@@ -17,6 +17,7 @@ variable ship_pos
 10 constant MAX_MISSILES
 10 constant MAX_STARS
 5 constant MAX_ENEMIES
+SCREEN_HEIGHT 16 - constant SHIP_Y
 
 create missile_active MAX_MISSILES cells allot drop
 create missile_x MAX_MISSILES cells allot drop
@@ -122,10 +123,10 @@ variable last_button
         i cells star_x +     ( xptr )
         i cells star_y +     ( xptr yptr )
 
-        dup @ 127 >= if
+        dup @ SCREEN_HEIGHT >= if
             \ Off bottom of screen, create a new one at top
             0 swap !       \ set y to top
-            random 127 mod swap !  \ set x to random
+            random SCREEN_WIDTH 1 - mod swap !  \ set x to random
         else
             15 set_color
             over @ over @ ( xptr yptr x y)
@@ -145,18 +146,18 @@ variable last_button
     0 cls
     update_stars
 
-    ship_pos @ 105 0 2 2 0 0 draw_sprite
+    ship_pos @ SHIP_Y 0 2 2 0 0 draw_sprite
     update_missiles
     draw_missiles
 ;
 
 : init
-    56 ship_pos !
+    SCREEN_WIDTH 16 + 2 / ship_pos !
     missile_active MAX_MISSILES erase
 
     MAX_STARS 0 do
-        random 127 mod i cells star_x + !
-        random 127 mod i cells star_y + !
+        random SCREEN_WIDTH 1 - mod i cells star_x + !
+        random SCREEN_HEIGHT 1 - mod i cells star_y + !
     loop
 ;
 

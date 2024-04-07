@@ -13,7 +13,7 @@
 \ limitations under the License.
 
 8 constant BLOCK_SIZE
-4 constant WELL_X_OFFS
+16 constant WELL_X_OFFS
 4 constant WELL_Y_OFFS
 10 constant WELL_WIDTH
 15 constant WELL_HEIGHT
@@ -203,6 +203,16 @@ variable collision
     8 * cells pieces + next_shape !
 ;
 
+( x y width height -- )
+: draw_rect 
+    4 pick 4 pick 4 pick 3 pick + over draw_line \ Top
+    4 pick 4 pick over over 5 pick + draw_line \ Left
+    4 pick 3 pick + 4 pick over over 5 pick + draw_line \ Right
+    4 pick 4 pick 3 pick + over 5 pick + over draw_line \ Bottom
+
+    drop drop drop drop
+;
+
 variable x
 variable y
 variable blink_state
@@ -212,10 +222,7 @@ create finished_rows WELL_HEIGHT cells allot
 : draw_well
     \ Draw the well sides
     7 set_color
-    3 3 84 3 draw_line
-    3 3 3 124 draw_line
-    84 3 84 124 draw_line
-    3 124 84 124 draw_line
+    WELL_X_OFFS 1 - WELL_Y_OFFS 1 - WELL_WIDTH BLOCK_SIZE * 2 + WELL_HEIGHT BLOCK_SIZE * 2 + draw_rect
 
     \ Draw locked pieces inside well
     WELL_HEIGHT 0 do
@@ -463,27 +470,29 @@ variable game_over
     then
 ;
 
+SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
+
 : draw_score
     15 set_color
 
-    90 10 s" Score" draw_text
-    90 20 score_str 6 draw_text
-    90 30 s" Level" draw_text
-    90 40 level_str 4 draw_text
-    90 50 s" Lines" draw_text
-    90 60 lines_str 4 draw_text
+    STATUS_AREA_LEFT 10 s" Score" draw_text
+    STATUS_AREA_LEFT 20 score_str 6 draw_text
+    STATUS_AREA_LEFT 30 s" Level" draw_text
+    STATUS_AREA_LEFT 40 level_str 4 draw_text
+    STATUS_AREA_LEFT 50 s" Lines" draw_text
+    STATUS_AREA_LEFT 60 lines_str 4 draw_text
 ;
 
 ( piece_addr -- piece_addr )
 : draw_next_block
-    dup @ BLOCK_SIZE * 100 +       \ Read X
+    dup @ BLOCK_SIZE * STATUS_AREA_LEFT +       \ Read X
     over 4 + @  BLOCK_SIZE * 95 + \ Read Y
 
     next_pattern @ 1 - 1 1 0 0 draw_sprite
 ;
 
 : draw_next
-    90 80 s" Next" draw_text
+    STATUS_AREA_LEFT 80 s" Next" draw_text
 
     next_shape @
     draw_next_block 8 +

@@ -509,9 +509,6 @@ ${BUTTON_U} constant BUTTON_U
 ${BUTTON_D} constant BUTTON_D
 ${BUTTON_A} constant BUTTON_A
 ${BUTTON_B} constant BUTTON_B
-
-128 constant SCREEN_WIDTH
-128 constant SCREEN_HEIGHT
 `;
 
 /**
@@ -519,6 +516,8 @@ ${BUTTON_B} constant BUTTON_B
  */
 function resetInterpreter() {
   try {
+    document.getElementById('output').textContent = '';
+
     const ctx = new ForthContext();
     ctx.createBuiltinWord('cls', 1, clearScreen);
     ctx.createBuiltinWord('set_color', 1, setColor);
@@ -539,7 +538,8 @@ function resetInterpreter() {
     ctx.createBuiltinWord('buttons', 0, getButtons);
     ctx.createBuiltinWord('beep', 2, playBeep);
     ctx.interpretSource(GAME_BUILTINS);
-    document.getElementById('output').textContent = '';
+    ctx.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
+    ${outputCanvas.height} constant SCREEN_HEIGHT`);
 
     ctx.interpretSource(document.getElementById('source').value);
 

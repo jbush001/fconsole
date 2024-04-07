@@ -20,7 +20,7 @@
 // This contains words that implement the FORTH interpreter itself.
 // It is loaded automatically when the interpreter is initialized.
 
-const MEMORY_SIZE = 8192;
+const MEMORY_SIZE = 16384;
 
 // Number of bytes in the default machine integer data type (we'd normally
 // call this the machine 'word', but that name has a specific meaning in

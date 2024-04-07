@@ -105,10 +105,10 @@ variable digit_y
 ;
 
 : draw_score
-    90 digit_x !
+    COURT_RIGHT 20 - digit_x !
     4 digit_y !
     score @ 10 / draw_digit
-    102 digit_x !
+    COURT_RIGHT 8 - digit_x !
     score @ 10 mod draw_digit
 ;
 
@@ -165,10 +165,10 @@ variable digit_y
     update
 
     0 cls
-    ball_x @ ball_y @ 0 1 1 0 0 draw_sprite
     7 set_color
-    0 paddle_y @ PADDLE_WIDTH PADDLE_HEIGHT fill_rect
     draw_score
+    ball_x @ ball_y @ 0 1 1 0 0 draw_sprite
+    0 paddle_y @ PADDLE_WIDTH PADDLE_HEIGHT fill_rect
 ;
 
 init
