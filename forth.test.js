@@ -429,14 +429,14 @@ test('byte fetch out of range 2', () => {
 // without triggering a stack overflow.
 test('out of memory 1', () => {
   const t = () => {
-    runCode('0 0 0 0 0 0 0 0 0 0 0 8190 here ! , , , , , , , , ');
+    runCode('0 0 0 0 0 0 0 0 0 0 0 16380 here ! , , , , , , , , ');
   };
   expect(t).toThrow('out of memory');
 });
 
 test('out of memory 2', () => {
   const t = () => {
-    runCode('8190 here ! s" This string will go past the end of memory"');
+    runCode('16380 here ! s" This string will go past the end of memory"');
   };
   expect(t).toThrow('out of memory');
 });
@@ -483,9 +483,9 @@ test('branch zero', () => {
 
 test('branch out of range', () => {
   const t = () => {
-    runCode(': foo immediate \' branch , 9999 , ;  : main foo ; main');
+    runCode(': foo immediate \' branch , 17000 , ;  : main foo ; main');
   };
-  expect(t).toThrow('Memory fetch out of range: 9999');
+  expect(t).toThrow('Memory fetch out of range: 17000');
 });
 
 test('single line comment', () => {
@@ -695,7 +695,7 @@ test('push undefined', () => {
 
 test('stack overflow', () => {
   const t = () => {
-    runCode('8189 here ! 1 1 1 1 1 1 1 1 1 1');
+    runCode('16380 here ! 1 1 1 1 1 1 1 1 1 1');
   };
   expect(t).toThrow('stack overflow');
 });
