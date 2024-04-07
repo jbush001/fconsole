@@ -531,9 +531,9 @@ function resetInterpreter() {
     ctx.createBuiltinWord('buttons', 0, getButtons);
     ctx.createBuiltinWord('beep', 2, playBeep);
     ctx.interpretSource(GAME_BUILTINS);
+    document.getElementById('output').textContent = '';
 
     ctx.interpretSource(document.getElementById('source').value);
-    document.getElementById('output').textContent = '';
 
     drawFrameAddr = ctx.lookupWord('draw_frame');
     if (drawFrameAddr === null) {
