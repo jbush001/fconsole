@@ -384,7 +384,9 @@ function newProgram() {
  * @param {string} text What to write.
  */
 function writeConsole(text) {
-  document.getElementById('output').textContent += text;
+  const output = document.getElementById('output');
+  output.textContent += text;
+  output.scrollTop = output.scrollHeight;
 }
 
 /**
