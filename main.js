@@ -455,11 +455,6 @@ function drawSprite(x, y, index, w, h, flipX, flipY) {
   outputContext.restore();
 }
 
-function drawText(x, y, str) {
-  outputContext.font = '10px monospace';
-  outputContext.fillText(str, x, y);
-}
-
 /**
  * Read virtual joystick buttons (up/down/left/right/a/b)
  * @return {number} A bitmask of held buttons
@@ -552,7 +547,8 @@ function resetInterpreter() {
         str += String.fromCharCode(ctx.fetchByte(ptr + i));
       }
 
-      drawText(x, y, str);
+      outputContext.font = '10px monospace';
+      outputContext.fillText(str, x, y + 8);
     });
     ctx.createBuiltinWord('fill_rect', 4, fillRect);
     ctx.createBuiltinWord('.', 1, (val) => {

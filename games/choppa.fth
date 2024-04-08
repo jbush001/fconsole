@@ -134,19 +134,19 @@ variable people_on_board
             dup SCREEN_WIDTH <
             over 8 + 0 > and if
                 SCREEN_HEIGHT 9 - \ y coord
-                8 1 1 false false draw_sprite 
+                8 1 1 false false draw_sprite
 
                 \ If on screen and the chopper is landed, people will run towards it
                 is_on_ground @ if
                     \ Check with direction to move
                     i cells person_x + @ xloc @ FRAC_MULTIPLIER /
-                    dup2 = if 
+                    dup2 = if
                         \ Person boarded chopper
                         drop drop
                         false i cells person_active + !
                         1000 5 beep
                         1 people_on_board +!
-                        people_on_board @ . 
+                        people_on_board @ .
                     else
                         > if
                             -1
@@ -158,9 +158,19 @@ variable people_on_board
                 then
             else
                 drop
-            then            
+            then
         then
     loop
+;
+
+variable temp_digits
+
+( x y number -- )
+\ Number must be 0-99
+: display_number
+    dup 10 / char 0 + temp_digits c!
+    10 mod char 0 + temp_digits 1 + c!
+    temp_digits 2 draw_text
 ;
 
 : draw_frame
@@ -173,6 +183,8 @@ variable people_on_board
     draw_clouds
 
     update_people
+
+    10 2 people_on_board @ display_number
 
     \ Draw chopper
     xloc @ FRAC_MULTIPLIER / scroll_offset @ -
@@ -194,8 +206,8 @@ variable people_on_board
     true is_on_ground !
     0 people_on_board !
 
-    MAX_PEOPLE 0 do 
-        i cells 
+    MAX_PEOPLE 0 do
+        i cells
         dup person_x + random MAX_SCROLL_WIDTH 150 - mod 150 + swap !
         person_active + true swap !
     loop

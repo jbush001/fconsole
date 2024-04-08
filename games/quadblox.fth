@@ -13,11 +13,14 @@
 \ limitations under the License.
 
 8 constant BLOCK_SIZE
-16 constant WELL_X_OFFS
-4 constant WELL_Y_OFFS
 10 constant WELL_WIDTH
 15 constant WELL_HEIGHT
 32 constant INIT_DROP_DELAY
+
+SCREEN_WIDTH WELL_WIDTH BLOCK_SIZE * - 2 / constant WELL_X_OFFS
+
+4 constant WELL_Y_OFFS
+
 
 \ Each piece consits of four blocks. Each block is stored here
 \ as an X and Y offset from the pivot point.
@@ -470,29 +473,29 @@ variable game_over
     then
 ;
 
-SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
+SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
 
 : draw_score
     C_WHITE set_color
 
-    STATUS_AREA_LEFT 10 s" Score" draw_text
-    STATUS_AREA_LEFT 20 score_str 6 draw_text
-    STATUS_AREA_LEFT 30 s" Level" draw_text
-    STATUS_AREA_LEFT 40 level_str 4 draw_text
-    STATUS_AREA_LEFT 50 s" Lines" draw_text
-    STATUS_AREA_LEFT 60 lines_str 4 draw_text
+    STATUS_AREA_LEFT 2 s" Score" draw_text
+    STATUS_AREA_LEFT 12 score_str 6 draw_text
+    STATUS_AREA_LEFT 22 s" Level" draw_text
+    STATUS_AREA_LEFT 32 level_str 4 draw_text
+    STATUS_AREA_LEFT 42 s" Lines" draw_text
+    STATUS_AREA_LEFT 52 lines_str 4 draw_text
 ;
 
 ( piece_addr -- piece_addr )
 : draw_next_block
-    dup @ BLOCK_SIZE * STATUS_AREA_LEFT +       \ Read X
+    dup @ BLOCK_SIZE * STATUS_AREA_LEFT + 15 +      \ Read X
     over 4 + @  BLOCK_SIZE * 95 + \ Read Y
 
     next_pattern @ 1 - 1 1 false false draw_sprite
 ;
 
 : draw_next
-    STATUS_AREA_LEFT 80 s" Next" draw_text
+    STATUS_AREA_LEFT 72 s" Next" draw_text
 
     next_shape @
     draw_next_block 8 +
@@ -540,9 +543,9 @@ SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
 
     game_over @ if
         C_BLACK set_color
-        18 64 58 16 fill_rect
+        68 64 58 16 fill_rect
         C_WHITE set_color
-        20 74 s" Game Over" draw_text
+        70 66 s" Game Over" draw_text
 
         game_over_delay @ if
             -1 game_over_delay +!
