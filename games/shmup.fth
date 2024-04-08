@@ -87,7 +87,7 @@ variable last_button
 
 ( -- )
 : draw_missiles
-    2 set_color
+    C_RED set_color
 
     MAX_MISSILES 0 do
        i cells missile_active + @
@@ -128,7 +128,7 @@ variable last_button
             0 swap !       \ set y to top
             random SCREEN_WIDTH 1 - mod swap !  \ set x to random
         else
-            15 set_color
+            C_WHITE set_color
             over @ over @ ( xptr yptr x y)
             over 1 - over
             draw_line

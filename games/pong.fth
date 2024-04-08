@@ -165,7 +165,7 @@ variable digit_y
     update
 
     0 cls
-    7 set_color
+    C_CYAN set_color
     draw_score
     ball_x @ ball_y @ 0 1 1 false false draw_sprite
     0 paddle_y @ PADDLE_WIDTH PADDLE_HEIGHT fill_rect

@@ -221,7 +221,7 @@ create finished_rows WELL_HEIGHT cells allot
 
 : draw_well
     \ Draw the well sides
-    7 set_color
+    C_CYAN set_color
     WELL_X_OFFS 1 - WELL_Y_OFFS 1 - WELL_WIDTH BLOCK_SIZE * 2 + WELL_HEIGHT BLOCK_SIZE * 2 + draw_rect
 
     \ Draw locked pieces inside well
@@ -473,7 +473,7 @@ variable game_over
 SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
 
 : draw_score
-    15 set_color
+    C_WHITE set_color
 
     STATUS_AREA_LEFT 10 s" Score" draw_text
     STATUS_AREA_LEFT 20 score_str 6 draw_text
@@ -539,9 +539,9 @@ SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
     then
 
     game_over @ if
-        1 set_color
+        C_BLACK set_color
         18 64 58 16 fill_rect
-        15 set_color
+        C_WHITE set_color
         20 74 s" Game Over" draw_text
 
         game_over_delay @ if

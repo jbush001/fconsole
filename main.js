@@ -513,6 +513,23 @@ ${BUTTON_U} constant BUTTON_U
 ${BUTTON_D} constant BUTTON_D
 ${BUTTON_A} constant BUTTON_A
 ${BUTTON_B} constant BUTTON_B
+
+0 constant C_TRANSPARENT
+1 constant C_BLACK
+2 constant C_RED
+3 constant C_LIGHT_GREEN
+4 constant C_BLUE
+5 constant C_MAGENTA
+6 constant C_YELLOW
+7 constant C_CYAN
+8 constant C_GRAY
+9 constant C_LIGHT_BLUE
+10 constant C_ORANGE
+11 constant C_PURPLE
+12 constant C_DARK_GREEN
+13 constant C_BROWN
+14 constant C_SALMON
+15 constant C_WHITE
 `;
 
 /**
