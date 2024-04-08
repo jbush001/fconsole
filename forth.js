@@ -17,9 +17,6 @@
 // This was heavily inspired by the excellent jonesforth tutorial by
 // Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
 
-// This contains words that implement the FORTH interpreter itself.
-// It is loaded automatically when the interpreter is initialized.
-
 const MEMORY_SIZE = 16384;
 
 // Number of bytes in the default machine integer data type (we'd normally
@@ -31,6 +28,8 @@ const HERE_PTR = 0;
 const BASE_PTR = 4;
 const STATE_PTR = 8;
 
+// This is loaded automatically when the interpreter is initialized
+// and contains library of base words.
 const LIB = `
 
 ${HERE_PTR} constant here
@@ -1129,6 +1128,7 @@ class ForthContext {
   }
 }
 
+// Used for unit tests, which use require() to import this module.
 if (typeof module !== 'undefined') {
   module.exports = {
     ForthContext,
