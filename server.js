@@ -58,7 +58,8 @@ function writeManifest() {
       return;
     }
 
-    const fthFiles = files.filter((file) => path.extname(file) === '.fth');
+    const fthFiles = files.filter((file) =>
+      path.extname(file).toLowerCase() === '.fth');
     const fileNames = fthFiles.map((file) => path.parse(file).base);
     const manifestFilePath = path.join(directoryPath, 'manifest.json');
     fs.writeFile(manifestFilePath, JSON.stringify(fileNames, null, 2),

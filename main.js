@@ -180,6 +180,10 @@ function saveToServer() {
     return; // cancelled by user
   }
 
+  if (!saveFileName.toLowerCase().endsWith('.fth')) {
+    saveFileName += '.fth';
+  }
+
   const content = document.getElementById('source').value +
     SPRITE_DELIMITER + encodeSprites() + '\n)\n';
 
