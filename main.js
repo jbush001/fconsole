@@ -76,6 +76,10 @@ let saveFileName = null;
 // Tracks which buttons are currently held.
 let buttonMask = 0;
 
+let audioContext = null;
+let audioStarted = false;
+let playerNode = null;
+
 // eslint-disable-next-line no-unused-vars
 function startup() {
   outputCanvas = document.getElementById('screen');
@@ -136,6 +140,20 @@ function startup() {
       event.preventDefault();
       saveToServer();
     }
+  });
+
+  audioContext = new AudioContext();
+  audioContext.audioWorklet.addModule('effects-player.js', {
+    credentials: 'omit',
+  }).then(() => {
+    playerNode = new AudioWorkletNode(audioContext, 'effects-player');
+    playerNode.onprocessorerror = (err) => {
+      console.log('worklet node encountered error', err);
+    };
+
+    playerNode.connect(audioContext.destination);
+  }).catch((error) => {
+    console.log('error initializing audio worklet node', error);
   });
 }
 
@@ -371,7 +389,7 @@ function newProgram() {
     1 cls
     2 set_color
     16 16 112 112 fill_rect
-;
+  ;
 `;
 
   clearSprites();
@@ -463,15 +481,15 @@ function getButtons() {
   return [buttonMask];
 }
 
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
 function playBeep(frequency, duration) {
-  const oscillator = audioContext.createOscillator();
-  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-  oscillator.connect(audioContext.destination);
-  oscillator.type = 'square';
-  oscillator.start();
-  oscillator.stop(audioContext.currentTime + duration / 1000);
+  if (!audioStarted) {
+    // The audio context requires an interaction with the page to start.
+    // Resume this lazily to ensure that happens.
+    audioContext.resume();
+    audioStarted = true;
+  }
+
+  playerNode.port.postMessage({frequency, duration});
 }
 
 let drawFrameTimer = null;
