@@ -39,13 +39,18 @@ class EffectsPlayer extends AudioWorkletProcessor {
 
   handleMessage(data) {
     if (data.action == 'play') {
+      // XXX should probably do this once at load time rather than every time
+      // this is played.
       this.samplesPerNote = Math.floor(data.effect.noteDuration * sampleRate);
       this.frequencies = [];
       this.amplitudes = [];
-      for (let i = 0; i < data.effect.frequencies.length; i++) {
-        this.frequencies.push(data.effect.frequencies[i] * Math.PI * 2 /
-          sampleRate);
-        this.amplitudes.push(3.4 * data.effect.amplitudes[i]);
+      for (let i = 0; i < data.effect.notes.length; i++) {
+        // Notes correspond to notes on a piano, with 0 being A0 and 88 being
+        // c8.
+        const freq = 27.5 * 2 ** (Math.floor(data.effect.notes[i]) / 12);
+        const freqStep = freq * Math.PI * 2 / sampleRate;
+        this.frequencies.push(freqStep);
+        this.amplitudes.push(3.4 * data.effect.amplitudes[i] / 255);
       }
 
       this.effectIndex = 0;

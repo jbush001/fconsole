@@ -64,6 +64,20 @@ for (let i = 0; i < PALETTE.length; i++) {
   INVERSE_PALETTE.set(PALETTE[i].toString(), i);
 }
 
+// Currently hard coded
+const soundEffects = [
+  {
+    noteDuration: 0.01,
+    notes: [60, 61, 62, 63, 64, 65],
+    amplitudes: [85, 250, 128, 85, 25],
+  },
+  {
+    noteDuration: 0.03,
+    notes: [72, 84, 72, 84, 72, 84],
+    amplitudes: [240, 180, 128, 240, 180, 128],
+  },
+];
+
 // spriteBitmap must be kept in sync with spriteData (since bitmaps
 // are immutable, we keep spriteData around to modify it).
 const spriteData = new ImageData(SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT);
@@ -482,7 +496,6 @@ function getButtons() {
 }
 
 function playSoundEffect(index) {
-  // XXX index is currently ignored.
   if (!audioStarted) {
     // The audio context requires an interaction with the page to start.
     // Resume this lazily to ensure that happens.
@@ -490,20 +503,11 @@ function playSoundEffect(index) {
     audioStarted = true;
   }
 
-  const effectInfo = [
-    {
-      noteDuration: 0.01,
-      frequencies: [1000, 1100, 1200, 1300, 1400, 1500],
-      amplitudes: [0.3, 0.9, 0.6, 0.3, 0.1],
-    },
-    {
-      noteDuration: 0.03,
-      frequencies: [2000, 1500, 1000, 2000, 1500, 1000],
-      amplitudes: [0.9, 0.8, 0.5, 0.9, 0.8, 0.5],
-    },
-  ];
+  if (index >= soundEffects.length || index < 0) {
+    return;
+  }
 
-  playerNode.port.postMessage({action: 'play', effect: effectInfo[index]});
+  playerNode.port.postMessage({action: 'play', effect: soundEffects[index]});
 }
 
 let drawFrameTimer = null;
