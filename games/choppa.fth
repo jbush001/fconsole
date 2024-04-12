@@ -14,7 +14,6 @@
 \
 \ To do:
 \ * Create a landing area. Make soldiers run out when the chopper lands there.
-\ * Add score display (soldiers in helicopter, total rescued)
 \ * Create enemy tanks that will fire up at the helicopter.
 \ * Enable the helicopter with guns/bombs.
 
@@ -24,6 +23,7 @@ variable anim_frame
 \ Locations and speeds are stored as 28.4 fixed point values
 16 constant FRAC_MULTIPLIER
 SCREEN_HEIGHT 10 - FRAC_MULTIPLIER * constant MAX_YLOC
+FRAC_MULTIPLIER 2 * constant MAX_SPEED
 
 SCREEN_WIDTH 3 / dup constant L_SCROLL_THRESH 2 * constant R_SCROLL_THRESH
 1024 constant MAX_SCROLL_WIDTH
@@ -54,11 +54,11 @@ variable people_on_board
     else
         buttons BUTTON_L and if
             0 dir !
-            -1 xspeed +!
+            xspeed @ dup MAX_SPEED negate <= if 0 else 1 then - xspeed !
         else
             buttons BUTTON_R and if
                 1 dir !
-                1 xspeed +!
+                xspeed @ dup MAX_SPEED >= if 0 else 1 then + xspeed !
             else
                 \ no buttons, decelerate
                 xspeed @ 0 > if
@@ -145,39 +145,54 @@ variable people_on_board
     loop
 ;
 
+variable p_sprite
+variable p_dir 
+variable p_anim
+ 
 : update_people
+    \ animation runs continuously
+    p_anim @ 10 >= if
+        0 p_anim !
+    else
+        p_anim @ 1 + p_anim !
+    then
+
     MAX_PEOPLE 0 do
         i cells person_active + @ if
             i cells person_x + @ scroll_offset @ - \ x coord
 
             \ Do check if this is onscreen
             dup SCREEN_WIDTH <
-            over 8 + 0 > and if
-                SCREEN_HEIGHT 9 - \ y coord
-                8 1 1 false false draw_sprite
-
+            swap 8 + 0 > and if
                 \ If on screen and the chopper is landed, people will run towards it
                 is_on_ground @ if
                     \ Check with direction to move
-                    i cells person_x + @ xloc @ FRAC_MULTIPLIER /
+                    i cells person_x + @ xloc @ FRAC_MULTIPLIER / 4 +
                     dup2 = if
                         \ Person boarded chopper
                         drop drop
                         false i cells person_active + !
                         1000 5 beep
                         1 people_on_board +!
-                        people_on_board @ .
                     else
                         > if
                             -1
                         else
                             1
                         then
-                        i cells person_x + +!
+                        dup p_dir !  \ Save for animation
+                        i cells person_x + +! \ Update player position 
                     then
+
+                    p_anim @ 5 < if 9 else 10 then p_sprite ! \ Animate running
+                else
+                    8 p_sprite !
                 then
-            else
-                drop
+
+                i cells person_x + @ scroll_offset @ - \ x coord
+                SCREEN_HEIGHT 10 - \ y coord
+                p_sprite @
+                1 1 p_dir @ -1 = false draw_sprite
             then
         then
     loop
@@ -204,6 +219,7 @@ variable temp_digits
 
     update_people
 
+    2 2 8 1 1 false false draw_sprite \ Show person next to count
     10 2 people_on_board @ display_number
 
     \ Draw chopper
@@ -237,14 +253,14 @@ init
 
 
 ( sprite data ---xx--xxx----x-xxx----xxxx----x--
-00000000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000000000000000000000000000000
-1111111100000000000000011111111000000000000000000000000000000000000cc00000000000000000000000000000000000000000000000000000000000
-000000010000000000000001000000000000000000000000000000000000000000cccc0000000000000000000000000000000000000000000000000000000000
-00000444400000000000044440000000000000000000000000000000000000000c0cc0c000000000000000000000000000000000000000000000000000000000
-0000474444000010000047444400010000000000000000000000000000000000000cc00000000000000000000000000000000000000000000000000000000000
-000444444444410000044444444444100000000000000011111000000000000000cccc0000000000000000000000000000000000000000000000000000000000
-00044444440000000004444444000000000000000000111fff1110000000000000c00c0000000000000000000000000000000000000000000000000000000000
-000044444000000000004444400000000000000000011ffffffff1000000000000c00c0000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000100000001000000010000000000000000000000000000000000000000000
+11111111000000000000000111111110000000000000000000000000000000000000c0000000c0000000c0000000000000000000000000000000000000000000
+0000000100000000000000010000000000000000000000000000000000000000000ccc00000ccc00000cc0000000000000000000000000000000000000000000
+000004444000000000000444400000000000000000000000000000000000000000c0c0c000c0c0c0000ccc000000000000000000000000000000000000000000
+00004744440000100000474444000100000000000000000000000000000000000000c0000000c0000000c0000000000000000000000000000000000000000000
+0004444444444100000444444444441000000000000000111110000000000000000ccc000000cc000000c0000000000000000000000000000000000000000000
+00044444440000000004444444000000000000000000111fff11100000000000000c0c000000c0c000ccc0000000000000000000000000000000000000000000
+000044444000000000004444400000000000000000011ffffffff10000000000000c0c00000c00c00000c0000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000011fffffffff100000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000111111ffffffffff111100000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000111ffffffffffffffffff111000000000000000000000000000000000000000000000000000000000000000000000
