@@ -146,9 +146,9 @@ variable people_on_board
 ;
 
 variable p_sprite
-variable p_dir 
+variable p_dir
 variable p_anim
- 
+
 : update_people
     \ animation runs continuously
     p_anim @ 10 >= if
@@ -172,7 +172,7 @@ variable p_anim
                         \ Person boarded chopper
                         drop drop
                         false i cells person_active + !
-                        1000 5 beep
+                        0 sfx
                         1 people_on_board +!
                     else
                         > if
@@ -181,7 +181,7 @@ variable p_anim
                             1
                         then
                         dup p_dir !  \ Save for animation
-                        i cells person_x + +! \ Update player position 
+                        i cells person_x + +! \ Update player position
                     then
 
                     p_anim @ 5 < if 9 else 10 then p_sprite ! \ Animate running

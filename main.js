@@ -481,7 +481,8 @@ function getButtons() {
   return [buttonMask];
 }
 
-function playBeep(frequency, duration) {
+function playSoundEffect(index) {
+  // XXX index is currently ignored.
   if (!audioStarted) {
     // The audio context requires an interaction with the page to start.
     // Resume this lazily to ensure that happens.
@@ -489,7 +490,20 @@ function playBeep(frequency, duration) {
     audioStarted = true;
   }
 
-  playerNode.port.postMessage({frequency, duration});
+  const effectInfo = [
+    {
+      noteDuration: 0.01,
+      frequencies: [1000, 1100, 1200, 1300, 1400, 1500],
+      amplitudes: [0.3, 0.9, 0.6, 0.3, 0.1],
+    },
+    {
+      noteDuration: 0.03,
+      frequencies: [2000, 1500, 1000, 2000, 1500, 1000],
+      amplitudes: [0.9, 0.8, 0.5, 0.9, 0.8, 0.5],
+    },
+  ];
+
+  playerNode.port.postMessage({action: 'play', effect: effectInfo[index]});
 }
 
 let drawFrameTimer = null;
@@ -552,6 +566,8 @@ ${BUTTON_B} constant BUTTON_B
  */
 function resetInterpreter() {
   try {
+    stopRun();
+
     document.getElementById('output').textContent = '';
 
     const ctx = new ForthContext();
@@ -573,7 +589,7 @@ function resetInterpreter() {
       writeConsole(val + '\n');
     });
     ctx.createBuiltinWord('buttons', 0, getButtons);
-    ctx.createBuiltinWord('beep', 2, playBeep);
+    ctx.createBuiltinWord('sfx', 1, playSoundEffect);
     ctx.interpretSource(GAME_BUILTINS);
     ctx.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
     ${outputCanvas.height} constant SCREEN_HEIGHT`);
@@ -601,6 +617,9 @@ function stopRun() {
     clearTimeout(drawFrameTimer);
     drawFrameTimer = -1;
     updateStopButton();
+  }
+  if (playerNode) {
+    playerNode.port.postMessage({action: 'stop'});
   }
 }
 

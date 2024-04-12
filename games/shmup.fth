@@ -90,7 +90,7 @@ variable last_button
     buttons BUTTON_A and if
         last_button @ 0= if
            fire_missile
-           440 4 beep
+           0 sfx
         then
         true last_button !
     else
@@ -148,22 +148,22 @@ variable last_button
 : update_enemies
     MAX_ENEMIES 0 do
         i cells enemy_active + @ if
-            i cells enemy_x + @ i cells enemy_y + @ 
-            2 2 2 false false draw_sprite 
-             
+            i cells enemy_x + @ i cells enemy_y + @
+            2 2 2 false false draw_sprite
+
            \ XXX enemy movement
 
-           \ Each enemy can have one bomb on the screen at a time. 
+           \ Each enemy can have one bomb on the screen at a time.
             i cells bomb_active + @ if
                 3 i cells bomb_y + +!  \ Move the bomb towards bottom of screen
                 i cells bomb_y + @ SCREEN_HEIGHT >= if
                     \ past bottom of screen
                     false i cells bomb_active + !
-                else 
+                else
                     C_ORANGE set_color
                     i cells bomb_x + @ i cells bomb_y + @ over over 3 + draw_line
                 then
-            else 
+            else
                 \ randomly drop bombs
                 random 9 mod 1 = if
                     \ Drop a bomb. Each enemy has one bomb slot.
@@ -172,10 +172,10 @@ variable last_button
                     i cells enemy_y + @ 16 + i cells bomb_y + !
                 then
             then
- 
+
            \ Check missile collisions
             MAX_MISSILES 0 do
-                i cells missile_x + @ 
+                i cells missile_x + @
                 j cells enemy_x + @ 8 +
                 - abs
                 8 <

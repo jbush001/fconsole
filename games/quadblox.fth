@@ -363,6 +363,7 @@ variable game_over
 ( -- )
 : try_complete_lines
     check_finished dup if
+        1 sfx
         dup total_lines +!
 
         \ Update score based on number of lines cleared
@@ -450,7 +451,7 @@ variable game_over
             \ Collision, undo action
             rotation @ 3 + 3 and rotation !
         else
-            440 10 beep
+            0 sfx
         then
     then
 
@@ -560,10 +561,6 @@ SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
             \ Peforming a blink animation sequence to remove rows.
             1 blink_counter +!
             blink_counter @ 6 / 1 and 0=  \ New blink state
-            dup blink_state @ = if        \ changed 0 to 1?
-               220 5 beep
-            then
-
             blink_state ! \ save new blink state
 
             \ Check if the animation sequence is finished.

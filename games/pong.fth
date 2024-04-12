@@ -120,13 +120,13 @@ variable digit_y
     \ Right side
     ball_x @ COURT_RIGHT = if
         0 ball_dx @ - ball_dx !
-        220 20 beep
+        0 sfx
     then
 
     \ Top or bottom
     ball_y @ 0= ball_y @ COURT_BOTTOM = or if
         ball_dy @ negate ball_dy !
-        220 20 beep
+        0 sfx
     then
 
     \ Left (open) side where paddle is.
@@ -136,7 +136,7 @@ variable digit_y
         ball_y @ paddle_y @ PADDLE_HEIGHT + < and if
             \ Yes, on the paddle, bounce
             ball_dx @ negate ball_dx !
-            220 20 beep
+            0 sfx
             1 score +!
         then
     then
