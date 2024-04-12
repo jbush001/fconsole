@@ -64,19 +64,7 @@ for (let i = 0; i < PALETTE.length; i++) {
   INVERSE_PALETTE.set(PALETTE[i].toString(), i);
 }
 
-// Currently hard coded
-const soundEffects = [
-  {
-    noteDuration: 0.01,
-    notes: [60, 61, 62, 63, 64, 65],
-    amplitudes: [85, 250, 128, 85, 25],
-  },
-  {
-    noteDuration: 0.03,
-    notes: [72, 84, 72, 84, 72, 84],
-    amplitudes: [240, 180, 128, 240, 180, 128],
-  },
-];
+const soundEffects = [];
 
 // spriteBitmap must be kept in sync with spriteData (since bitmaps
 // are immutable, we keep spriteData around to modify it).
@@ -169,6 +157,11 @@ function startup() {
   }).catch((error) => {
     console.log('error initializing audio worklet node', error);
   });
+
+  // @todo configure and load these dynamically
+  createSoundEffect(0, 2, [60, 61, 62, 63, 64, 65], [85, 250, 128, 85, 25]);
+  createSoundEffect(1, 7, [72, 84, 72, 84, 72, 84],
+      [240, 180, 128, 240, 180, 128]);
 }
 
 /**
@@ -625,6 +618,35 @@ function stopRun() {
   if (playerNode) {
     playerNode.port.postMessage({action: 'stop'});
   }
+}
+
+/**
+ * Set up low level data needed for a sound effect, converting from a device
+ * independent representation to frequencies/sample counts based on the current
+ * configuration of the output device.
+ * @param {number} index Which sound effect slot this will update.
+ * @param {number} noteDuration How long each note lasts, in 4ms increments
+ *   (0-255)
+ * @param {number[]} notes Array of notes. Each number 0-255 corresponds to a
+ *   piano key, in half step increments, where 0 is A0.
+ * @param {number[]} envelope Volume per note, value is 0-255, where
+ *     255 is loudest.
+ */
+function createSoundEffect(index, noteDuration, notes, envelope) {
+  const samplesPerNote = Math.floor(noteDuration / 255 *
+    audioContext.sampleRate);
+  const frequencies = [];
+  const amplitudes = [];
+  for (let i = 0; i < notes.length; i++) {
+    // Notes correspond to notes on a piano, with 0 being A0 and 88 being
+    // c8.
+    const freq = 27.5 * 2 ** (Math.floor(notes[i]) / 12);
+    const freqStep = freq * Math.PI * 2 / audioContext.sampleRate;
+    frequencies.push(freqStep);
+    amplitudes.push(3.4 * Math.floor(envelope[i]) / 255);
+  }
+
+  soundEffects[index] = {samplesPerNote, frequencies, amplitudes};
 }
 
 /**
