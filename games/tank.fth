@@ -12,6 +12,10 @@
 \ See the License for the specific language governing permissions and
 \ limitations under the License.
 
+\ To do:
+\ * Add obstacles
+\ * Add enemies
+
 variable direction
 variable delay
 variable tank_x

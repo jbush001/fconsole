@@ -11,6 +11,12 @@
 \ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 \ See the License for the specific language governing permissions and
 \ limitations under the License.
+\
+\ To do:
+\ * Create a landing area. Make soldiers run out when the chopper lands there.
+\ * Add score display (soldiers in helicopter, total rescued)
+\ * Create enemy tanks that will fire up at the helicopter.
+\ * Enable the helicopter with guns/bombs.
 
 variable dir
 variable anim_frame
