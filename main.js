@@ -79,7 +79,7 @@ let saveFileName = null;
 let buttonMask = 0;
 
 let audioContext = null;
-let audioStarted = false;
+let audioRunning = false;
 let playerNode = null;
 
 // eslint-disable-next-line no-unused-vars
@@ -489,18 +489,18 @@ function getButtons() {
 }
 
 function playSoundEffect(index) {
-  if (!audioStarted) {
+  if (!audioRunning) {
     // The audio context requires an interaction with the page to start.
     // Resume this lazily to ensure that happens.
     audioContext.resume();
-    audioStarted = true;
+    audioRunning = true;
   }
 
   if (index >= soundEffects.length || index < 0) {
     return;
   }
 
-  playerNode.port.postMessage({action: 'play', effect: soundEffects[index]});
+  playerNode.port.postMessage(soundEffects[index]);
 }
 
 let drawFrameTimer = null;
@@ -615,8 +615,10 @@ function stopRun() {
     drawFrameTimer = -1;
     updateStopButton();
   }
-  if (playerNode) {
-    playerNode.port.postMessage({action: 'stop'});
+
+  if (audioRunning) {
+    audioContext.suspend();
+    audioRunning = false;
   }
 }
 

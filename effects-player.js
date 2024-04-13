@@ -50,16 +50,12 @@ class EffectsPlayer extends AudioWorkletProcessor {
   }
 
   handleMessage(event) {
-    if (event.data.action == 'play') {
-      this.frequencies = event.data.effect.frequencies;
-      this.amplitudes = event.data.effect.amplitudes;
-      this.samplesPerNote = event.data.effect.samplesPerNote;
-      this.effectIndex = 0;
-      this.sampleCount = 0;
-      this.angle = 0; // Avoid a pop at the beginning.
-    } else if (data.action == 'stop') {
-      this.frequencies = null;
-    }
+    this.frequencies = event.data.frequencies;
+    this.amplitudes = event.data.amplitudes;
+    this.samplesPerNote = event.data.samplesPerNote;
+    this.effectIndex = 0;
+    this.sampleCount = 0;
+    this.angle = 0; // Avoid a pop at the beginning.
   }
 }
 
