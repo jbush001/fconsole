@@ -44,7 +44,7 @@ const PALETTE = [
   [0, 0, 0, 0], // transparent
   rgb(0, 0, 0), // black
   rgb(255, 0, 0), // red
-  rgb(0, 255, 0), // light green
+  rgb(0, 192, 0), // light green
   rgb(0, 0, 255), // blue
   rgb(255, 0, 255), // magenta
   rgb(255, 255, 0), // yellow
@@ -53,7 +53,7 @@ const PALETTE = [
   rgb(0, 165, 255), // light blue
   rgb(255, 165, 0), // orange
   rgb(128, 0, 128), // purple
-  rgb(0, 128, 0), // dark green
+  rgb(0, 100, 0), // dark green
   rgb(160, 82, 45), // brown
   rgb(217, 113, 98), // salmon
   rgb(255, 255, 255), // white

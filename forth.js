@@ -340,6 +340,8 @@ class ForthContext {
       'or': new Word(this._or),
       'and': new Word(this._and),
       'xor': new Word(this._xor),
+      'lshift': new Word(this._lshift),
+      'rshift': new Word(this._rshift),
       '=': new Word(this._equals),
       '<': new Word(this._lessThan),
       'abs': new Word(this._abs),
@@ -807,6 +809,18 @@ class ForthContext {
 
   _xor() {
     this._push(this._pop() ^ this._pop());
+  }
+
+  _lshift() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(b << a);
+  }
+
+  _rshift() {
+    const a = this._pop();
+    const b = this._pop();
+    this._push(b >> a);
   }
 
   _equals() {
