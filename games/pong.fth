@@ -61,7 +61,7 @@ decimal
 4 constant SEG_THICKNESS
 
 \ Rectangles for each segment, x, y, width, height
-create seg_locs
+create segment_coords
     0 , 0 , SEG_LENGTH , SEG_THICKNESS , \ 0
     0 , 0 , SEG_THICKNESS , SEG_LENGTH , \ 1
     SEG_LENGTH SEG_THICKNESS - , 0 , SEG_THICKNESS , SEG_LENGTH , \ 2
@@ -73,7 +73,7 @@ create seg_locs
 variable digit_x
 variable digit_y
 
-( seg_ptr -- )
+( seg_ptr -- seg_ptr )
 : draw_segment
     \ Read the 4 values onto the stack
     dup @ digit_x @ +
@@ -81,27 +81,19 @@ variable digit_y
     3 pick 8 + @
     4 pick 12 + @
     fill_rect
-    drop
 ;
 
 ( value -- )
 : draw_digit
     cells segmap + @   \ Lookup table, each bit represents a segment
-    seg_locs
-    1
-    ( bitmap coord_ptr mask )
-
-    begin
-        dup 64 <=
-    while
-        dup 4 pick and if
-            over draw_segment
+    segment_coords ( bitmap coord_ptr )
+    7 0 do
+        over 1 i lshift and if
+            draw_segment
         then
-        swap 16 + swap
-        2 *
-    repeat
-
-    drop drop drop
+        16 +
+    loop
+    drop drop
 ;
 
 : draw_score
@@ -112,59 +104,65 @@ variable digit_y
     score @ 10 mod draw_digit
 ;
 
+( x -- -x )
+: negatevar
+    dup @ negate swap !
+;
+
+( low high value -- result )
+: in_bounds
+    swap over >=
+    -rot <=
+    and
+;
+
 : update
     \ Update ball position
     ball_dx @ ball_x +!
     ball_dy @ ball_y +!
 
     \ Right side
-    ball_x @ COURT_RIGHT = if
-        0 ball_dx @ - ball_dx !
+    ball_x @ COURT_RIGHT >= if
+        -2 ball_dx !
         0 sfx
     then
 
     \ Top or bottom
-    ball_y @ 0= ball_y @ COURT_BOTTOM = or if
-        ball_dy @ negate ball_dy !
+    0 COURT_BOTTOM ball_y @ in_bounds 0= if
+        ball_dy negatevar
         0 sfx
     then
 
-    \ Left (open) side where paddle is.
-    ball_x @ PADDLE_WIDTH = if
-        \ Are we on the paddle?
-        ball_y @ 8 + paddle_y @ >
-        ball_y @ paddle_y @ PADDLE_HEIGHT + < and if
-            \ Yes, on the paddle, bounce
-            ball_dx @ negate ball_dx !
-            0 sfx
-            1 score +!
-        then
+    ball_x @ -8 < if
+        \ Out of bounds, restart game.
+        init
+        1 sfx
+        exit
     then
 
-    ball_x @ -8 < if
-        \ Out of bounds. We do this here instead of in the else above because
-        \ we want to animate the ball going fully out of bounds
-        init
+    \ Check for paddle hit
+    ball_x @ PADDLE_WIDTH <
+        paddle_y @ dup PADDLE_HEIGHT + ball_y @ 4 + in_bounds and if
+        \ Yes, on the paddle, bounce
+        2 ball_dx !
+        0 sfx
+        1 score +!
     then
 
     \ Move paddle
-    buttons BUTTON_U and if
-        paddle_y @ 0 > if
-            paddle_y @ 2 - paddle_y !
-        then
+    buttons BUTTON_U and paddle_y @ 0 > and if
+        -2 paddle_y +!
     then
 
-    buttons BUTTON_D and if
-        paddle_y @ SCREEN_HEIGHT PADDLE_HEIGHT - < if
-            paddle_y @ 2 + paddle_y !
-        then
+    buttons BUTTON_D and paddle_y @ SCREEN_HEIGHT PADDLE_HEIGHT - < and if
+        2 paddle_y +!
     then
 ;
 
 : draw_frame
     update
 
-    0 cls
+    C_BLACK cls
     C_CYAN set_color
     draw_score
     ball_x @ ball_y @ 0 1 1 false false draw_sprite
