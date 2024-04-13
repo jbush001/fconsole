@@ -1,11 +1,23 @@
+'use strict';
+
+// Copyright 2024 Jeff Bush
+//
+// Licensed under the Apache License, Version 2.0 (the 'License');
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an 'AS IS' BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 class EffectsPlayer extends AudioWorkletProcessor {
   constructor(options) {
     super();
-    const self = this;
-    this.port.onmessage = (e) => {
-      self.handleMessage(e.data);
-    };
+    this.port.onmessage = this.handleMessage.bind(this);
 
     this.angle = 0.0;
     this.frequencies = null;
@@ -15,6 +27,8 @@ class EffectsPlayer extends AudioWorkletProcessor {
     this.sampleCount = 0;
   }
 
+  // @todo: This has a lot of popping and crackling because there are abrupt
+  // transitions.
   process(inputs, outputs, parameters) {
     const outputBuf = outputs[0][0];
     if (this.frequencies) {
@@ -35,13 +49,14 @@ class EffectsPlayer extends AudioWorkletProcessor {
     return true;
   }
 
-  handleMessage(data) {
-    if (data.action == 'play') {
-      this.frequencies = data.effect.frequencies;
-      this.amplitudes = data.effect.amplitudes;
-      this.samplesPerNote = data.effect.samplesPerNote;
+  handleMessage(event) {
+    if (event.data.action == 'play') {
+      this.frequencies = event.data.effect.frequencies;
+      this.amplitudes = event.data.effect.amplitudes;
+      this.samplesPerNote = event.data.effect.samplesPerNote;
       this.effectIndex = 0;
       this.sampleCount = 0;
+      this.angle = 0; // Avoid a pop at the beginning.
     } else if (data.action == 'stop') {
       this.frequencies = null;
     }
