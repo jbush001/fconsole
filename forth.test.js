@@ -919,4 +919,25 @@ test('char', () => {
 `)).toBe('65\n66\n69\n71');
 });
 
+test('exception stack crawl', () => {
+  try {
+    runCode(`
+      : foo
+          !
+      ;
+
+      : bar
+          foo
+      ;
+
+      bar`);
+    expect(false).toBe(true); // Should not reach this.
+  } catch (err) {
+    expect(err.stackCrawl[0][0]).toBe('foo');
+    expect(err.stackCrawl[0][3]).toBe(3);
+    expect(err.stackCrawl[1][0]).toBe('bar');
+    expect(err.stackCrawl[1][3]).toBe(7);
+  }
+});
+
 

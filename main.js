@@ -587,11 +587,12 @@ function resetInterpreter() {
     });
     ctx.createBuiltinWord('buttons', 0, getButtons);
     ctx.createBuiltinWord('sfx', 1, playSoundEffect);
-    ctx.interpretSource(GAME_BUILTINS);
+    ctx.interpretSource(GAME_BUILTINS, 'game-builtins');
     ctx.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
-    ${outputCanvas.height} constant SCREEN_HEIGHT`);
+    ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
 
-    ctx.interpretSource(document.getElementById('source').value);
+    ctx.interpretSource(document.getElementById('source').value,
+        saveFileName ? saveFileName : '<game source>');
 
     drawFrameAddr = ctx.lookupWord('draw_frame');
     if (drawFrameAddr === null) {

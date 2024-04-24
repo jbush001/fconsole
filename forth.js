@@ -245,6 +245,26 @@ _get_time __rand_seed !
 
 `;
 
+class ForthError extends Error {
+  constructor(message, stackCrawl=null) {
+    super(message);
+    this.name = this.constructor.name;
+    this.stackCrawl = stackCrawl;
+  }
+
+  toString() {
+    let result = this.message;
+    if (this.stackCrawl) {
+      result += '\n(Most recent call first)\n';
+      for (const frame of this.stackCrawl) {
+        result += `${frame[0]} (${frame[2]}:${frame[3]}) @${frame[1]}\n`;
+      }
+    }
+
+    return result;
+  }
+}
+
 class Word {
   constructor(value, immediate=false, literal=false) {
     this.immediate = immediate;
@@ -269,6 +289,11 @@ class DebugInfo {
   constructor() {
     this.lineMappings = {};
     this.wordMappings = [];
+    this.fileNames = [];
+  }
+
+  startFile(fileName) {
+    this.fileNames.push(fileName);
   }
 
   startWord(name, address) {
@@ -280,7 +305,7 @@ class DebugInfo {
   }
 
   addLineMapping(address, line) {
-    this.lineMappings[address] = line;
+    this.lineMappings[address] = [this.fileNames.length - 1, line];
   }
 
   lookupWord(address) {
@@ -363,7 +388,7 @@ class ForthContext {
 
     this.debugInfo = new DebugInfo();
 
-    this.interpretSource(LIB);
+    this.interpretSource(LIB, 'stdlib');
   }
 
   /**
@@ -372,11 +397,12 @@ class ForthContext {
    * address is out of bounds.
    * @param {number} addr
    * @return {number} memory value at address
+   * @throws {ForthError}
    */
   _fetchCell(addr) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory fetch out of range: ${addr}\n` +
-        this._debugStackCrawl());
+      throw new ForthError(`Memory fetch out of range: ${addr}\n`,
+          this._debugStackCrawl());
     }
 
     return this.memory[Math.floor(addr / CELL_SIZE)];
@@ -384,8 +410,8 @@ class ForthContext {
 
   _storeCell(addr, value) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory store out of range: ${addr}\n` +
-        this._debugStackCrawl());
+      throw new ForthError(`Memory store out of range: ${addr}\n`,
+          this._debugStackCrawl());
     }
 
     this.memory[Math.floor(addr / CELL_SIZE)] = value;
@@ -396,6 +422,7 @@ class ForthContext {
    * @param {number} addr
    * @return {number} Contents of location. This is treated as
    *    unsigne and not sign extended.
+   * @throws {ForthError}
    */
   fetchByte(addr) {
     const shift = (addr % CELL_SIZE) * 8;
@@ -404,8 +431,8 @@ class ForthContext {
 
   _storeByte(addr, value) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new Error(`Memory store out of range: ${addr}\n` +
-        this._debugStackCrawl());
+      throw new ForthError(`Memory store out of range: ${addr}\n`,
+          this._debugStackCrawl());
     }
 
     const shift = (addr % CELL_SIZE) * 8;
@@ -449,14 +476,14 @@ class ForthContext {
    *   the stack and passed to the called function.
    * @param {function} callback A javascript function to call when this
    *   word is executed.
-   * @throw {Error} If there is a stack underflow reading the arguments.
+   * @throw {ForthError} If there is a stack underflow reading the arguments.
    */
   createBuiltinWord(name, argCount, callback) {
     const self = this;
     this.dictionary[name] = new Word(() => {
       if ((MEMORY_SIZE - self.stackPointer - CELL_SIZE) <
           argCount * CELL_SIZE) {
-        throw new Error('stack underflow\n' + this._debugStackCrawl());
+        throw new ForthError('stack underflow\n', this._debugStackCrawl());
       }
 
       const args = [];
@@ -479,11 +506,11 @@ class ForthContext {
   /**
    * Remove top value from operand stack and return it.
    * @return {number|function}
-   * @throws {Error} if the stack is empty.
+   * @throws {ForthError} if the stack is empty.
    */
   _pop() {
     if (this.stackPointer >= MEMORY_SIZE) {
-      throw new Error('stack underflow\n' + this._debugStackCrawl());
+      throw new ForthError('stack underflow', this._debugStackCrawl());
     }
 
     const result = this._fetchCell(this.stackPointer);
@@ -495,16 +522,16 @@ class ForthContext {
    * Put a value on top of the operand stack
    * @param {number|function} val What to push. If this is a number, it will
    *   be automatically converted to an integer.
-   * @throws {Error} if the stack is full.
+   * @throws {ForthError} if the stack is full.
    */
   _push(val) {
     if (val === undefined) {
-      throw new Error('internal error: undefined pushed on stack\n' +
+      throw new ForthError('internal error: undefined pushed on stack',
           this._debugStackCrawl());
     }
 
     if (this.stackPointer < this.here) {
-      throw new Error('stack overflow\n' + this._debugStackCrawl());
+      throw new ForthError('stack overflow', this._debugStackCrawl());
     }
 
     // the '| 0' forces this to fit in an int. We always keep the stack
@@ -522,11 +549,12 @@ class ForthContext {
    * During compilation, write a word at 'here' (next code address)
    * and increment the pointer by one word.
    * @param {number} value
+   * @throws {ForthError}
    */
   _emitCode(value) {
     this.debugInfo.addLineMapping(this.here, this.lineNumber);
     if (this.here >= MEMORY_SIZE) {
-      throw new Error('out of memory');
+      throw new ForthError('out of memory');
     }
 
     this._storeCell(this.here, value);
@@ -591,15 +619,16 @@ class ForthContext {
    * will be pulled from the next token in the input string. The
    * value of this word will be the current 'here' address (next
    * code to be emitted)
+   * @throws {ForthError}
    */
   _create() {
     if (this.state == STATE_COMPILE) {
-      throw new Error(`Line ${this.lineNumber}: create inside colon def`);
+      throw new ForthError(`Line ${this.lineNumber}: create inside colon def`);
     }
 
     const name = this._readWord();
     if (!name) {
-      throw new Error(`Line ${this.lineNumber}: missing word name`);
+      throw new ForthError(`Line ${this.lineNumber}: missing word name`);
     }
 
     this.currentWord = new Word(this.here, false, true);
@@ -612,15 +641,17 @@ class ForthContext {
    * from the stack, and the name is pulled from the next token in the stream.
    * e.g.
    *     10 constant foo
+   * @throws {ForthError}
    */
   _constant() {
     if (this.state == STATE_COMPILE) {
-      throw new Error(`Line ${this.lineNumber}: constant inside colon def`);
+      throw new ForthError(
+          `Line ${this.lineNumber}: constant inside colon def`);
     }
 
     const name = this._readWord();
     if (!name) {
-      throw new Error(`Line ${this.lineNumber}: missing word name`);
+      throw new ForthError(`Line ${this.lineNumber}: missing word name`);
     }
 
     this.dictionary[name] = new Word(this._pop(), false, true);
@@ -630,10 +661,11 @@ class ForthContext {
    * Begin compiling a new word. This will pull the next token from the
    * stream and put that into the dictionary. It also sets the state
    * to compiling.
+   * @throws {ForthError}
    */
   _colon() {
     if (this.state == STATE_COMPILE) {
-      throw new Error(`Line ${this.lineNumber}: nested colon def`);
+      throw new ForthError(`Line ${this.lineNumber}: nested colon def`);
     }
 
     this._create();
@@ -645,10 +677,11 @@ class ForthContext {
    * Finish compilation of the current word, automatically generating
    * an implicit 'exit' word to return to the caller, and switching
    * the state from compiling back to interpeting.
+   * @throws {ForthError}
    */
   _semicolon() {
     if (this.state != STATE_COMPILE) {
-      throw new Error(`Line ${this.lineNumber}: unmatched ;`);
+      throw new ForthError(`Line ${this.lineNumber}: unmatched ;`);
     }
 
     this.state = STATE_INTERP;
@@ -757,10 +790,12 @@ class ForthContext {
 
   /**
    * Pop a value from the return stack and push onto the operand stack.
+   * @throws {ForthError}
    */
   _popReturn() {
     if (this.returnStack.length == 0) {
-      throw new Error(`return stack underflow\n` + this._debugStackCrawl());
+      throw new ForthError(`return stack underflow\n`,
+          this._debugStackCrawl());
     }
 
     this._push(this.returnStack.pop());
@@ -902,6 +937,7 @@ class ForthContext {
 
   /**
    * This could be implemented in FORTH, but I was too lazy...
+   * @throws {ForthError}
    */
   _makeString() {
     const startLine = this.lineNumber;
@@ -918,7 +954,7 @@ class ForthContext {
     let curAddr = this.here + CELL_SIZE * 2;
     while (true) {
       if (curAddr >= MEMORY_SIZE) {
-        throw new Error('out of memory');
+        throw new ForthError('out of memory');
       }
 
       const ch = this._readChar();
@@ -927,7 +963,7 @@ class ForthContext {
       } else if (ch) {
         this._storeByte(curAddr++, ch.charCodeAt(0));
       } else {
-        throw new Error(`Line ${startLine}: unterminated quote`);
+        throw new ForthError(`Line ${startLine}: unterminated quote`);
       }
     }
 
@@ -970,15 +1006,18 @@ class ForthContext {
 
   /**
    * @param {string} src The source code to interpret.
+   * @param {string} filename Name of source file (for debug info)
    *
    * Immedately execute code. This intepreter doesn't have an actual REPL, so
    * we interpret code out of a string buffer. This implements what is
    * formally known as the "outer interpreter."
    */
-  interpretSource(src) {
+  interpretSource(src, filename='<unnamed>') {
     this.interpStr = src;
     this.interpOffs = 0;
     this.lineNumber = 1;
+
+    this.debugInfo.startFile(filename);
 
     while (true) {
       const tok = this._readWord();
@@ -1024,6 +1063,7 @@ class ForthContext {
    * address for a user defined word.
    * @param {number} startAddress Address in FORTH address space to begin
    * execution.
+   * @throws {ForthError}
    */
   _exec(startAddress) {
     // Used to prevent infinite loops, which hang the browser.
@@ -1035,7 +1075,8 @@ class ForthContext {
       const value = this._fetchCell(this.pc);
       this.pc += CELL_SIZE;
       if (value == 0) {
-        throw new Error(`invalid branch to zero\n` + this._debugStackCrawl());
+        throw new ForthError(`invalid branch to zero\n`,
+            this._debugStackCrawl());
       } else if (value instanceof Function) {
         value.call(this);
       } else {
@@ -1045,7 +1086,8 @@ class ForthContext {
     }
 
     if (this.continueExec) {
-      throw new Error('Exceeded maximum cycles\n' + this._debugStackCrawl());
+      throw new ForthError('Exceeded maximum cycles\n',
+          this._debugStackCrawl());
     }
   }
 
@@ -1081,7 +1123,7 @@ class ForthContext {
    * Convert a string form of a number into an actual numeric form.
    * @param {string} tok A string containing the number.
    * @return {number} The numeric value
-   * @throw {Error} if the format is incorrect.
+   * @throws {ForthError} if the format is incorrect.
    */
   _parseNumber(tok) {
     let tokVal = 0;
@@ -1102,11 +1144,11 @@ class ForthContext {
       } else if (tok[i] >= 'A' && tok[i] <= 'Z') {
         digitval = tok.charCodeAt(i) - A_ASCII + 10;
       } else {
-        throw new Error(`Line ${this.lineNumber}: unknown word ${tok}`);
+        throw new ForthError(`Line ${this.lineNumber}: unknown word ${tok}`);
       }
 
       if (digitval >= base) {
-        throw new Error(`Line ${this.lineNumber}: unknown word ${tok}`);
+        throw new ForthError(`Line ${this.lineNumber}: unknown word ${tok}`);
       }
 
       tokVal = (tokVal * base) + digitval;
@@ -1121,16 +1163,20 @@ class ForthContext {
 
   /**
    * Walk the return stack and show names of user defined words.
-   * @return {string} A human readable stack crawl
+   * @return {Object[]} A list of stack frames, most recently called first
    */
   _debugStackCrawl() {
-    let crawlInfo = '(most recent call first)\n';
+    const frames = [];
 
     const self = this;
     function addEntry(address) {
       const wordDef = self.debugInfo.lookupWord(address);
-      const lineNo = self.debugInfo.lookupLine(address);
-      crawlInfo += `${wordDef} @${address} (line ${lineNo})\n`;
+      const lineInfo = self.debugInfo.lookupLine(address);
+      const fileName = lineInfo ? self.debugInfo.fileNames[lineInfo[0]] :
+        'unknown';
+      const lineNo = lineInfo ? lineInfo[1] : 'unknown';
+
+      frames.push([wordDef, address, fileName, lineNo]);
     }
 
     addEntry(this.pc - CELL_SIZE);
@@ -1138,7 +1184,7 @@ class ForthContext {
       addEntry(this.returnStack[i] - CELL_SIZE);
     }
 
-    return crawlInfo;
+    return frames;
   }
 }
 
