@@ -414,20 +414,26 @@ class ForthContext {
    * address is out of bounds.
    * @param {number} addr
    * @return {number} memory value at address
-   * @throws {ForthError}
+   * @throws {ForthRuntimeError}
    */
   _fetchCell(addr) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new ForthRuntimeError(`Memory fetch out of range: ${addr}\n`,
+      throw new ForthRuntimeError(`Memory fetch out of range: ${addr}`,
           this._debugStackCrawl());
     }
 
     return this.memory[Math.floor(addr / CELL_SIZE)];
   }
 
+  /**
+   * Write memory to a cell.
+   * @param {number} addr
+   * @param {number} value
+   * @throws {ForthRuntimeError}
+   */
   _storeCell(addr, value) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new ForthRuntimeError(`Memory store out of range: ${addr}\n`,
+      throw new ForthRuntimeError(`Memory store out of range: ${addr}`,
           this._debugStackCrawl());
     }
 
@@ -439,7 +445,7 @@ class ForthContext {
    * @param {number} addr
    * @return {number} Contents of location. This is treated as
    *    unsigne and not sign extended.
-   * @throws {ForthError}
+   * @throws {ForthRuntimeError}
    */
   fetchByte(addr) {
     const shift = (addr % CELL_SIZE) * 8;
@@ -448,7 +454,7 @@ class ForthContext {
 
   _storeByte(addr, value) {
     if (addr < 0 || addr >= MEMORY_SIZE) {
-      throw new ForthRuntimeError(`Memory store out of range: ${addr}\n`,
+      throw new ForthRuntimeError(`Memory store out of range: ${addr}`,
           this._debugStackCrawl());
     }
 
@@ -493,14 +499,15 @@ class ForthContext {
    *   the stack and passed to the called function.
    * @param {function} callback A javascript function to call when this
    *   word is executed.
-   * @throw {ForthError} If there is a stack underflow reading the arguments.
+   * @throws {ForthRuntimeError} If there is a stack underflow reading the
+   *     arguments.
    */
   createBuiltinWord(name, argCount, callback) {
     const self = this;
     this.dictionary[name] = new Word(() => {
       if ((MEMORY_SIZE - self.stackPointer - CELL_SIZE) <
           argCount * CELL_SIZE) {
-        throw new ForthRuntimeError('stack underflow\n',
+        throw new ForthRuntimeError('stack underflow',
             this._debugStackCrawl());
       }
 
@@ -524,7 +531,7 @@ class ForthContext {
   /**
    * Remove top value from operand stack and return it.
    * @return {number|function}
-   * @throws {ForthError} if the stack is empty.
+   * @throws {ForthRuntimeError} if the stack is empty.
    */
   _pop() {
     if (this.stackPointer >= MEMORY_SIZE) {
@@ -540,7 +547,7 @@ class ForthContext {
    * Put a value on top of the operand stack
    * @param {number|function} val What to push. If this is a number, it will
    *   be automatically converted to an integer.
-   * @throws {ForthError} if the stack is full.
+   * @throws {ForthRuntimeError} if the stack is full.
    */
   _push(val) {
     if (val === undefined) {
@@ -567,7 +574,7 @@ class ForthContext {
    * During compilation, write a word at 'here' (next code address)
    * and increment the pointer by one word.
    * @param {number} value
-   * @throws {ForthError}
+   * @throws {ForthRuntimeError}
    */
   _emitCode(value) {
     this.debugInfo.addLineMapping(this.here, this.lineNumber);
@@ -637,7 +644,7 @@ class ForthContext {
    * will be pulled from the next token in the input string. The
    * value of this word will be the current 'here' address (next
    * code to be emitted)
-   * @throws {ForthError}
+   * @throws {ForthCompileError}
    */
   _create() {
     if (this.state == STATE_COMPILE) {
@@ -661,7 +668,7 @@ class ForthContext {
    * from the stack, and the name is pulled from the next token in the stream.
    * e.g.
    *     10 constant foo
-   * @throws {ForthError}
+   * @throws {ForthCompileError}
    */
   _constant() {
     if (this.state == STATE_COMPILE) {
@@ -682,7 +689,7 @@ class ForthContext {
    * Begin compiling a new word. This will pull the next token from the
    * stream and put that into the dictionary. It also sets the state
    * to compiling.
-   * @throws {ForthError}
+   * @throws {ForthCompileError}
    */
   _colon() {
     if (this.state == STATE_COMPILE) {
@@ -699,7 +706,7 @@ class ForthContext {
    * Finish compilation of the current word, automatically generating
    * an implicit 'exit' word to return to the caller, and switching
    * the state from compiling back to interpeting.
-   * @throws {ForthError}
+   * @throws {ForthCompileError}
    */
   _semicolon() {
     if (this.state != STATE_COMPILE) {
@@ -813,11 +820,11 @@ class ForthContext {
 
   /**
    * Pop a value from the return stack and push onto the operand stack.
-   * @throws {ForthError}
+   * @throws {ForthRuntimeError}
    */
   _popReturn() {
     if (this.returnStack.length == 0) {
-      throw new ForthRuntimeError(`return stack underflow\n`,
+      throw new ForthRuntimeError(`return stack underflow`,
           this._debugStackCrawl());
     }
 
@@ -1031,6 +1038,7 @@ class ForthContext {
   /**
    * @param {string} src The source code to interpret.
    * @param {string} filename Name of source file (for debug info)
+   * @throws {ForthError}
    *
    * Immedately execute code. This intepreter doesn't have an actual REPL, so
    * we interpret code out of a string buffer. This implements what is
@@ -1088,7 +1096,7 @@ class ForthContext {
    * address for a user defined word.
    * @param {number} startAddress Address in FORTH address space to begin
    * execution.
-   * @throws {ForthError}
+   * @throws {ForthRuntimeError}
    */
   _exec(startAddress) {
     // Used to prevent infinite loops, which hang the browser.
@@ -1100,7 +1108,7 @@ class ForthContext {
       const value = this._fetchCell(this.pc);
       this.pc += CELL_SIZE;
       if (value == 0) {
-        throw new ForthRuntimeError(`invalid branch to zero\n`,
+        throw new ForthRuntimeError(`invalid branch to zero`,
             this._debugStackCrawl());
       } else if (value instanceof Function) {
         value.call(this);
@@ -1111,7 +1119,7 @@ class ForthContext {
     }
 
     if (this.continueExec) {
-      throw new ForthRuntimeError('Exceeded maximum cycles\n',
+      throw new ForthRuntimeError('Exceeded maximum cycles',
           this._debugStackCrawl());
     }
   }
@@ -1120,6 +1128,7 @@ class ForthContext {
    * This is a wrapper for exec, but is called outside the outer interpreter
    * and does some extra checking
    * @param {number} startAddress
+   * @throws {ForthRuntimeError}
    */
   callWord(startAddress) {
     this.stackPointer = MEMORY_SIZE - CELL_SIZE;
