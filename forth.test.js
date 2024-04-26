@@ -14,6 +14,8 @@
 
 const forth = require('./forth');
 
+const DEBUG_SRC_NAME = 'testfile';
+
 function runCode(source) {
   const ctx = new forth.ForthContext();
   let strval = '';
@@ -22,7 +24,7 @@ function runCode(source) {
   });
 
   const initialStack = ctx.stackPointer;
-  ctx.interpretSource(source);
+  ctx.interpretSource(source, DEBUG_SRC_NAME);
   if (ctx.stackPointer != initialStack) {
     let stackStr = '';
     const stackIndex = ctx.stackPointer >> 2;
@@ -313,21 +315,21 @@ test('nested :', () => {
   const t = () => {
     runCode('\n\n: foo\n: bar\n');
   };
-  expect(t).toThrow('Line 4: nested colon def');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:4: nested colon def`);
 });
 
 test('unmatched ;', () => {
   const t = () => {
     runCode('\n\n;\n');
   };
-  expect(t).toThrow('Line 3: unmatched ;');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:3: unmatched ;`);
 });
 
 test('variable inside :', () => {
   const t = () => {
     runCode('\n: foo\nvariable bar\n');
   };
-  expect(t).toThrow('Line 3: create inside colon def');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:3: create inside colon def`);
 });
 
 test('lookup table', () => {
@@ -581,21 +583,21 @@ test('missing word name', () => {
   const t = () => {
     runCode(':');
   };
-  expect(t).toThrow('Line 1: missing word name');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:1: missing word name`);
 });
 
 test('constant missing name', () => {
   const t = () => {
     runCode('constant');
   };
-  expect(t).toThrow('Line 1: missing word name');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:1: missing word name`);
 });
 
 test('constant in def', () => {
   const t = () => {
     runCode(': foo constant bar ;');
   };
-  expect(t).toThrow('Line 1: constant inside colon def');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:1: constant inside colon def`);
 });
 
 
@@ -651,21 +653,21 @@ test('unknown word1', () => {
   const t = () => {
     runCode('16 base 1234g .');
   };
-  expect(t).toThrow('Line 1: unknown word 1234g');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:1: unknown word 1234g`);
 });
 
 test('unknown word2', () => {
   const t = () => {
     runCode('16 base 12-34 .');
   };
-  expect(t).toThrow('Line 1: unknown word 12-34');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:1: unknown word 12-34`);
 });
 
 test('unknown word3', () => {
   const t = () => {
     runCode('adsfasdf');
   };
-  expect(t).toThrow('Line 1: unknown word adsfasdf');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:1: unknown word adsfasdf`);
 });
 
 
@@ -851,7 +853,7 @@ test('unterminated quote', () => {
     bar
     `);
   };
-  expect(t).toThrow('Line 3: unterminated quote');
+  expect(t).toThrow(`${DEBUG_SRC_NAME}:3: unterminated quote`);
 });
 
 
@@ -933,6 +935,8 @@ test('exception stack crawl', () => {
       bar`);
     expect(false).toBe(true); // Should not reach this.
   } catch (err) {
+    expect(err.name).toBe('ForthRuntimeError');
+    expect(err.stackCrawl.length).toBe(2);
     expect(err.stackCrawl[0][0]).toBe('foo');
     expect(err.stackCrawl[0][3]).toBe(3);
     expect(err.stackCrawl[1][0]).toBe('bar');
@@ -940,4 +944,18 @@ test('exception stack crawl', () => {
   }
 });
 
+test('compile error line info', () => {
+  try {
+    runCode(`
 
+      1 2 + drop
+      baz
+      2 dup drop drop
+    `);
+    expect(false).toBe(true); // Should not reach this.
+  } catch (err) {
+    expect(err.name).toBe('ForthCompileError');
+    expect(err.fileName).toBe(DEBUG_SRC_NAME);
+    expect(err.lineNum).toBe(4);
+  }
+});
