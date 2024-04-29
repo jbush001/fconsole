@@ -13,6 +13,7 @@
 \ limitations under the License.
 \
 \ To do:
+\ * Ensure tanks/people can't be placed on top of each other.
 \ * Make enemy taks shoot at helicopter
 \ * Add other enemies like planes
 \ * Enable the helicopter with guns/bombs.
@@ -25,14 +26,10 @@
 4 constant FRAC_BITS
 
 ( integer -- fixed_point )
-: tofixp
-    FRAC_BITS lshift
-;
+: tofixp FRAC_BITS lshift ;
 
 ( fixed_point -- integer )
-: fromfixp
-    FRAC_BITS rshift
-;
+: fromfixp FRAC_BITS rshift ;
 
 SCREEN_HEIGHT 15 - tofixp constant MAX_YLOC_F
 2 tofixp constant MAX_SPEED_F
@@ -65,6 +62,9 @@ variable chpr_yloc_f
 variable chpr_landed
 variable people_on_board
 variable scroll_offset
+
+( world_coord -- screen_coord )
+: toscreen scroll_offset @ - ;
 
 ( -- )
 : update_chopper
@@ -140,7 +140,7 @@ variable scroll_offset
     then
 
     \ Scroll
-    chpr_xloc_f @ fromfixp scroll_offset @ -  \ Compute current on-screen location
+    chpr_xloc_f @ fromfixp toscreen  \ Compute current on-screen location
     dup L_SCROLL_THRESH < scroll_offset @ 0 > and if
         dup L_SCROLL_THRESH - scroll_offset +!
     then
@@ -151,7 +151,7 @@ variable scroll_offset
     drop
 
     \ Draw
-    chpr_xloc_f @ fromfixp scroll_offset @ -
+    chpr_xloc_f @ fromfixp toscreen
     chpr_yloc_f @ fromfixp
     chpr_anim @ if 2 else 0 then
     2 2
@@ -163,7 +163,7 @@ variable scroll_offset
 : draw_clouds
     \ Clouds
     NUM_CLOUDS 0 do
-        i cells cloud_x + @ scroll_offset @ - \ Get x screen coordinate
+        i cells cloud_x + @ toscreen \ Get x screen coordinate
 
         \ Do check if this is onscreen
         dup SCREEN_WIDTH <
@@ -182,16 +182,16 @@ variable p_anim
 
 ( -- )
 : update_people
-    \ animation runs continuously
+    \ animation runs continuously. p_anim is the delay between frames.
     p_anim @ 10 >= if
         0 p_anim !
     else
-        p_anim @ 1 + p_anim !
+        1 p_anim +!
     then
 
     MAX_PEOPLE 0 do
         i cells person_active + @ if
-            i cells person_x + @ scroll_offset @ - \ x coord
+            i cells person_x + @ toscreen \ x coord
 
             \ Do check if this is onscreen
             dup SCREEN_WIDTH <
@@ -221,7 +221,7 @@ variable p_anim
                     8 p_sprite !
                 then
 
-                i cells person_x + @ scroll_offset @ - \ x coord
+                i cells person_x + @ toscreen \ x coord
                 SCREEN_HEIGHT 13 - \ y coord
                 p_sprite @
                 1 1 p_dir @ -1 = false draw_sprite
@@ -239,7 +239,7 @@ variable p_anim
 : update_tanks
     MAX_TANKS 0 do
         i cells tank_active + @ if
-            i cells tank_x + @ scroll_offset @ - \ x coord
+            i cells tank_x + @ toscreen \ x coord
             \ Do check if this is onscreen
             dup dup SCREEN_WIDTH <
             swap 8 + 0 > and if
@@ -253,7 +253,7 @@ variable p_anim
                 8 - \ Update y coordinate to be above tank
 
                 \ Determine which way to point
-                chpr_xloc_f @ FRAC_BITS rshift scroll_offset @ - \ x coord of plane
+                chpr_xloc_f @ FRAC_BITS rshift toscreen \ x coord of plane
                 3 pick - sign
                 case
                     -1 of \ Pointing left
@@ -308,7 +308,7 @@ variable temp_digits
 
     \ Draw the home base
     scroll_offset @ BASE_X 32 + < if
-        BASE_X scroll_offset @ - SCREEN_HEIGHT 33 - 11 4 4 false false draw_sprite
+        BASE_X toscreen SCREEN_HEIGHT 33 - 11 4 4 false false draw_sprite
     then
 
     \ If the chopper is at home and has people, count them
