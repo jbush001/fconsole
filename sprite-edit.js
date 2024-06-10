@@ -61,7 +61,7 @@ function repaint() {
   recurse(root);
 }
 
-function invalidate() {
+function repaintSpriteEdit() {
   setTimeout(repaint, 0);
 }
 
@@ -209,7 +209,7 @@ class SpriteMapView extends View {
 
       this.model.selectedRow = Math.floor(y / (MAP_SIZE /
         SPRITE_SHEET_H_BLKS));
-      invalidate();
+      repaintSpriteEdit();
     }
   }
 }
@@ -335,7 +335,7 @@ class ColorPicker extends View {
     const col = Math.floor(x / this.swatchWidth);
     const row = Math.floor(y / this.swatchHeight);
     this.model.currentColor = row * 8 + col;
-    invalidate();
+    repaintSpriteEdit();
   }
 }
 
@@ -401,7 +401,7 @@ class SliderControl extends View {
     this.currentValue = Math.min(Math.floor(x / (this.width / this.numDetents)),
         this.numDetents - 1);
     this.setValue(this.currentValue);
-    invalidate();
+    repaintSpriteEdit();
   }
 }
 
@@ -424,7 +424,7 @@ class SpriteSizeControl extends SliderControl {
       this.model.selectedRow = SPRITE_SHEET_H_BLKS - this.model.spriteSize;
     }
 
-    invalidate();
+    repaintSpriteEdit();
   }
 }
 
@@ -539,7 +539,7 @@ async function pasteCanvas(event, model) {
       spriteData.data.set(tempContext.getImageData(0, 0,
           tempCanvas.width, tempCanvas.height).data);
       setNeedsSave();
-      invalidate();
+      repaintSpriteEdit();
       break;
     }
   }

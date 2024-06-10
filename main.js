@@ -64,6 +64,8 @@ for (let i = 0; i < PALETTE.length; i++) {
   INVERSE_PALETTE.set(PALETTE[i].toString(), i);
 }
 
+const MAX_SOUND_EFFECTS = 32;
+const NOTES_PER_EFFECT = 32;
 const soundEffects = [];
 
 // spriteBitmap must be kept in sync with spriteData (since bitmaps
@@ -117,6 +119,7 @@ function startup() {
 
   newProgram();
   initSpriteEditor();
+  initSoundEditor();
 
   const fileSelect = document.getElementById('fileSelect');
   fileSelect.addEventListener('change', function(event) {
@@ -157,11 +160,6 @@ function startup() {
   }).catch((error) => {
     console.log('error initializing audio worklet node', error);
   });
-
-  // @todo configure and load these dynamically
-  createSoundEffect(0, 2, [60, 61, 62, 63, 64, 65], [85, 250, 128, 85, 25]);
-  createSoundEffect(1, 7, [72, 84, 72, 84, 72, 84],
-      [240, 180, 128, 240, 180, 128]);
 }
 
 /**
@@ -183,7 +181,8 @@ function updateFileList() {
 
 // This separates the FORTH source code (above) from the text sprite
 // representation (below).
-const SPRITE_DELIMITER = '\n( sprite data ---xx--xxx----x-xxx----xxxx----x--\n';
+const SPRITE_DELIMITER = '\n--SPRITE DATA------\n';
+const SOUND_DELIMITER = '\n--SOUND DATA--------\n';
 
 let needsSave = false;
 
@@ -210,7 +209,8 @@ function saveToServer() {
   }
 
   const content = document.getElementById('source').value +
-    SPRITE_DELIMITER + encodeSprites() + '\n)\n';
+    '(' + SPRITE_DELIMITER + encodeSprites() +
+    SOUND_DELIMITER + encodeSoundEffects() + '\n)\n';
 
   fetch(`/save/${saveFileName}`, {
     method: 'POST',
@@ -263,19 +263,20 @@ function loadFromServer(filename) {
 
     return response.text();
   }).then((data) => {
-    // Split this into
-    const split = data.indexOf(SPRITE_DELIMITER);
-    if (split == -1) {
-      // This file does not have any sprite data in it.
-      document.getElementById('source').value = data;
-      clearSprites();
-    } else {
-      // Load sprites
-      const code = data.substring(0, split);
-      const sprites = data.substring(split + SPRITE_DELIMITER.length);
-      document.getElementById('source').value = code;
-      decodeSprites(sprites);
+    // Split this into sections.
+    const split1 = data.indexOf(SPRITE_DELIMITER);
+    const split2 = data.indexOf(SOUND_DELIMITER);
+    if (split1 == -1 || split2 == -1) {
+      throw new Error('error loading file: missing sound/sprite data');
     }
+
+    const endOfCode = data.lastIndexOf('(', split1);
+    const code = data.substring(0, endOfCode);
+    document.getElementById('source').value = code;
+    const sprites = data.substring(split1 + SPRITE_DELIMITER.length, split2);
+    decodeSprites(sprites);
+    const sounds = data.substring(split2 + SOUND_DELIMITER.length);
+    decodeSoundEffects(sounds);
 
     resetInterpreter();
 
@@ -311,8 +312,50 @@ function decodeSprites(text) {
 
   createImageBitmap(spriteData).then((bm) => {
     spriteBitmap = bm;
-    invalidate(); // Sprite editor
+    repaintSpriteEdit(); // Sprite editor
   });
+}
+
+function decodeSoundEffects(string) {
+  clearSoundEffects();
+
+  // Remove any stray characters
+  const compressed = string.replace(/[^a-f0-9]/gi, '');
+  let index = 0;
+  function nextByte() {
+    if (index >= compressed.length) {
+      return null;
+    }
+
+    const val = parseInt(compressed.substring(index, index + 2), 16);
+    index += 2;
+    return val;
+  }
+
+  for (let i = 0; i < MAX_SOUND_EFFECTS; i++) {
+    const noteDuration = nextByte();
+    if (noteDuration == null) {
+      break;
+    }
+
+    const pitches = [];
+    const amplitudes = [];
+    for (let i = 0; i < NOTES_PER_EFFECT; i++) {
+      pitches.push(nextByte());
+    }
+
+    for (let i = 0; i < NOTES_PER_EFFECT; i++) {
+      amplitudes.push(nextByte());
+    }
+
+    soundEffects[i] = {
+      noteDuration,
+      pitches,
+      amplitudes,
+    };
+  }
+
+  updateSfxTableValues();
 }
 
 /**
@@ -362,6 +405,64 @@ function encodeSprites() {
   return result;
 }
 
+function encodeSoundEffect(effect) {
+  console.log(effect);
+  let encoded = '';
+  function encodeByte(val) {
+    encoded += val.toString(16).padStart(2, '0');
+  }
+
+  encodeByte(effect.noteDuration);
+  for (let i = 0; i < NOTES_PER_EFFECT; i++) {
+    if (i < effect.pitches.length) {
+      encodeByte(effect.pitches[i]);
+    } else {
+      encodeByte(0);
+    }
+  }
+
+  for (let i = 0; i < NOTES_PER_EFFECT; i++) {
+    if (i < effect.amplitudes.length) {
+      encodeByte(effect.amplitudes[i]);
+    } else {
+      encodeByte(0);
+    }
+  }
+
+  return encoded;
+}
+
+function encodeSoundEffects() {
+  // Ignore any effects that are empty
+  let totalEffects = 0;
+  for (let i = MAX_SOUND_EFFECTS - 1; i >= 0; i--) {
+    if (!soundEffects[i].amplitudes.every((value) => value === 0) ||
+      !soundEffects[i].pitches.every((value) => value === 0)) {
+      totalEffects = i + 1;
+      break;
+    }
+  }
+
+  // Now encode the ones that are non-zero
+  let result = '';
+  for (let i = 0; i < totalEffects; i++) {
+    result += encodeSoundEffect(soundEffects[i]) + '\n';
+  }
+
+  return result;
+}
+
+function clearSoundEffects() {
+  soundEffects.length = 0;
+  for (let i = 0; i < MAX_SOUND_EFFECTS; i++) {
+    soundEffects.push({
+      noteDuration: 0,
+      pitches: new Array(NOTES_PER_EFFECT).fill(0),
+      amplitudes: new Array(NOTES_PER_EFFECT).fill(0),
+    });
+  }
+}
+
 /**
  * Set the sprite sheet to be fully transparent.
  */
@@ -372,7 +473,7 @@ function clearSprites() {
 
   createImageBitmap(spriteData).then((bm) => {
     spriteBitmap = bm;
-    invalidate(); // Sprite editor
+    repaintSpriteEdit(); // Sprite editor
   });
 }
 
@@ -400,6 +501,7 @@ function newProgram() {
 `;
 
   clearSprites();
+  clearSoundEffects();
   clearScreen(0);
 }
 
@@ -621,35 +723,6 @@ function stopRun() {
     audioContext.suspend();
     audioRunning = false;
   }
-}
-
-/**
- * Set up low level data needed for a sound effect, converting from a device
- * independent representation to frequencies/sample counts based on the current
- * configuration of the output device.
- * @param {number} index Which sound effect slot this will update.
- * @param {number} noteDuration How long each note lasts, in 4ms increments
- *   (0-255)
- * @param {number[]} notes Array of notes. Each number 0-255 corresponds to a
- *   piano key, in half step increments, where 0 is A0.
- * @param {number[]} envelope Volume per note, value is 0-255, where
- *     255 is loudest.
- */
-function createSoundEffect(index, noteDuration, notes, envelope) {
-  const samplesPerNote = Math.floor(noteDuration / 255 *
-    audioContext.sampleRate);
-  const frequencies = [];
-  const amplitudes = [];
-  for (let i = 0; i < notes.length; i++) {
-    // Notes correspond to notes on a piano, with 0 being A0 and 88 being
-    // c8.
-    const freq = 27.5 * 2 ** (Math.floor(notes[i]) / 12);
-    const freqStep = freq * Math.PI * 2 / audioContext.sampleRate;
-    frequencies.push(freqStep);
-    amplitudes.push(3.4 * Math.floor(envelope[i]) / 255);
-  }
-
-  soundEffects[index] = {samplesPerNote, frequencies, amplitudes};
 }
 
 /**

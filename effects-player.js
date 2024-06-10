@@ -20,28 +20,33 @@ class EffectsPlayer extends AudioWorkletProcessor {
     this.port.onmessage = this.handleMessage.bind(this);
 
     this.angle = 0.0;
-    this.frequencies = null;
+    this.pitches = null;
     this.amplitudes = null;
     this.effectIndex = 0;
     this.samplesPerNote = 0;
     this.sampleCount = 0;
+    this.deltaAngle = 0;
   }
 
   // @todo: This has a lot of popping and crackling because there are abrupt
   // transitions.
   process(inputs, outputs, parameters) {
     const outputBuf = outputs[0][0];
-    if (this.frequencies) {
-      for (let i = 0; i < outputBuf.length; i++) {
-        outputBuf[i] = Math.sin(this.angle) * this.amplitudes[this.effectIndex];
-        this.angle = (this.angle + this.frequencies[this.effectIndex]) %
-          (Math.PI * 2);
-        if (++this.sampleCount == this.samplesPerNote) {
-          this.sampleCount = 0;
-          if (++this.effectIndex == this.frequencies.length) {
-            this.frequencies = null;
-            break;
-          }
+    if (this.pitches === null || this.effectIndex == this.pitches.length) {
+      return true;
+    }
+
+    for (let i = 0; i < outputBuf.length; i++) {
+      outputBuf[i] = Math.sin(this.angle) * this.amplitude;
+      this.angle = (this.angle + this.deltaAngle) % (Math.PI * 2);
+
+      if (++this.sampleCount == this.samplesPerNote) {
+        this.sampleCount = 0;
+        if (++this.effectIndex == this.pitches.length) {
+          break;
+        } else {
+          this.setNote(this.pitches[this.effectIndex],
+              this.amplitudes[this.effectIndex]);
         }
       }
     }
@@ -49,10 +54,20 @@ class EffectsPlayer extends AudioWorkletProcessor {
     return true;
   }
 
+  setNote(pitch, amplitude) {
+    const freq = 27.5 * 2 ** (Math.floor(pitch) /
+        12);
+    this.deltaAngle = freq * Math.PI * 2 / sampleRate;
+    this.amplitude = amplitude / 255;
+  }
+
   handleMessage(event) {
-    this.frequencies = event.data.frequencies;
+    this.samplesPerNote = Math.floor(event.data.noteDuration / 255 *
+      sampleRate);
+    this.pitches = event.data.pitches;
     this.amplitudes = event.data.amplitudes;
-    this.samplesPerNote = event.data.samplesPerNote;
+
+    this.setNote(this.pitches[0], this.amplitudes[0]);
     this.effectIndex = 0;
     this.sampleCount = 0;
     this.angle = 0; // Avoid a pop at the beginning.

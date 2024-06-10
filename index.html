@@ -20,6 +20,7 @@ limitations under the License.
         <script src="forth.js"></script>
         <script src="main.js"></script>
         <script src="sprite-edit.js"></script>
+        <script src="sound-effects-edit.js"></script>
         <link rel="stylesheet" href="style.css">
     </head>
     <body onload="startup()">
@@ -27,7 +28,8 @@ limitations under the License.
             <div class="tabbar">
                 <button class="tablink" onclick="openTab('outputtab', this)">Output</button>
                 <button class="tablink" onclick="openTab('sourcetab', this)" id="defaultOpen">Source</button>
-                <button class="tablink" onclick="openTab('spritestab', this)">Sprite Editor</button>
+                <button class="tablink" onclick="openTab('spritestab', this)">Sprites</button>
+                <button class="tablink" onclick="openTab('soundstab', this)">Sound Effects</button>
             </div>
 
             <div id="outputtab" class="tabcontent">
@@ -62,6 +64,17 @@ limitations under the License.
 
             <div id="spritestab" class="tabcontent">
                 <canvas id="sprite_edit" width="800" height="600"></canvas>
+            </div>
+
+            <div id="soundstab" class="tabcontent">
+                <div>
+                    <button id="prevfx">Prev</button>
+                    <button id="playfx">Play</button>
+                    <button id="nextfx">Next</button>
+                    <span id="curfx">0</span>
+                </div>
+                <label for="sfxduration">Duration:</label>
+                <input type="text" id="sfxduration" name="sfxduration">
             </div>
         </div>
     </body>
