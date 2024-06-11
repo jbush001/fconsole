@@ -32,6 +32,7 @@ function initSoundEditor() {
     const noteDuration = Math.min(Math.max(parseInt(durationInput.value),
         0), 255);
     soundEffects[currentFx].noteDuration = noteDuration;
+    setNeedsSave();
   };
 
   // Create a table
@@ -57,6 +58,8 @@ function initSoundEditor() {
         } else {
           soundEffects[currentFx].amplitudes[j] = value;
         }
+
+        setNeedsSave();
       };
 
       row.appendChild(cell);
