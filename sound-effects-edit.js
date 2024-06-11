@@ -9,11 +9,9 @@ let soundTable = null;
 function initSoundEditor() {
   soundEffectDiv = document.getElementById('soundstab');
 
-  const currentIndexDiv = document.getElementById('curfx');
   document.getElementById('prevfx').onclick = () => {
     if (currentFx > 0) {
       currentFx --;
-      currentIndexDiv.innerText = currentFx;
       updateSfxTableValues();
     }
   };
@@ -21,7 +19,6 @@ function initSoundEditor() {
   document.getElementById('nextfx').onclick = () => {
     if (currentFx < MAX_SOUND_EFFECTS - 1) {
       currentFx++;
-      currentIndexDiv.innerText = currentFx;
       updateSfxTableValues();
     }
   };
@@ -41,8 +38,13 @@ function initSoundEditor() {
   soundTable = document.createElement('table');
   soundTable.style.border = '1px solid black';
   soundTable.style.borderCollapse = 'collapse';
+  soundTable.style.margin = '5px';
   for (let i = 0; i < 2; i++) {
     const row = document.createElement('tr');
+    const rowHeader = document.createElement('th');
+    rowHeader.innerText = ['Pitch', 'Amp'][i];
+    row.appendChild(rowHeader);
+
     for (let j = 0; j < NOTES_PER_EFFECT; j++) {
       const cell = document.createElement('td');
       cell.style.border = '1px solid black';
@@ -72,6 +74,9 @@ function updateSfxTableValues() {
     return;
   }
 
+  const currentIndexDiv = document.getElementById('curfx');
+  currentIndexDiv.innerText = 'Effect #' + currentFx;
+
   const durationInput = document.getElementById('sfxduration');
   durationInput.value = soundEffects[currentFx].noteDuration;
 
@@ -79,7 +84,7 @@ function updateSfxTableValues() {
   const amplitudes = soundEffects[currentFx].amplitudes;
   for (let rowi = 0; rowi < 2; rowi++) {
     for (let coli = 0; coli < NOTES_PER_EFFECT; coli++) {
-      const cell = soundTable.rows[rowi].cells[coli];
+      const cell = soundTable.rows[rowi].cells[coli + 1];
       if (rowi == 0) {
         cell.innerText = pitches[coli];
       } else {
