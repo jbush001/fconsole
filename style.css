@@ -63,12 +63,26 @@ body, html {
 }
 
 #source {
-    font-family: monospace;
-    resize: none;
-    width: 100%;
-    height: 99%; /* Ugh, a few pixels creeping in somewhere */
-    border: 0;
-    padding: 5px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    overflow-y: auto;
+    padding-left: 48px;
+    counter-reset: line;
+}
+
+#source div {
+    display: block;
+    position: relative;
+    white-space: pre-wrap;
+}
+
+#source div::before {
+    content: counter(line);
+    counter-increment: line;
+    position: absolute;
+    right: calc(100% + 16px);
+    color: gray;
 }
 
 #output {

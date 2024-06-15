@@ -208,7 +208,7 @@ function saveToServer() {
     saveFileName += '.fth';
   }
 
-  const content = document.getElementById('source').value +
+  const content = getSourceCode() +
     '(' + SPRITE_DELIMITER + encodeSprites() +
     SOUND_DELIMITER + encodeSoundEffects() + '\n)\n';
 
@@ -272,7 +272,7 @@ function loadFromServer(filename) {
 
     const endOfCode = data.lastIndexOf('(', split1);
     const code = data.substring(0, endOfCode);
-    document.getElementById('source').value = code;
+    setSourceCode(code);
     const sprites = data.substring(split1 + SPRITE_DELIMITER.length, split2);
     decodeSprites(sprites);
     const sounds = data.substring(split2 + SOUND_DELIMITER.length);
@@ -406,7 +406,6 @@ function encodeSprites() {
 }
 
 function encodeSoundEffect(effect) {
-  console.log(effect);
   let encoded = '';
   function encodeByte(val) {
     encoded += val.toString(16).padStart(2, '0');
@@ -493,16 +492,39 @@ function newProgram() {
   needsSave = false;
   saveFileName = '';
   updateTitleBar();
-  document.getElementById('source').value = `: draw_frame
+  setSourceCode(`: draw_frame
     1 cls
     2 set_color
     16 16 112 112 fill_rect
   ;
-`;
+`);
 
   clearSprites();
   clearSoundEffects();
   clearScreen(0);
+}
+
+function setSourceCode(text) {
+  const source = document.getElementById('source');
+  source.innerHTML = '';
+  for (const line of text.split('\n')) {
+    const lineDiv = document.createElement('div');
+    if (line == '') {
+      lineDiv.innerText = ' '; // Avoid collapsing divs.
+    } else {
+      lineDiv.innerText = line;
+    }
+    source.appendChild(lineDiv);
+  }
+}
+
+function getSourceCode(text) {
+  let source = '';
+  for (const lineDiv of document.getElementById('source').childNodes) {
+    source += lineDiv.innerText.trimEnd() + '\n';
+  }
+
+  return source;
 }
 
 /**
@@ -692,8 +714,7 @@ function resetInterpreter() {
     ctx.interpretSource(GAME_BUILTINS, 'game-builtins');
     ctx.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
     ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
-
-    ctx.interpretSource(document.getElementById('source').value,
+    ctx.interpretSource(getSourceCode(),
         saveFileName ? saveFileName : '<game source>');
 
     drawFrameAddr = ctx.lookupWord('draw_frame');
