@@ -14,6 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+function square(x) {
+  return x > 0.5 ? 1 : 0;
+}
+
+function triangle(x) {
+  return 4 * Math.abs(x - 0.5) - 1;
+}
+
+function saw(x) {
+  return x;
+}
+
+
 class EffectsPlayer extends AudioWorkletProcessor {
   constructor(options) {
     super();
@@ -26,6 +39,7 @@ class EffectsPlayer extends AudioWorkletProcessor {
     this.samplesPerNote = 0;
     this.sampleCount = 0;
     this.deltaAngle = 0;
+    this.wavefn = square;
   }
 
   // @todo: This has a lot of popping and crackling because there are abrupt
@@ -37,8 +51,8 @@ class EffectsPlayer extends AudioWorkletProcessor {
     }
 
     for (let i = 0; i < outputBuf.length; i++) {
-      outputBuf[i] = Math.sin(this.angle) * this.amplitude;
-      this.angle = (this.angle + this.deltaAngle) % (Math.PI * 2);
+      outputBuf[i] = this.wavefn(this.angle) * this.amplitude;
+      this.angle = (this.angle + this.deltaAngle) % 1.0;
 
       if (++this.sampleCount == this.samplesPerNote) {
         this.sampleCount = 0;
@@ -57,7 +71,7 @@ class EffectsPlayer extends AudioWorkletProcessor {
   setNote(pitch, amplitude) {
     const freq = 27.5 * 2 ** (Math.floor(pitch) /
         12);
-    this.deltaAngle = freq * Math.PI * 2 / sampleRate;
+    this.deltaAngle = freq / sampleRate;
     this.amplitude = amplitude / 255;
   }
 
@@ -66,6 +80,17 @@ class EffectsPlayer extends AudioWorkletProcessor {
       sampleRate);
     this.pitches = event.data.pitches;
     this.amplitudes = event.data.amplitudes;
+    switch (event.data.waveform) {
+      case 0:
+        this.wavefn = square;
+        break;
+      case 1:
+        this.wavefn = triangle;
+        break;
+      case 2:
+        this.wavefn = saw;
+        break;
+    }
 
     this.setNote(this.pitches[0], this.amplitudes[0]);
     this.effectIndex = 0;

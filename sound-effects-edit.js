@@ -35,6 +35,25 @@ function initSoundEditor() {
     setNeedsSave();
   };
 
+  const waveformInput = document.getElementById('waveform');
+  waveformInput.onchange = () => {
+    let waveform = 0;
+    switch (waveformInput.value) {
+      case 'square':
+        waveform = 0;
+        break;
+      case 'triangle':
+        waveform = 1;
+        break;
+      case 'sawtooth':
+        waveform = 2;
+        break;
+    }
+    soundEffects[currentFx].waveform = waveform;
+    setNeedsSave();
+  };
+
+
   // Create a table
   soundTable = document.createElement('table');
   soundTable.style.border = '1px solid black';
@@ -82,6 +101,19 @@ function updateSfxTableValues() {
 
   const durationInput = document.getElementById('sfxduration');
   durationInput.value = soundEffects[currentFx].noteDuration;
+
+  const waveformInput = document.getElementById('waveform');
+  switch (soundEffects[currentFx].waveform) {
+    case 0:
+      waveformInput.value = 'square';
+      break;
+    case 1:
+      waveformInput.value = 'triangle';
+      break;
+    case 2:
+      waveformInput.value = 'sawtooth';
+      break;
+  }
 
   const pitches = soundEffects[currentFx].pitches;
   const amplitudes = soundEffects[currentFx].amplitudes;

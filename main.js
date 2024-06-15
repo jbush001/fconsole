@@ -338,6 +338,8 @@ function decodeSoundEffects(string) {
       break;
     }
 
+    const waveform = nextByte();
+
     const pitches = [];
     const amplitudes = [];
     for (let i = 0; i < NOTES_PER_EFFECT; i++) {
@@ -350,6 +352,7 @@ function decodeSoundEffects(string) {
 
     soundEffects[i] = {
       noteDuration,
+      waveform,
       pitches,
       amplitudes,
     };
@@ -412,6 +415,7 @@ function encodeSoundEffect(effect) {
   }
 
   encodeByte(effect.noteDuration);
+  encodeByte(effect.waveform);
   for (let i = 0; i < NOTES_PER_EFFECT; i++) {
     if (i < effect.pitches.length) {
       encodeByte(effect.pitches[i]);
