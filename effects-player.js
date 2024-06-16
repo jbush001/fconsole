@@ -14,31 +14,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-function square(x) {
-  return x > 0.5 ? 1 : 0;
+function square(time) {
+  return time > 0.5 ? 1 : 0;
 }
 
-function triangle(x) {
-  return 4 * Math.abs(x - 0.5) - 1;
+function triangle(time) {
+  return 4 * Math.abs(time - 0.5) - 1;
 }
 
-function saw(x) {
-  return x;
+function saw(time) {
+  return time;
 }
-
 
 class EffectsPlayer extends AudioWorkletProcessor {
   constructor(options) {
     super();
     this.port.onmessage = this.handleMessage.bind(this);
 
-    this.angle = 0.0;
+    this.time = 0.0;
+    this.deltaTime = 0;
     this.pitches = null;
     this.amplitudes = null;
     this.effectIndex = 0;
     this.samplesPerNote = 0;
     this.sampleCount = 0;
-    this.deltaAngle = 0;
     this.wavefn = square;
   }
 
@@ -51,8 +50,8 @@ class EffectsPlayer extends AudioWorkletProcessor {
     }
 
     for (let i = 0; i < outputBuf.length; i++) {
-      outputBuf[i] = this.wavefn(this.angle) * this.amplitude;
-      this.angle = (this.angle + this.deltaAngle) % 1.0;
+      outputBuf[i] = this.wavefn(this.time) * this.amplitude;
+      this.time = (this.time + this.deltaTime) % 1.0;
 
       if (++this.sampleCount == this.samplesPerNote) {
         this.sampleCount = 0;
@@ -69,9 +68,8 @@ class EffectsPlayer extends AudioWorkletProcessor {
   }
 
   setNote(pitch, amplitude) {
-    const freq = 27.5 * 2 ** (Math.floor(pitch) /
-        12);
-    this.deltaAngle = freq / sampleRate;
+    const frequency = 27.5 * 2 ** (Math.floor(pitch) / 12);
+    this.deltaTime = frequency / sampleRate;
     this.amplitude = amplitude / 255;
   }
 
@@ -99,7 +97,7 @@ class EffectsPlayer extends AudioWorkletProcessor {
     this.setNote(this.pitches[0], this.amplitudes[0]);
     this.effectIndex = 0;
     this.sampleCount = 0;
-    this.angle = 0; // Avoid a pop at the beginning.
+    this.time = 0; // Avoid a pop at the beginning.
   }
 }
 

@@ -84,8 +84,8 @@ let audioContext = null;
 let audioRunning = false;
 let playerNode = null;
 
-// eslint-disable-next-line no-unused-vars
-function startup() {
+// Initialize on startup
+document.addEventListener('DOMContentLoaded', (event) => {
   outputCanvas = document.getElementById('screen');
   outputContext = outputCanvas.getContext('2d');
   outputContext.imageSmoothingEnabled = false;
@@ -160,7 +160,7 @@ function startup() {
   }).catch((error) => {
     console.log('error initializing audio worklet node', error);
   });
-}
+});
 
 /**
  * Load the list of files on the server from a manifest file.
@@ -366,7 +366,7 @@ function decodeSoundEffects(string) {
  * @param {number} arr
  * @return {number}
  */
-function findTrailingZeroes(arr) {
+function countTrailingZeros(arr) {
   for (let i = arr.length - 1; i >= 0; i--) {
     if (arr[i] != 0) {
       return i;
@@ -385,7 +385,7 @@ function findTrailingZeroes(arr) {
 function encodeSprites() {
   // We ignore any zeroes at the end to save space. Walk backward
   // to determine how many there are.
-  const dataEnd = findTrailingZeroes(spriteData.data);
+  const dataEnd = countTrailingZeros(spriteData.data);
 
   let result = '';
   for (let i = 0; i <= dataEnd; i += 4) {

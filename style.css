@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-* {
-    box-sizing: border-box
+:root {
+    --menu-height: 50px;
 }
 
-:root {
-    --menuheight: 50px;
+* {
+    box-sizing: border-box
 }
 
 body, html {
@@ -35,7 +35,7 @@ body, html {
     position: fixed;
     width: 100%;
     top: 0;
-    height: var(--menuheight);
+    height: var(--menu-height);
 }
 
 .tabbar button {
@@ -56,10 +56,9 @@ body, html {
     background-color: #88f;
 }
 
-/* Style the tab content (and add height:100% for full page content) */
 .tabcontent {
-    margin-top: var(--menuheight);
-    height: calc(100% - var(--menuheight));
+    margin-top: var(--menu-height);
+    height: calc(100% - var(--menu-height));
     overflow-y: auto;
     display: none;
 }
