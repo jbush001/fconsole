@@ -460,6 +460,7 @@ function clearSoundEffects() {
   for (let i = 0; i < MAX_SOUND_EFFECTS; i++) {
     soundEffects.push({
       noteDuration: 0,
+      waveform: 0,
       pitches: new Array(NOTES_PER_EFFECT).fill(0),
       amplitudes: new Array(NOTES_PER_EFFECT).fill(0),
     });

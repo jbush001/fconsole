@@ -76,6 +76,10 @@ class EffectsPlayer extends AudioWorkletProcessor {
   }
 
   handleMessage(event) {
+    if (event.data.noteDuration == 0) {
+      return;
+    }
+
     this.samplesPerNote = Math.floor(event.data.noteDuration / 255 *
       sampleRate);
     this.pitches = event.data.pitches;
