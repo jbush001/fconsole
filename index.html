@@ -24,66 +24,64 @@ limitations under the License.
         <link rel="stylesheet" href="style.css">
     </head>
     <body onload="startup()">
-        <div id="top_container">
-            <div class="tabbar">
-                <button class="tablink" onclick="openTab('outputtab', this)">Output</button>
-                <button class="tablink" onclick="openTab('sourcetab', this)" id="defaultOpen">Source</button>
-                <button class="tablink" onclick="openTab('spritestab', this)">Sprites</button>
-                <button class="tablink" onclick="openTab('soundstab', this)">Sound Effects</button>
-            </div>
+        <div class="tabbar">
+            <button class="tablink" onclick="openTab('outputtab', this)">Output</button>
+            <button class="tablink" onclick="openTab('sourcetab', this)" id="defaultOpen">Source</button>
+            <button class="tablink" onclick="openTab('spritestab', this)">Sprites</button>
+            <button class="tablink" onclick="openTab('soundstab', this)">Sound Effects</button>
+        </div>
 
-            <div id="outputtab" class="tabcontent">
-                <div class=".screencontainer">
-                    <canvas id="screen" width="192" height="128"></canvas>
-                    <div id="instructions">
-                        <b>Controls</b><br>
-                        Arrow Keys: Up/down/right/left<br>
-                        Z: button 0<br>
-                        X: button 1
-                    </div>
-                </div>
-                <br/>
-                <label for="fileSelect">Load File:</label>
-                <select id="fileSelect">
-                </select>
-
-                <button onclick="resetInterpreter()">Reset</button>
-                <button id="stop_button" onclick="stopRun()">Stop</button>
-                <button onclick="saveToServer()">Save</button>
-                <button onclick="newProgram()">New</button>
-
-                <div>Console output:</div>
-                <div id="output">
+        <div id="outputtab" class="tabcontent">
+            <div class=".screencontainer">
+                <canvas id="screen" width="192" height="128"></canvas>
+                <div id="instructions">
+                    <b>Controls</b><br>
+                    Arrow Keys: Up/down/right/left<br>
+                    Z: button 0<br>
+                    X: button 1
                 </div>
             </div>
+            <br/>
+            <label for="fileSelect">Load File:</label>
+            <select id="fileSelect">
+            </select>
 
-            <div id="sourcetab" class="tabcontent">
-                <div id="source" contenteditable="true" spellcheck="false">
-                    <div></div>
-                </div>
+            <button onclick="resetInterpreter()">Reset</button>
+            <button id="stop_button" onclick="stopRun()">Stop</button>
+            <button onclick="saveToServer()">Save</button>
+            <button onclick="newProgram()">New</button>
+
+            <div>Console output:</div>
+            <div id="output">
             </div>
+        </div>
 
-            <div id="spritestab" class="tabcontent">
-                <canvas id="sprite_edit" width="800" height="600"></canvas>
+        <div id="sourcetab" class="tabcontent">
+            <div id="source" contenteditable="true" spellcheck="false">
+                <div></div>
             </div>
+        </div>
 
-            <div id="soundstab" class="tabcontent">
-                <div style="margin: 5px">
-                    <button id="prevfx">Prev</button>
-                    <button id="playfx">Play</button>
-                    <button id="nextfx">Next</button>
-                    <span id="curfx"></span>
-                </div>
-                <label for="sfxduration" style="margin: 5px">Duration:</label>
-                <input type="text" id="sfxduration" name="sfxduration" style="margin: 5px">
+        <div id="spritestab" class="tabcontent">
+            <canvas id="sprite_edit" width="800" height="600"></canvas>
+        </div>
 
-                <label for="waveform">Waveform:</label>
-                <select id="waveform" name="waveform">
-                    <option value="square">Square</option>
-                    <option value="triangle">Triangle</option>
-                    <option value="sawtooth">Sawtooth</option>
-                </select>
+        <div id="soundstab" class="tabcontent">
+            <div style="margin: 5px">
+                <button id="prevfx">Prev</button>
+                <button id="playfx">Play</button>
+                <button id="nextfx">Next</button>
+                <span id="curfx"></span>
             </div>
+            <label for="sfxduration" style="margin: 5px">Duration:</label>
+            <input type="text" id="sfxduration" name="sfxduration" style="margin: 5px">
+
+            <label for="waveform">Waveform:</label>
+            <select id="waveform" name="waveform">
+                <option value="square">Square</option>
+                <option value="triangle">Triangle</option>
+                <option value="sawtooth">Sawtooth</option>
+            </select>
         </div>
     </body>
 </html>
