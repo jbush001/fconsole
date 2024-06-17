@@ -36,27 +36,23 @@ const BUTTON_MAP = {
   'x': BUTTON_B,
 };
 
-function rgb(r, g, b) {
-  return [r, g, b, 0xff];
-}
-
 const PALETTE = [
   [0, 0, 0, 0], // transparent
-  rgb(0, 0, 0), // black
-  rgb(255, 0, 0), // red
-  rgb(0, 192, 0), // light green
-  rgb(0, 0, 255), // blue
-  rgb(255, 0, 255), // magenta
-  rgb(255, 255, 0), // yellow
-  rgb(0, 255, 255), // cyan
-  rgb(128, 128, 128), // gray
-  rgb(0, 165, 255), // light blue
-  rgb(255, 165, 0), // orange
-  rgb(128, 0, 128), // purple
-  rgb(0, 100, 0), // dark green
-  rgb(160, 82, 45), // brown
-  rgb(217, 113, 98), // salmon
-  rgb(255, 255, 255), // white
+  [0, 0, 0, 255], // black
+  [255, 0, 0, 255], // red
+  [0, 192, 0, 255], // light green
+  [0, 0, 255, 255], // blue
+  [255, 0, 255, 255], // magenta
+  [255, 255, 0, 255], // yellow
+  [0, 255, 255, 255], // cyan
+  [128, 128, 128, 255], // gray
+  [0, 165, 255, 255], // light blue
+  [255, 165, 0, 255], // orange
+  [128, 0, 128, 255], // purple
+  [0, 100, 0, 255], // dark green
+  [160, 82, 45, 255], // brown
+  [217, 113, 98, 255], // salmon
+  [255, 255, 255, 255], // white
 ];
 
 const INVERSE_PALETTE = new Map();
@@ -179,8 +175,7 @@ function updateFileList() {
   });
 }
 
-// This separates the FORTH source code (above) from the text sprite
-// representation (below).
+// Used to indicate where sprite and sound data occur in the save file.
 const SPRITE_DELIMITER = '\n--SPRITE DATA------\n';
 const SOUND_DELIMITER = '\n--SOUND DATA--------\n';
 
@@ -208,9 +203,7 @@ function saveToServer() {
     saveFileName += '.fth';
   }
 
-  const content = getSourceCode() +
-    '(' + SPRITE_DELIMITER + encodeSprites() +
-    SOUND_DELIMITER + encodeSoundEffects() + '\n)\n';
+  const content = encodeSaveData();
 
   fetch(`/save/${saveFileName}`, {
     method: 'POST',
@@ -232,12 +225,25 @@ function saveToServer() {
   });
 }
 
+function encodeSaveData() {
+  return getSourceCode() +
+  '\n(' + SPRITE_DELIMITER + encodeSprites() +
+  SOUND_DELIMITER + encodeSoundEffects() + '\n)\n';
+}
+
 function updateTitleBar() {
   // The star indicates it needs saving.
   document.title = (saveFileName ? saveFileName : 'Untitled') +
     (needsSave ? '*' : '');
 }
 
+/**
+ * This is called whenever content is changed (and thus needs to
+ * be saved to persist it). As a side effect it will:
+ *  - Display an indicator in the title bar
+ *  - Pop up a message if the user tries to close the window without
+ *    a subsequent save.
+ */
 function setNeedsSave() {
   if (!needsSave) {
     needsSave = true;
@@ -263,31 +269,35 @@ function loadFromServer(filename) {
 
     return response.text();
   }).then((data) => {
-    // Split this into sections.
-    const split1 = data.indexOf(SPRITE_DELIMITER);
-    const split2 = data.indexOf(SOUND_DELIMITER);
-    if (split1 == -1 || split2 == -1) {
-      throw new Error('error loading file: missing sound/sprite data');
-    }
-
-    const endOfCode = data.lastIndexOf('(', split1);
-    const code = data.substring(0, endOfCode);
-    setSourceCode(code);
-    const sprites = data.substring(split1 + SPRITE_DELIMITER.length, split2);
-    decodeSprites(sprites);
-    const sounds = data.substring(split2 + SOUND_DELIMITER.length);
-    decodeSoundEffects(sounds);
-
-    resetInterpreter();
-
-    // Important to move focus away from this, otherwise user
-    // input for the game ends up loading another file.
-    document.getElementById('fileSelect').blur();
-    needsSave = false;
-    updateTitleBar();
+    decodeSaveData(data);
   }).catch((error) => {
     alert('Error loading file: ' + error);
   });
+}
+
+function decodeSaveData(data) {
+  // Split this into sections.
+  const split1 = data.indexOf(SPRITE_DELIMITER);
+  const split2 = data.indexOf(SOUND_DELIMITER);
+  if (split1 == -1 || split2 == -1) {
+    throw new Error('error loading file: missing sound/sprite data');
+  }
+
+  const endOfCode = data.lastIndexOf('(', split1);
+  const code = data.substring(0, endOfCode);
+  setSourceCode(code);
+  const sprites = data.substring(split1 + SPRITE_DELIMITER.length, split2);
+  decodeSprites(sprites);
+  const sounds = data.substring(split2 + SOUND_DELIMITER.length);
+  decodeSoundEffects(sounds);
+
+  resetInterpreter();
+
+  // Important to move focus away from this, otherwise user
+  // input for the game ends up loading another file.
+  document.getElementById('fileSelect').blur();
+  needsSave = false;
+  updateTitleBar();
 }
 
 /**
@@ -509,10 +519,14 @@ function newProgram() {
   clearScreen(0);
 }
 
+/**
+ * Will replace the contents of the source code tab.
+ * @param {string} text
+ */
 function setSourceCode(text) {
   const source = document.getElementById('source');
   source.innerHTML = '';
-  for (const line of text.split('\n')) {
+  for (const line of text.trimEnd().split('\n')) {
     const lineDiv = document.createElement('div');
     if (line == '') {
       lineDiv.innerText = ' '; // Avoid collapsing divs.
@@ -523,7 +537,11 @@ function setSourceCode(text) {
   }
 }
 
-function getSourceCode(text) {
+/**
+ * Get the content of the source code tab as a string.
+ * @return {string} content of the source code tab
+ */
+function getSourceCode() {
   let source = '';
   for (const lineDiv of document.getElementById('source').childNodes) {
     source += lineDiv.innerText.trimEnd() + '\n';
