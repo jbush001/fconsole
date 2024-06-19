@@ -84,7 +84,6 @@ let playerNode = null;
 document.addEventListener('DOMContentLoaded', (event) => {
   outputCanvas = document.getElementById('screen');
   outputContext = outputCanvas.getContext('2d');
-  outputContext.imageSmoothingEnabled = false;
 
   // Intercept tab key so it inserts into the source instead of switching
   // to a different element in the page.
@@ -125,7 +124,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   updateFileList();
 
   window.addEventListener('beforeunload', function(event) {
-    // Check if textarea has been modified
     if (needsSave) {
       // Display confirmation message
       const confirmationMessage =
@@ -789,4 +787,3 @@ function openTab(pageName, element) {
   document.getElementById(pageName).style.display = 'block';
   element.className += ' active';
 }
-

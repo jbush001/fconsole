@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 :root {
-    --menu-height: 50px;
+    --tab-bar-height: 50px;
 }
 
 * {
@@ -26,16 +26,16 @@ body, html {
     height: 100%;
     overflow: hidden;
     margin: 0;
-    font-family: Arial;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
 }
 
 .tabbar {
-    grid-row: 1;
     background-color: #555;
     position: fixed;
     width: 100%;
     top: 0;
-    height: var(--menu-height);
+    height: var(--tab-bar-height);
 }
 
 .tabbar button {
@@ -57,15 +57,13 @@ body, html {
 }
 
 .tabcontent {
-    margin-top: var(--menu-height);
-    height: calc(100% - var(--menu-height));
+    margin-top: var(--tab-bar-height);
+    height: calc(100% - var(--tab-bar-height));
     overflow-y: auto;
-    display: none;
+    display: none; /* Hidden until tab selected. */
 }
 
 #source {
-    font-family: 'Roboto Mono', monospace;
-    font-size: 12px;
     outline: none;
     padding-left: 48px;
     counter-reset: line;
@@ -87,14 +85,9 @@ body, html {
 
 #output {
     border: 1px black solid;
-    font-family: monospace;
     white-space: pre;
     overflow-y: scroll;
     height: 128px;
-}
-
-.screencontainer {
-    display: grid;
 }
 
 #screen {
