@@ -9,34 +9,35 @@ let soundTable = null;
 function initSoundEditor() {
   soundEffectDiv = document.getElementById('soundstab');
 
-  document.getElementById('prevfx').onclick = () => {
+  document.getElementById('prevfx').addEventListener('click', () => {
     if (currentFx > 0) {
       currentFx --;
       updateSfxTableValues();
     }
-  };
+  });
 
-  document.getElementById('nextfx').onclick = () => {
+  document.getElementById('nextfx').addEventListener('click', () => {
     if (currentFx < MAX_SOUND_EFFECTS - 1) {
       currentFx++;
       updateSfxTableValues();
     }
-  };
+  });
 
-  document.getElementById('playfx').onclick = () => {
+  document.getElementById('playfx').addEventListener('click', () => {
     playSoundEffect(currentFx);
-  };
+  });
 
   const durationInput = document.getElementById('sfxduration');
-  durationInput.oninput = () => {
+  durationInput.addEventListener('blur', () => {
     const noteDuration = Math.min(Math.max(parseInt(durationInput.value),
         0), 255);
+    durationInput.value = noteDuration;
     soundEffects[currentFx].noteDuration = noteDuration;
     setNeedsSave();
-  };
+  });
 
   const waveformInput = document.getElementById('waveform');
-  waveformInput.onchange = () => {
+  waveformInput.addEventListener('change', () => {
     let waveform = 0;
     switch (waveformInput.value) {
       case 'square':
@@ -51,8 +52,7 @@ function initSoundEditor() {
     }
     soundEffects[currentFx].waveform = waveform;
     setNeedsSave();
-  };
-
+  });
 
   // Create a table
   soundTable = document.createElement('table');
@@ -70,8 +70,9 @@ function initSoundEditor() {
       cell.style.border = '1px solid black';
       cell.contentEditable = 'true';
       cell.style.width = '30px';
-      cell.oninput = () => {
+      cell.addEventListener('blur', () => {
         const value = Math.min(Math.max(parseInt(cell.innerText), 0), 255);
+        cell.innerText = value;
         if (i == 0) {
           soundEffects[currentFx].pitches[j] = value;
         } else {
@@ -79,7 +80,17 @@ function initSoundEditor() {
         }
 
         setNeedsSave();
-      };
+      });
+
+      cell.addEventListener('focus', () => {
+        // Select contents of cell
+        var range = document.createRange();
+        range.selectNodeContents(cell);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return false;
+      });
 
       row.appendChild(cell);
     }
