@@ -118,6 +118,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   const fileSelect = document.getElementById('fileSelect');
   fileSelect.addEventListener('change', function(event) {
+    if (needsSave) {
+      if (!confirm('Changes you made may not be saved. Are you sure?')) {
+        return;
+      }
+    }
+
     loadFromServer(event.target.value);
   });
 
