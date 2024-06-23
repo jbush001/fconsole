@@ -118,10 +118,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   const fileSelect = document.getElementById('fileSelect');
   fileSelect.addEventListener('change', function(event) {
-    if (needsSave) {
-      if (!confirm('Changes you made may not be saved. Are you sure?')) {
-        return;
-      }
+    if (!confirmLoseChanges()) {
+      return;
     }
 
     loadFromServer(event.target.value);
@@ -253,6 +251,17 @@ function setNeedsSave() {
     needsSave = true;
     updateTitleBar();
   }
+}
+
+function confirmLoseChanges() {
+  if (needsSave) {
+    const result = confirm('You will lose unsaved changes. Are you sure?');
+    if (!result) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -501,11 +510,8 @@ function clearSprites() {
 function newProgram() {
   stopRun();
 
-  if (needsSave) {
-    const result = confirm('You will lose unsaved changes. Are you sure?');
-    if (!result) {
-      return;
-    }
+  if (!confirmLoseChanges()) {
+    return;
   }
 
   needsSave = false;
