@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
   source.addEventListener('input', setNeedsSave);
   source.addEventListener('paste', setNeedsSave);
 
+  // Handle virtual gamepad inputs.
   document.addEventListener('keydown', function(event) {
     if (event.key in BUTTON_MAP) {
       buttonMask |= BUTTON_MAP[event.key];
@@ -116,6 +117,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initSpriteEditor();
   initSoundEditor();
 
+  // User selects a file to load from the server using the dorp down.
   const fileSelect = document.getElementById('fileSelect');
   fileSelect.addEventListener('change', function(event) {
     if (!confirmLoseChanges()) {
@@ -127,9 +129,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   updateFileList();
 
+  // Display a confirmation message if the user attempts to close the browser
+  // with unsaved changes.
   window.addEventListener('beforeunload', function(event) {
     if (needsSave) {
-      // Display confirmation message
       const confirmationMessage =
         'Changes you made may not be saved. Are you sure you want to leave?';
       (event || window.event).returnValue = confirmationMessage;
@@ -137,7 +140,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
   });
 
-  // Save shortcut
+  // Save keyboard shortcut
   document.addEventListener('keydown', function(event) {
     if ((event.altKey || event.ctrlKey) && event.key === 's') {
       event.preventDefault();
@@ -161,7 +164,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
 });
 
 /**
- * Load the list of files on the server from a manifest file.
+ * Load the list of available files on the server, which are stored
+ * in a manifest file.
  * This is explained more in serve.js, but the manifest file allows
  * this to run with its custom server (allowing saving), or from
  * a public web server like github for demo mode.
@@ -177,7 +181,7 @@ function updateFileList() {
   });
 }
 
-// Used to indicate where sprite and sound data occur in the save file.
+// Used to delineate where sprite and sound data occur in the save file.
 const SPRITE_DELIMITER = '\n--SPRITE DATA------\n';
 const SOUND_DELIMITER = '\n--SOUND DATA--------\n';
 
@@ -185,9 +189,8 @@ let needsSave = false;
 
 /**
  * Copy source code and sprites to the web server (serve.js), which
- * will save on the local filesystem. Note that we will save even
- * if needSave is false, just to be safe (it's possible there could
- * be a bug where needsSave doesn't get set).
+ * will save on the local filesystem. Note that this does not check
+ * needsSave and will always save, just to be safe.
  */
 // eslint-disable-next-line no-unused-vars
 function saveToServer() {
@@ -253,6 +256,12 @@ function setNeedsSave() {
   }
 }
 
+/**
+ * Prompt the user if they are about to do something that would lose changes (e.g.
+ * load a new file) and give them a chance to cancel that operation and save.
+ * @returns true if this should perform whatever operation the user attempts and
+ *   lose changes. false if the operation should be cancelled.
+ */
 function confirmLoseChanges() {
   if (needsSave) {
     const result = confirm('You will lose unsaved changes. Are you sure?');
@@ -265,8 +274,7 @@ function confirmLoseChanges() {
 }
 
 /**
- * Load source code and sprites from the server. This just
- * uses a normal GET.
+ * Load source code and sprites from the server. This just uses a normal GET.
  * @param {string} filename Name of file to load
  */
 function loadFromServer(filename) {
@@ -288,6 +296,11 @@ function loadFromServer(filename) {
   });
 }
 
+/**
+ * Given string contents of a file containing sprite, source, and sound
+ * data, parse it and populate global data structures used by the engine.
+ * @param {string} data
+ */
 function decodeSaveData(data) {
   // Split this into sections.
   const split1 = data.indexOf(SPRITE_DELIMITER);
@@ -306,8 +319,8 @@ function decodeSaveData(data) {
 
   resetInterpreter();
 
-  // Important to move focus away from this, otherwise user
-  // input for the game ends up loading another file.
+  // Important to move focus away from this, otherwise when the user taps
+  // keys to interact with the game, it will activate this control again.
   document.getElementById('fileSelect').blur();
   needsSave = false;
   updateTitleBar();
@@ -431,6 +444,26 @@ function encodeSprites() {
   return result;
 }
 
+function encodeSoundEffects() {
+  // Ignore any effects that are empty
+  let totalEffects = 0;
+  for (let i = MAX_SOUND_EFFECTS - 1; i >= 0; i--) {
+    if (!soundEffects[i].amplitudes.every((value) => value === 0) ||
+      !soundEffects[i].pitches.every((value) => value === 0)) {
+      totalEffects = i + 1;
+      break;
+    }
+  }
+
+  // Now encode the ones that are non-zero
+  let result = '';
+  for (let i = 0; i < totalEffects; i++) {
+    result += encodeSoundEffect(soundEffects[i]) + '\n';
+  }
+
+  return result;
+}
+
 function encodeSoundEffect(effect) {
   let encoded = '';
   function encodeByte(val) {
@@ -458,24 +491,29 @@ function encodeSoundEffect(effect) {
   return encoded;
 }
 
-function encodeSoundEffects() {
-  // Ignore any effects that are empty
-  let totalEffects = 0;
-  for (let i = MAX_SOUND_EFFECTS - 1; i >= 0; i--) {
-    if (!soundEffects[i].amplitudes.every((value) => value === 0) ||
-      !soundEffects[i].pitches.every((value) => value === 0)) {
-      totalEffects = i + 1;
-      break;
-    }
+/**
+ * Start a new project, clearing out source code, sprites, etc.
+ */
+function newProgram() {
+  stopRun();
+
+  if (!confirmLoseChanges()) {
+    return;
   }
 
-  // Now encode the ones that are non-zero
-  let result = '';
-  for (let i = 0; i < totalEffects; i++) {
-    result += encodeSoundEffect(soundEffects[i]) + '\n';
-  }
+  needsSave = false;
+  saveFileName = '';
+  updateTitleBar();
+  setSourceCode(`: draw_frame
+    1 cls
+    2 set_color
+    16 16 112 112 fill_rect
+  ;
+`);
 
-  return result;
+  clearSprites();
+  clearSoundEffects();
+  clearScreen(0);
 }
 
 function clearSoundEffects() {
@@ -502,31 +540,6 @@ function clearSprites() {
     spriteBitmap = bm;
     repaintSpriteEdit(); // Sprite editor
   });
-}
-
-/**
- * Start a new project, clearing out source code, sprites, etc.
- */
-function newProgram() {
-  stopRun();
-
-  if (!confirmLoseChanges()) {
-    return;
-  }
-
-  needsSave = false;
-  saveFileName = '';
-  updateTitleBar();
-  setSourceCode(`: draw_frame
-    1 cls
-    2 set_color
-    16 16 112 112 fill_rect
-  ;
-`);
-
-  clearSprites();
-  clearSoundEffects();
-  clearScreen(0);
 }
 
 /**

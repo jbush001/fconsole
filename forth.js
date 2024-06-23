@@ -30,7 +30,7 @@ const STATE_PTR = 8;
 
 // This is loaded automatically when the interpreter is initialized
 // and contains library of base words.
-const LIB = `
+const BASE_WORDS = `
 
 ${HERE_PTR} constant here
 ${BASE_PTR} constant base
@@ -405,7 +405,7 @@ class ForthContext {
     this.debugInfo = new DebugInfo();
     this.currentFile = '';
 
-    this.interpretSource(LIB, 'stdlib');
+    this.interpretSource(BASE_WORDS, 'stdlib');
   }
 
   /**
@@ -705,7 +705,7 @@ class ForthContext {
   /**
    * Finish compilation of the current word, automatically generating
    * an implicit 'exit' word to return to the caller, and switching
-   * the state from compiling back to interpeting.
+   * the state from compiling back to interpreting.
    * @throws {ForthCompileError}
    */
   _semicolon() {
@@ -747,10 +747,10 @@ class ForthContext {
    * Return from the current function.
    */
   _exit() {
-    // In a normal FORTH interpreter, the REPL is an infinite loop. However,
-    // we will return to the caller once a function completes. The continueExec
-    // flag will be cleared if we return from the topmost called function.
-    // (this is checked by exec())
+    // In most FORTH interpreters, the REPL is an infinite loop. However,
+    // this returns to the (JavaScript) caller once the topmost function
+    // completes. This clears the continueExec flag in that case (which is
+    // checked by exec())
     if (this.returnStack.length > 0) {
       this.pc = this.returnStack.pop();
     } else {
@@ -760,8 +760,8 @@ class ForthContext {
 
   /**
    * Push a constant value onto the stack (literal). This is usually generated
-   * implicity by the interpreter when it encounters a numbers, but will in
-   * some cases be referenced explicitly, often paired with the tick operator.
+   * implicity by the interpreter when it encounters a number, but will in
+   * some cases be an explicit word, often paired with the tick operator.
    * This can only be invoked from compiled code. It will use the next program
    * address as the value to be pushed.
    */
@@ -1091,7 +1091,7 @@ class ForthContext {
   /**
    * Run compiled code. This is what is usually referred to as the "inner
    * interpreter." It is basically an indirect threaded interpreter.
-   * Each word in the prgram consists of either javascript function
+   * Each word in the program consists of either javascript function
    * references (for built-in words) or an integer number that is a call
    * address for a user defined word.
    * @param {number} startAddress Address in FORTH address space to begin

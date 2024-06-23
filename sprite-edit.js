@@ -65,6 +65,13 @@ function repaintSpriteEdit() {
   setTimeout(repaint, 0);
 }
 
+/**
+ * Find the component that the mouse is over and invoke the passed callback
+ * with that as the parameter, as well as the local (relative) mouse
+ * coordinates.
+ * @param {Event} event
+ * @param {Function} callback
+ */
 function dispatchMouse(event, callback) {
   function recurse(view, cx, cy) {
     if (cx >= view.xoffs && cy >= view.yoffs && cx < view.xoffs + view.width &&
@@ -153,7 +160,6 @@ class SpriteEditorModel {
     this.undoBuffer = new UndoBuffer();
   }
 }
-
 
 const MAP_SIZE = 400;
 
@@ -428,6 +434,9 @@ class SpriteSizeControl extends SliderControl {
   }
 }
 
+/**
+ * Displays the sprite number for reference.
+ */
 class SpriteIndexView extends View {
   constructor(width, height, model) {
     super(width, height);

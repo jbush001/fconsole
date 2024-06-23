@@ -5,6 +5,9 @@ let soundEffectDiv = null;
 let currentFx = 0;
 let soundTable = null;
 
+/**
+ * This is called only once, when the page is first loaded.
+ */
 // eslint-disable-next-line no-unused-vars
 function initSoundEditor() {
   soundEffectDiv = document.getElementById('soundstab');
@@ -102,6 +105,11 @@ function initSoundEditor() {
   updateSfxTableValues();
 }
 
+/**
+ * Called to update all display values in page whenever underlying values
+ * have changed.
+ * @returns nothing
+ */
 function updateSfxTableValues() {
   if (soundEffects[currentFx]=== undefined) {
     return;

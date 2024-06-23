@@ -14,6 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//
+// Implements background thread that plays sound effects. The main game
+// thread sends messages to this thread to kick off playback.
+// Each sound effect consists of a series of frequencies (each being a byte that
+// indicates a piano note), amplitudes, as well as an overall speed and waveform.
+//
+
 function square(time) {
   return time > 0.5 ? 1 : 0;
 }
