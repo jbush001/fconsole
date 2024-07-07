@@ -52,10 +52,10 @@ variable cur_pattern
 variable next_shape
 variable next_pattern
 
-\ Given an X and Y coordinate, rotate it according to current piece
+\ Given an X and Y coordinate, apply_rotation it according to current piece
 \ rotation.
 ( x y -- x y )
-: rotate
+: apply_rotation
     case rotation @
         0 of endof
         1 of
@@ -83,7 +83,7 @@ variable next_pattern
     dup @      \ Read X
     over 4 + @ \ Read Y
 
-    rotate
+    apply_rotation
 
     \ Convert to screen locations
     piece_y @ + BLOCK_SIZE * WELL_Y_OFFS +
@@ -103,14 +103,14 @@ variable next_pattern
     drop
 ;
 
-\ Given piece addr translate and rotate to
+\ Given piece addr translate and apply_rotation to
 \ coords in grid
 ( piece_addr -- x y )
 : transform_block_coords
     dup @      \ Read X
     over 4 + @ \ Read Y
 
-    rotate
+    apply_rotation
 
     \ Convert to screen locations
     piece_y @ +
@@ -369,7 +369,7 @@ variable game_over
 
         \ Update score based on number of lines cleared
         cells score_table + 1 - @
-        score @ + score !
+        score +!
 
         \ Set current level
         total_lines @ 10 / 1 + level !
@@ -397,12 +397,19 @@ variable game_over
     then
 ;
 
+: rotate_cw rotation @ 1 + 3 and rotation ! ;
+: rotate_ccw rotation @ 3 + 3 and rotation ! ;
+: move_left -1 piece_x +! ;
+: move_right 1 piece_x +! ;
+: move_down 1 piece_y +! ;
+: move_up -1 piece_y +! ;
+
 ( -- hit_bottom )
 : try_drop_piece
-    piece_y @ 1 + piece_y !
+    move_down
     piece_collides if
         \ Hit bottom and can no longer fall.
-        piece_y @ 1 - piece_y ! \ Restore to place before collision
+        move_up \ Restore to place before collision
         lock_piece
         try_complete_lines
         true
@@ -414,9 +421,9 @@ variable game_over
 : fast_drop_piece
     begin
         try_drop_piece 0=
-    while
-    repeat
+    while repeat
 ;
+
 
 \ We check if the movement is legal by first moving to the new
 \ position and then checking if pieces are either out of bounds
@@ -427,10 +434,10 @@ variable game_over
     \ top of stack is now buttons that have been pressed
     \ Check left
     dup BUTTON_L and piece_x @ 0 > and if
-        piece_x @ 1 - piece_x !
+        move_left
         piece_collides if
             \ Collision, undo action
-            piece_x @ 1 + piece_x !
+            move_right
         else
             1 sfx
         then
@@ -439,10 +446,10 @@ variable game_over
     \ Check right
     dup BUTTON_R and if
         piece_x @ WELL_WIDTH < if
-            piece_x @ 1 + piece_x !
+            move_right
             piece_collides if
                 \ Collision, undo action
-                piece_x @ 1 - piece_x !
+                move_left
             else
                 1 sfx
             then
@@ -451,10 +458,10 @@ variable game_over
 
     \ Check A button, which rotates the piece.
     dup BUTTON_A and if
-        rotation @ 1 + 3 and rotation !
+        rotate_cw
         piece_collides if
             \ Collision, undo action
-            rotation @ 3 + 3 and rotation !
+            rotate_ccw
         else
             0 sfx
         then
@@ -600,6 +607,6 @@ init_game
 0a01320032003c0000000000000000000000000000000000000000000000000000008000800080000000000000000000000000000000000000000000000000000000
 0a013c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000
 01020b11211b13282513201105160000000000000000000000000000000000000000ffffc0c0c0c08080808080800000000000000000000000000000000000000000
-0a00503c503c462846280000000000000000000000000000000000000000000000008080808080808080000000000000000000000000000000000000000000000000
+0a014b374b37412341230000000000000000000000000000000000000000000000008080808080808080000000000000000000000000000000000000000000000000
 
 )
