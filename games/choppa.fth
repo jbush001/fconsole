@@ -31,6 +31,12 @@
 ( fixed_point -- integer )
 : fromfixp FRAC_BITS rshift ;
 
+( baseptr index -- value )
+: arrayread cells + @ ;
+
+( value baseptr inndex -- )
+: arraywrite cells + ! ;
+
 SCREEN_HEIGHT 15 - tofixp constant MAX_YLOC_F
 2 tofixp constant MAX_SPEED_F
 
@@ -163,18 +169,21 @@ variable scroll_offset
 : draw_clouds
     \ Clouds
     NUM_CLOUDS 0 do
-        i cells cloud_x + @ toscreen \ Get x screen coordinate
+        cloud_x i arrayread toscreen \ Get x screen coordinate
 
         \ Do check if this is onscreen
         dup SCREEN_WIDTH <
         over CLOUD_WIDTH + 0 > and if
-            i cells cloud_y + @  \ Y coordinate
+            cloud_y i arrayread  \ Y coordinate
             4 4 4 false false draw_sprite
         else
             drop
         then
     loop
 ;
+
+( n -- n)
+: sign dup 0 < if drop -1 else 0 > if 1 else 0 then then ;
 
 variable p_sprite
 variable p_dir
@@ -190,8 +199,8 @@ variable p_anim
     then
 
     MAX_PEOPLE 0 do
-        i cells person_active + @ if
-            i cells person_x + @ toscreen \ x coord
+        person_active i arrayread if
+            person_x i arrayread toscreen \ x coord
 
             \ Do check if this is onscreen
             dup SCREEN_WIDTH <
@@ -199,19 +208,15 @@ variable p_anim
                 \ If on screen and the chopper is landed, people will run towards it
                 chpr_landed @ if
                     \ Check with direction to move
-                    i cells person_x + @ chpr_xloc_f @ fromfixp 4 +
+                    person_x i arrayread chpr_xloc_f @ fromfixp 4 +
                     dup2 = if
                         \ Person boarded chopper
                         drop drop
-                        false i cells person_active + !
+                        false person_active i arraywrite
                         0 sfx
                         1 people_on_board +!
                     else
-                        > if
-                            -1
-                        else
-                            1
-                        then
+                        swap - sign
                         dup p_dir !  \ Save for animation
                         i cells person_x + +! \ Update player position
                     then
@@ -221,7 +226,7 @@ variable p_anim
                     8 p_sprite !
                 then
 
-                i cells person_x + @ toscreen \ x coord
+                person_x i arrayread toscreen \ x coord
                 SCREEN_HEIGHT 13 - \ y coord
                 p_sprite @
                 1 1 p_dir @ -1 = false draw_sprite
@@ -230,16 +235,11 @@ variable p_anim
     loop
 ;
 
-( n -- n)
-: sign
-    dup 0 < if drop -1 else 0 > if 1 else 0 then then
-;
-
 ( -- )
 : update_tanks
     MAX_TANKS 0 do
-        i cells tank_active + @ if
-            i cells tank_x + @ toscreen \ x coord
+        tank_active i arrayread if
+            tank_x i arrayread toscreen \ x coord
             \ Do check if this is onscreen
             dup dup SCREEN_WIDTH <
             swap 8 + 0 > and if
@@ -294,30 +294,44 @@ variable temp_digits
 ;
 
 ( -- )
-: draw_frame
-    C_LIGHT_BLUE cls
-
-    \ Draw ground
+: draw_ground
     C_LIGHT_GREEN set_color
     0 SCREEN_HEIGHT 12 - SCREEN_WIDTH 12 fill_rect
+;
 
-    draw_clouds
-
-    update_tanks
-    update_people
-
-    \ Draw the home base
+( -- )
+: draw_base
     scroll_offset @ BASE_X 32 + < if
+
         BASE_X toscreen SCREEN_HEIGHT 33 - 11 4 4 false false draw_sprite
     then
+;
 
-    \ If the chopper is at home and has people, count them
+\ If the chopper is at home and has people, count them
+( -- )
+: try_to_offboard_people
     chpr_landed @ chpr_xloc_f @ fromfixp BASE_X > and chpr_xloc_f @ fromfixp BASE_X 25 + < and if
+
         people_on_board @ 0 > if
             0 people_on_board !
             1 sfx
         then
+
     then
+;
+
+( -- )
+: draw_frame
+    C_LIGHT_BLUE cls
+
+    draw_ground
+    draw_clouds
+    draw_base
+
+    update_tanks
+    update_people
+
+    try_to_offboard_people
 
     draw_status_display
 
