@@ -80,6 +80,15 @@ let audioContext = null;
 let audioRunning = false;
 let playerNode = null;
 
+let forthContext = null;
+
+const STATE_NEW = 0;
+const STATE_PAUSED = 1;
+const STATE_RUNNING = 2;
+
+let runState = STATE_NEW;
+
+
 // Initialize on startup
 document.addEventListener('DOMContentLoaded', (event) => {
   outputCanvas = document.getElementById('screen');
@@ -102,6 +111,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.addEventListener('keydown', function(event) {
     if (event.key in BUTTON_MAP) {
       buttonMask |= BUTTON_MAP[event.key];
+    }
+
+    if (event.key == 'Escape') {
+      playPause();
     }
   });
 
@@ -291,6 +304,7 @@ function loadFromServer(filename) {
     return response.text();
   }).then((data) => {
     decodeSaveData(data);
+    resetInterpreter();
   }).catch((error) => {
     alert('Error loading file: ' + error);
   });
@@ -316,8 +330,6 @@ function decodeSaveData(data) {
   decodeSprites(sprites);
   const sounds = data.substring(split2 + SOUND_DELIMITER.length);
   decodeSoundEffects(sounds);
-
-  resetInterpreter();
 
   // Important to move focus away from this, otherwise when the user taps
   // keys to interact with the game, it will activate this control again.
@@ -514,6 +526,8 @@ function newProgram() {
   clearSprites();
   clearSoundEffects();
   clearScreen(0);
+  runState = STATE_NEW;
+  updatePlayPauseButton();
 }
 
 function clearSoundEffects() {
@@ -680,22 +694,18 @@ let drawFrameAddr = null;
  * Called to render a frame to the screen. This invokes the FORTH interpreter
  * to allow the game code to do the actual rendering of the frame, then
  * sets a timer to call itself at the next frame interval.
- * @param {ForthContext} ctx
  */
-function drawFrame(ctx) {
+function drawFrame() {
   try {
     // Set the timeout before starting the draw routine so
     // we get consistent timing.
     drawFrameTimer = setTimeout(() => {
-      drawFrame(ctx);
+      drawFrame();
     }, 33);
 
-    ctx.callWord(drawFrameAddr);
+    forthContext.callWord(drawFrameAddr);
   } catch (err) {
-    clearTimeout(drawFrameTimer);
-    drawFrameTimer = -1;
-    updateStopButton();
-
+    stopRun();
     alert(err);
   }
 }
@@ -737,67 +747,95 @@ function resetInterpreter() {
 
     document.getElementById('output').textContent = '';
 
-    const ctx = new ForthContext();
-    ctx.createBuiltinWord('cls', 1, clearScreen);
-    ctx.createBuiltinWord('set_color', 1, setColor);
-    ctx.createBuiltinWord('draw_line', 4, drawLine);
-    ctx.createBuiltinWord('draw_sprite', 7, drawSprite);
-    ctx.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
+    forthContext = new ForthContext();
+    forthContext.createBuiltinWord('cls', 1, clearScreen);
+    forthContext.createBuiltinWord('set_color', 1, setColor);
+    forthContext.createBuiltinWord('draw_line', 4, drawLine);
+    forthContext.createBuiltinWord('draw_sprite', 7, drawSprite);
+    forthContext.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
       let str = '';
       for (let i = 0; i < length; i++) {
-        str += String.fromCharCode(ctx.fetchByte(ptr + i));
+        str += String.fromCharCode(forthContext.fetchByte(ptr + i));
       }
 
       outputContext.font = '10px monospace';
       outputContext.fillText(str, x, y + 8);
     });
-    ctx.createBuiltinWord('fill_rect', 4, fillRect);
-    ctx.createBuiltinWord('.', 1, (val) => {
+    forthContext.createBuiltinWord('fill_rect', 4, fillRect);
+    forthContext.createBuiltinWord('.', 1, (val) => {
       writeConsole(val + '\n');
     });
-    ctx.createBuiltinWord('buttons', 0, getButtons);
-    ctx.createBuiltinWord('sfx', 1, playSoundEffect);
-    ctx.interpretSource(GAME_BUILTINS, 'game-builtins');
-    ctx.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
+    forthContext.createBuiltinWord('buttons', 0, getButtons);
+    forthContext.createBuiltinWord('sfx', 1, playSoundEffect);
+    forthContext.interpretSource(GAME_BUILTINS, 'game-builtins');
+    forthContext.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
     ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
-    ctx.interpretSource(getSourceCode(),
+    forthContext.interpretSource(getSourceCode(),
         saveFileName ? saveFileName : '<game source>');
 
-    drawFrameAddr = ctx.lookupWord('draw_frame');
+    drawFrameAddr = forthContext.lookupWord('draw_frame');
     if (drawFrameAddr === null) {
       throw new Error('draw_frame not defined');
     }
 
-    clearTimeout(drawFrameTimer);
-    drawFrame(ctx);
-    updateStopButton();
+    startRun();
   } catch (err) {
-    clearTimeout(drawFrameTimer);
-    drawFrameTimer = -1;
-    updateStopButton();
+    stopRun();
     alert(err);
   }
 }
 
-function stopRun() {
-  if (drawFrameTimer != -1) {
-    clearTimeout(drawFrameTimer);
-    drawFrameTimer = -1;
-    updateStopButton();
-  }
-
-  if (audioRunning) {
-    audioContext.suspend();
-    audioRunning = false;
+function playPause() {
+  if (forthContext !== null) {
+    if (runState == STATE_RUNNING) {
+      stopRun();
+    } else {
+      startRun();
+    }
   }
 }
+
+function stopRun() {
+  if (runState == STATE_RUNNING) {
+    runState = STATE_PAUSED;
+
+    if (drawFrameTimer != -1) {
+      clearTimeout(drawFrameTimer);
+      drawFrameTimer = -1;
+    }
+
+    if (audioRunning) {
+      audioContext.suspend();
+      audioRunning = false;
+    }
+
+    updatePlayPauseButton();
+  }
+}
+
+function startRun() {
+  if (runState != STATE_RUNNING) {
+    runState = STATE_RUNNING;
+    updatePlayPauseButton();
+    drawFrame();
+  }
+}
+
 
 /**
  * Set the stop button to be enabled/disabled depending on the state of the
  * game engine.
  */
-function updateStopButton() {
-  document.getElementById('stop_button').disabled = drawFrameTimer == -1;
+function updatePlayPauseButton() {
+  const button = document.getElementById('play_pause_button');
+  if (runState == STATE_NEW) {
+    button.innerText = 'Pause';
+    button.disabled = true;
+  } else {
+    button.disabled = false;
+    button.innerText =
+      runState == STATE_RUNNING ? 'Pause' : 'Resume';
+  }
 }
 
 function openTab(pageName, element) {
