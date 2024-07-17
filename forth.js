@@ -17,7 +17,7 @@
 // This was heavily inspired by the excellent jonesforth tutorial by
 // Richard W.M. Jones: <http://git.annexia.org/?p=jonesforth.git;a=tree>
 
-const MEMORY_SIZE = 16384;
+const MEMORY_CELLS = 16384;
 
 // Number of bytes in the default machine integer data type (we'd normally
 // call this the machine 'word', but that name has a specific meaning in
@@ -28,8 +28,7 @@ const HERE_PTR = 0;
 const BASE_PTR = 4;
 const STATE_PTR = 8;
 
-// This is loaded automatically when the interpreter is initialized
-// and contains library of base words.
+// The interpreter executes this when it resets to define common words.
 const BASE_WORDS = `
 
 ${HERE_PTR} constant here
@@ -297,9 +296,9 @@ const LOWER_A_ASCII = 'a'.charCodeAt(0);
 const A_ASCII = 'A'.charCodeAt(0);
 
 /**
- * Store information used to generate human readable traces,
- * including mapping addresses to words and source control lines.
- * @note This is still a little buggy.
+ * Stores information used to generate human readable traces, including mapping
+ * addresses to words and source line numbers.
+ * @note Does not always produce accurate results.
  */
 class DebugInfo {
   constructor() {
@@ -343,14 +342,14 @@ class ForthContext {
   constructor() {
     this.returnStack = [];
 
-    // Memory is an array of 32-bit words, although pointers are byte oriented.
-    this.memory = Array(Math.floor(MEMORY_SIZE / CELL_SIZE)).fill(0);
-    this.stackPointer = MEMORY_SIZE - CELL_SIZE;
-    this.here = CELL_SIZE * 3; // Account for built-in variables
+    // The intepreter stores memory as an array of 32-bit cells
+    this.memory = Array(Math.floor(MEMORY_CELLS / CELL_SIZE)).fill(0);
+    this.stackPointer = MEMORY_CELLS - CELL_SIZE;
+    this.here = CELL_SIZE * 3; // Account for built-in vars: here, state, base.
     this.base = 10;
     this.state = STATE_INTERP;
     this.dictionary = {
-      // Control flow/dictionary
+      // Control flow/dictionary operations
       'create': new Word(this._create),
       'constant': new Word(this._constant, true),
       ':': new Word(this._colon, true),
@@ -387,7 +386,7 @@ class ForthContext {
       '<': new Word(this._lessThan),
       'abs': new Word(this._abs),
 
-      // Memory
+      // Memory access
       '@': new Word(this._fetch),
       '!': new Word(this._store),
       'c@': new Word(this._fetchChar),
@@ -409,15 +408,14 @@ class ForthContext {
   }
 
   /**
-   * Helper function to read a cell of memory. This will silently
-   * align the pointer if it is not. It will throw an exception if the
-   * address is out of bounds.
+   * Read a cell of memory. This will silently align the pointer and will throw
+   * an exception for invalid addresses.
    * @param {number} addr
    * @return {number} memory value at address
    * @throws {ForthRuntimeError}
    */
   _fetchCell(addr) {
-    if (addr < 0 || addr >= MEMORY_SIZE) {
+    if (addr < 0 || addr >= MEMORY_CELLS) {
       throw new ForthRuntimeError(`Memory fetch out of range: ${addr}`,
           this._debugStackCrawl());
     }
@@ -426,13 +424,13 @@ class ForthContext {
   }
 
   /**
-   * Write memory to a cell.
+   * Write value to a memory cell.
    * @param {number} addr
    * @param {number} value
    * @throws {ForthRuntimeError}
    */
   _storeCell(addr, value) {
-    if (addr < 0 || addr >= MEMORY_SIZE) {
+    if (addr < 0 || addr >= MEMORY_CELLS) {
       throw new ForthRuntimeError(`Memory store out of range: ${addr}`,
           this._debugStackCrawl());
     }
@@ -441,10 +439,10 @@ class ForthContext {
   }
 
   /**
-   * Convenience function to read a byte from memory.
+   * Read a byte from memory.
    * @param {number} addr
-   * @return {number} Contents of location. This is treated as
-   *    unsigne and not sign extended.
+   * @return {number} Contents of location. The intepreter treats this as
+   *    unsigned and won't sign extend it.
    * @throws {ForthRuntimeError}
    */
   fetchByte(addr) {
@@ -453,7 +451,7 @@ class ForthContext {
   }
 
   _storeByte(addr, value) {
-    if (addr < 0 || addr >= MEMORY_SIZE) {
+    if (addr < 0 || addr >= MEMORY_CELLS) {
       throw new ForthRuntimeError(`Memory store out of range: ${addr}`,
           this._debugStackCrawl());
     }
@@ -490,22 +488,21 @@ class ForthContext {
   }
 
   /**
-   * Used by code outside of the interpreter to add new forth words
-   * that call native functions (which effectively allows dependency
-   * injection so we can test the interpreter standalone). The callback
-   * can return a list, which will be pushed back onto the stack.
-   * @param {string} name How this is referenced in the dictionary.
-   * @param {number} argCount The number of arguments will be popped off
-   *   the stack and passed to the called function.
-   * @param {function} callback A javascript function to call when this
-   *   word is executed.
-   * @throws {ForthRuntimeError} If there is a stack underflow reading the
-   *     arguments.
+   * Add a new forth words that calls a native Javascript function.
+   * If the callback returns a list, this will push it back onto the stack.
+   * (this allows dependency injection to test the interpreter standalone).
+   * @param {string} name Dictionary key.
+   * @param {number} argCount Number of arguments the interpreter will pop
+   *   off the stack and pass to the callback.
+   * @param {function} callback Javascript function the interpreter will call
+   *   when it executes this word.
+   * @throws {ForthRuntimeError} If the stack underflows while reading the
+   *   arguments.
    */
   createBuiltinWord(name, argCount, callback) {
     const self = this;
     this.dictionary[name] = new Word(() => {
-      if ((MEMORY_SIZE - self.stackPointer - CELL_SIZE) <
+      if ((MEMORY_CELLS - self.stackPointer - CELL_SIZE) <
           argCount * CELL_SIZE) {
         throw new ForthRuntimeError('stack underflow',
             this._debugStackCrawl());
@@ -534,7 +531,7 @@ class ForthContext {
    * @throws {ForthRuntimeError} if the stack is empty.
    */
   _pop() {
-    if (this.stackPointer >= MEMORY_SIZE) {
+    if (this.stackPointer >= MEMORY_CELLS) {
       throw new ForthRuntimeError('stack underflow', this._debugStackCrawl());
     }
 
@@ -545,8 +542,8 @@ class ForthContext {
 
   /**
    * Put a value on top of the operand stack
-   * @param {number|function} val What to push. If this is a number, it will
-   *   be automatically converted to an integer.
+   * @param {number|function} val What to push. The interpreter
+   *     automatically truncates numbers to integers.
    * @throws {ForthRuntimeError} if the stack is full.
    */
   _push(val) {
@@ -559,11 +556,11 @@ class ForthContext {
       throw new ForthRuntimeError('stack overflow', this._debugStackCrawl());
     }
 
-    // the '| 0' forces this to fit in an int. We always keep the stack
-    // as integer types (unless they are function references, used for
-    // built-in words).
     this.stackPointer -= CELL_SIZE;
+
     if (!(val instanceof Function)) {
+      // the '| 0' forces this to fit in an int. The interpreter stores stack
+      // entries as integers (except function references for built-in words).
       val |= 0;
     }
 
@@ -571,14 +568,14 @@ class ForthContext {
   }
 
   /**
-   * During compilation, write a word at 'here' (next code address)
-   * and increment the pointer by one word.
+   * During compilation, write a word at 'here' (next code address) and
+   * increment here by one word.
    * @param {number} value
    * @throws {ForthRuntimeError}
    */
   _emitCode(value) {
     this.debugInfo.addLineMapping(this.here, this.lineNumber);
-    if (this.here >= MEMORY_SIZE) {
+    if (this.here >= MEMORY_CELLS) {
       throw new ForthRuntimeError('out of memory');
     }
 
@@ -587,9 +584,7 @@ class ForthContext {
   }
 
   /**
-   * Read the next character from input. Since we don't implement an
-   * actual REPL, this will always be pulled from the current source
-   * string.
+   * Read the next character from the source string.
    * @return {string} next character.
    */
   _readChar() {
@@ -606,8 +601,8 @@ class ForthContext {
   }
 
   /**
-   * Read the next space delimited character sequence from input, calling
-   * into _readChar.
+   * Read the next space delimited character sequence from the source string
+   * (this calls _readChar).
    * @return {string} Next token, with leading and trailing whitespace stripped.
    */
   _readWord() {
@@ -629,7 +624,7 @@ class ForthContext {
       } else if (!isSpace) {
         token += ch;
       } else if (token != '') {
-        // If terminated by newline, push back so line number is correct.
+        // If terminated by newline, push back to correct lineNumber.
         if (this.interpStr[--this.interpOffs] == '\n') {
           this.lineNumber--;
         }
@@ -640,10 +635,9 @@ class ForthContext {
   }
 
   /**
-   * Add a word to the dictionary. The name for this word
-   * will be pulled from the next token in the input string. The
-   * value of this word will be the current 'here' address (next
-   * code to be emitted)
+   * Add a word to the dictionary. Retrieve the name for this word from the next
+   * token in the input string and set the value to the current 'here' address
+   * (next code to be emitted)
    * @throws {ForthCompileError}
    */
   _create() {
@@ -664,8 +658,8 @@ class ForthContext {
   }
 
   /**
-   * Create a constant in the dictionary. The value for the constant is taken
-   * from the stack, and the name is pulled from the next token in the stream.
+   * Create a constant in the dictionary, setting name from the next token in
+   * the stream and popping its value from the stack.
    * e.g.
    *     10 constant foo
    * @throws {ForthCompileError}
@@ -686,9 +680,9 @@ class ForthContext {
   }
 
   /**
-   * Begin compiling a new word. This will pull the next token from the
-   * stream and put that into the dictionary. It also sets the state
-   * to compiling.
+   * Begin compiling a new word, adding the address to the dictionary, named
+   * the next token from the stream.
+   * Set the state to compiling.
    * @throws {ForthCompileError}
    */
   _colon() {
@@ -703,9 +697,9 @@ class ForthContext {
   }
 
   /**
-   * Finish compilation of the current word, automatically generating
-   * an implicit 'exit' word to return to the caller, and switching
-   * the state from compiling back to interpreting.
+   * Finish compilation of the current word and generate an implicit 'exit'
+   * word to return to the caller. Switch the state from compiling back to
+   * interpreting.
    * @throws {ForthCompileError}
    */
   _semicolon() {
@@ -720,8 +714,8 @@ class ForthContext {
   }
 
   /**
-   * Mark the most recently emitted word to execute immediately
-   * when seen (instead of being compiled).
+   * Set a flag on the most recently emitted word so the interpreter will
+   * execute it immediately when it reads it rather than compiling it.
    */
   _immediate() {
     if (this.currentWord) {
@@ -747,10 +741,10 @@ class ForthContext {
    * Return from the current function.
    */
   _exit() {
-    // In most FORTH interpreters, the REPL is an infinite loop. However,
-    // this returns to the (JavaScript) caller once the topmost function
-    // completes. This clears the continueExec flag in that case (which is
-    // checked by exec())
+    // Most FORTH interpreters execute the REPL as an infinite loop. However,
+    // this returns to the JavaScript caller once it finishes executing the
+    // topmost function. It clears the continueExec flag in that case (which
+    // exec() checks)
     if (this.returnStack.length > 0) {
       this.pc = this.returnStack.pop();
     } else {
@@ -759,11 +753,11 @@ class ForthContext {
   }
 
   /**
-   * Push a constant value onto the stack (literal). This is usually generated
-   * implicity by the interpreter when it encounters a number, but will in
-   * some cases be an explicit word, often paired with the tick operator.
-   * This can only be invoked from compiled code. It will use the next program
-   * address as the value to be pushed.
+   * Push a constant (literal) value onto the stack. The interpreter generates
+   * this implicity when it encounters a number, but code can also reference
+   * as an explicit word, often paired with the tick operator. Only compiled
+   * code can invoke this. This pushes the value from the subsequent program
+   * address.
    */
   _lit() {
     this._push(this._fetchCell(this.pc));
@@ -919,8 +913,8 @@ class ForthContext {
   }
 
   /**
-   * Read a byte from memory and push on operand stack. This byte
-   * is treated as unsigned and is not sign extended.
+   * Read a byte from memory and push on operand stack, treating it
+   * as unsigned and not sign extending.
    */
   _fetchChar() {
     const addr = this._pop();
@@ -928,8 +922,8 @@ class ForthContext {
   }
 
   /**
-   * Write a byte to memory, popping address and value from the
-   * operand stack. The upper bits of the byte will be truncated.
+   * Write a byte to memory, popping address and value from the operand stack
+   * and truncating the upper bits of the value to fit in a byte.
    */
   _storeChar() {
     const addr = this._pop();
@@ -952,9 +946,7 @@ class ForthContext {
   }
 
   /**
-   * Return the next input character. In our implementation,
-   * this is always from the source code string we are interpreting.
-   * (since this interpreter doesn't have a true REPL).
+   * Return the next input character from the source code string.
    */
   _key() {
     const val = this._readChar();
@@ -966,24 +958,23 @@ class ForthContext {
   }
 
   /**
-   * This could be implemented in FORTH, but I was too lazy...
+   * Compile a string, pushing its start address and length onto the stack.
+   * @note I could have implemented this in FORTH, but I was too lazy...
    * @throws {ForthError}
    */
   _makeString() {
     const startLine = this.lineNumber;
     const startAddr = this.here;
 
-    // The tokenizer always pushes back the whitespace char,
-    // which is a bit of a hack to ensure the line number is correct.
-    // Discard this.
+    // The tokenizer will have pushed back the whitespace char, which a hack
+    // to ensure the line number is correct. Discard it here.
     this._readChar();
 
-    // Create a jump over the contents of the string, which is emitted
-    // in-line.
+    // Create a jump over the contents of the string, which this emits in-line.
     this._storeCell(startAddr, this._branch);
     let curAddr = this.here + CELL_SIZE * 2;
     while (true) {
-      if (curAddr >= MEMORY_SIZE) {
+      if (curAddr >= MEMORY_CELLS) {
         throw new ForthRuntimeError('out of memory');
       }
 
@@ -1028,22 +1019,21 @@ class ForthContext {
   }
 
   /**
-   * Return number of elapsed seconds since epoch. Used to
-   * seed random number generator.
+   * Return number of elapsed seconds since epoch. Used to seed random number
+   * generator.
    */
   _getTime() {
     this._push(Date.now());
   }
 
   /**
+   * Execute source code. This intepreter doesn't have an actual REPL, so
+   * it interprets code out of a string buffer. This implements the so-called
+   * "outer interpreter."
    * @param {string} src The source code to interpret.
    * @param {string} filename Name of source file (for debug info)
    * @throws {ForthError}
-   *
-   * Immedately execute code. This intepreter doesn't have an actual REPL, so
-   * we interpret code out of a string buffer. This implements what is
-   * formally known as the "outer interpreter."
-   */
+  */
   interpretSource(src, filename='<unnamed>') {
     this.interpStr = src;
     this.interpOffs = 0;
@@ -1089,13 +1079,12 @@ class ForthContext {
   }
 
   /**
-   * Run compiled code. This is what is usually referred to as the "inner
-   * interpreter." It is basically an indirect threaded interpreter.
-   * Each word in the program consists of either javascript function
-   * references (for built-in words) or an integer number that is a call
-   * address for a user defined word.
+   * Run compiled code. This implements the "inner interpreter." It
+   * uses an indirect threaded interpreter. Each word in the program
+   * consists of either javascript function references (for built-in words)
+   * or an integer number that is a call address for a user defined word.
    * @param {number} startAddress Address in FORTH address space to begin
-   * execution.
+   *   execution.
    * @throws {ForthRuntimeError}
    */
   _exec(startAddress) {
@@ -1125,16 +1114,15 @@ class ForthContext {
   }
 
   /**
-   * This is a wrapper for exec, but is called outside the outer interpreter
-   * and does some extra checking
+   * Wrapper for exec that does some extra error checking.
    * @param {number} startAddress
    * @throws {ForthRuntimeError}
    */
   callWord(startAddress) {
-    this.stackPointer = MEMORY_SIZE - CELL_SIZE;
+    this.stackPointer = MEMORY_CELLS - CELL_SIZE;
     this._exec(startAddress);
-    if (this.stackPointer != MEMORY_SIZE - CELL_SIZE) {
-      const leakedCells = (MEMORY_SIZE - CELL_SIZE - this.stackPointer) /
+    if (this.stackPointer != MEMORY_CELLS - CELL_SIZE) {
+      const leakedCells = (MEMORY_CELLS - CELL_SIZE - this.stackPointer) /
         CELL_SIZE;
       console.log(`WARNING: stack leaked ${leakedCells} cells`);
     }
@@ -1154,7 +1142,7 @@ class ForthContext {
   }
 
   /**
-   * Convert a string form of a number into an actual numeric form.
+   * Convert a string form of a number into an actual numeric value.
    * @param {string} tok A string containing the number.
    * @return {number} The numeric value
    * @throws {ForthCompileError} if the format is incorrect.

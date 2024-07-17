@@ -67,8 +67,7 @@ function repaintSpriteEdit() {
 
 /**
  * Find the component that the mouse is over and invoke the passed callback
- * with that as the parameter, as well as the local (relative) mouse
- * coordinates.
+ * with that as the parameter and the local (relative) mouse coordinates.
  * @param {Event} event
  * @param {Function} callback
  */
@@ -221,7 +220,7 @@ class SpriteMapView extends View {
 }
 
 /**
- * This view allows turning individual pixels on and off.
+ * This view allows updating individual pixels.
  */
 class EditView extends View {
   constructor(width, height, model) {
@@ -235,7 +234,7 @@ class EditView extends View {
       return; // Not initialized yet
     }
 
-    // This represents transparent areas.
+    // Checker pattern represents transparent areas.
     context.fillStyle = checkerPattern;
     context.fillRect(0, 0, this.width, this.height);
 
@@ -346,8 +345,7 @@ class ColorPicker extends View {
 }
 
 /**
- * Allows selecting how many 8x8 sprite chunks the editor window
- * covers.
+ * Select how many 8x8 sprite chunks the editor window covers.
  */
 class SliderControl extends View {
   constructor(width, height, label, numDetents) {
@@ -421,7 +419,7 @@ class SpriteSizeControl extends SliderControl {
     const SIZES = [1, 2, 4];
     this.model.spriteSize = SIZES[value];
 
-    // Ensure this is in-bounds still
+    // Clamp so this is in-bounds
     if (this.model.selectedCol + this.model.spriteSize > SPRITE_SHEET_W_BLKS) {
       this.model.selectedCol = SPRITE_SHEET_W_BLKS - this.model.spriteSize;
     }
@@ -508,10 +506,12 @@ async function copyCanvas(model) {
   });
 }
 
+// Copy clipboard content into editor area in response to user paste
+// request.
 // @bug does not update undo history.
 // @bug This does not clamp the source image to the palette first,
-//   so, if the image is pasted from external source, it will
-//   create images that can't be saved properly.
+//   so, if the user pastes an image from external source, colors
+//   not in palette will be transparent.
 async function pasteCanvas(event, model) {
   const items = event.clipboardData.items;
   for (const item of items) {
@@ -527,7 +527,7 @@ async function pasteCanvas(event, model) {
       tempCanvas.height = spriteBitmap.height;
       const tempContext = tempCanvas.getContext('2d');
 
-      // We will always resize to the destination size when pasting. Without
+      // This resizes to the destination size when pasting. Without
       // this flag, it will perform smoothing, which will create many
       // colors that are not in the palette.
       tempContext.imageSmoothingEnabled = false;
@@ -555,8 +555,8 @@ async function pasteCanvas(event, model) {
 }
 
 /**
- * Called once when page is initially loaded to set up resources related
- * to the sprite editor.
+ * Set up resources related to the sprite editor.
+ * This is only called once when page is initially loaded
  */
 // eslint-disable-next-line no-unused-vars
 function initSpriteEditor() {
@@ -607,8 +607,8 @@ function initSpriteEditor() {
 }
 
 /**
- * This is a checkerboard pattern of white and gray squares, used to indicate
- * areas of transparency.
+ * Create checkerboard pattern of white and gray squares that is used to
+ * indicate areas of transparency.
  * @param {CanvasRenderingContext2D} context The context that this will be
  *     drawn onto.
  * @return {CanvasPattern} A pattern

@@ -89,7 +89,7 @@ const STATE_RUNNING = 2;
 let runState = STATE_NEW;
 
 
-// Initialize on startup
+// Initialize once on page load.
 document.addEventListener('DOMContentLoaded', (event) => {
   outputCanvas = document.getElementById('screen');
   outputContext = outputCanvas.getContext('2d');
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initSpriteEditor();
   initSoundEditor();
 
-  // User selects a file to load from the server using the dorp down.
+  // Handle user selecting a file to load from the server using the dorp down.
   const fileSelect = document.getElementById('fileSelect');
   fileSelect.addEventListener('change', function(event) {
     if (!confirmLoseChanges()) {
@@ -138,6 +138,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     loadFromServer(event.target.value);
+
+    // Move focus away from this element, otherwise when the user taps
+    // keys to interact with the game, it will activate this control again.
+    fileSelect.blur();
   });
 
   updateFileList();
@@ -177,11 +181,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
 });
 
 /**
- * Load the list of available files on the server, which are stored
+ * Load the list of available files from the server, which are stored
  * in a manifest file.
- * This is explained more in serve.js, but the manifest file allows
- * this to run with its custom server (allowing saving), or from
- * a public web server like github for demo mode.
+ * This uses a manifest file rather than an explicit API, because the
+ * former allows serving from a public web server like github for demo mode.
+ * See serve.js for more description.
  */
 function updateFileList() {
   fetch('games/manifest.json').then((response) => {
@@ -194,16 +198,16 @@ function updateFileList() {
   });
 }
 
-// Used to delineate where sprite and sound data occur in the save file.
+// These delineate where sprite and sound data occur in the save file.
 const SPRITE_DELIMITER = '\n--SPRITE DATA------\n';
 const SOUND_DELIMITER = '\n--SOUND DATA--------\n';
 
 let needsSave = false;
 
 /**
- * Copy source code and sprites to the web server (serve.js), which
- * will save on the local filesystem. Note that this does not check
- * needsSave and will always save, just to be safe.
+ * Copy source code and sprites to the server (serve.js), which it saves
+ * on its local filesystem.
+ * @note this does not check needsSave and will always save, just to be safe.
  */
 // eslint-disable-next-line no-unused-vars
 function saveToServer() {
@@ -214,7 +218,7 @@ function saveToServer() {
   }
 
   if (!saveFileName) {
-    return; // cancelled by user
+    return; // user hit cancel.
   }
 
   if (!saveFileName.toLowerCase().endsWith('.fth')) {
@@ -256,11 +260,11 @@ function updateTitleBar() {
 }
 
 /**
- * This is called whenever content is changed (and thus needs to
- * be saved to persist it). As a side effect it will:
+ * This is called whenever the user modifies content (sprites, sound, source
+ * code), and thus it is unsaved. As a side effect it will:
  *  - Display an indicator in the title bar
  *  - Pop up a message if the user tries to close the window without
- *    a subsequent save.
+ *    saving.
  */
 function setNeedsSave() {
   if (!needsSave) {
@@ -287,7 +291,7 @@ function confirmLoseChanges() {
 }
 
 /**
- * Load source code and sprites from the server. This just uses a normal GET.
+ * Load source code and sprites from the server over HTTP.
  * @param {string} filename Name of file to load
  */
 function loadFromServer(filename) {
@@ -295,7 +299,6 @@ function loadFromServer(filename) {
 
   console.log('loadFromServer', filename);
   saveFileName = filename;
-  updateTitleBar();
   fetch('games/' + saveFileName).then((response) => {
     if (!response.ok) {
       throw new Error('Network response was not ok');
@@ -304,6 +307,8 @@ function loadFromServer(filename) {
     return response.text();
   }).then((data) => {
     decodeSaveData(data);
+
+    updateTitleBar();
     resetInterpreter();
   }).catch((error) => {
     alert('Error loading file: ' + error);
@@ -311,8 +316,8 @@ function loadFromServer(filename) {
 }
 
 /**
- * Given string contents of a file containing sprite, source, and sound
- * data, parse it and populate global data structures used by the engine.
+ * Parse string contents of a file containing sprite, source, and sound
+ * data and populate global data structures used by the engine.
  * @param {string} data
  */
 function decodeSaveData(data) {
@@ -331,17 +336,13 @@ function decodeSaveData(data) {
   const sounds = data.substring(split2 + SOUND_DELIMITER.length);
   decodeSoundEffects(sounds);
 
-  // Important to move focus away from this, otherwise when the user taps
-  // keys to interact with the game, it will activate this control again.
-  document.getElementById('fileSelect').blur();
   needsSave = false;
-  updateTitleBar();
 }
 
 /**
- * Given a string containing the sprite data (as stored in the file),
- * populate the spriteBitmap and spriteData. Each pixel is stored as a single
- * digit, a hex value 0-15. These are references into the PALETTE table.
+ * Populate the spriteBitmap and spriteData from a string containing the
+ * sprite data (as stored in the file). Each pixel is stored as a single
+ * hex digit. These are references into the PALETTE table.
  * @param {string} text Hex encoded version of sprite data
  * @see encodeSprites
  */
@@ -367,7 +368,7 @@ function decodeSprites(text) {
 function decodeSoundEffects(string) {
   clearSoundEffects();
 
-  // Remove any stray characters
+  // Remove stray characters
   const compressed = string.replace(/[^a-f0-9]/gi, '');
   let index = 0;
   function nextByte() {
@@ -410,7 +411,7 @@ function decodeSoundEffects(string) {
 }
 
 /**
- * Index of last non-zero value in array.
+ * Find index of last non-zero value in array.
  * @param {number} arr
  * @return {number}
  */
@@ -425,13 +426,13 @@ function countTrailingZeros(arr) {
 }
 
 /**
- * Takes the current sprite sheet and converts it to a string suitable for
- * storing in a text file. The format is described in decodeSprites.
+ * Convert current sprite sheet to a string suitable for storing in a text
+ * file. The format is described in decodeSprites.
  * @return {string} Hex representation of image data
  * @see decodeSprites
  */
 function encodeSprites() {
-  // We ignore any zeroes at the end to save space. Walk backward
+  // Ignore any zeroes at the end to save space. Walk backward
   // to determine how many there are.
   const dataEnd = countTrailingZeros(spriteData.data);
 
@@ -457,7 +458,7 @@ function encodeSprites() {
 }
 
 function encodeSoundEffects() {
-  // Ignore any effects that are empty
+  // Ignore effects that are empty
   let totalEffects = 0;
   for (let i = MAX_SOUND_EFFECTS - 1; i >= 0; i--) {
     if (!soundEffects[i].amplitudes.every((value) => value === 0) ||
@@ -467,7 +468,7 @@ function encodeSoundEffects() {
     }
   }
 
-  // Now encode the ones that are non-zero
+  // Encode effects that are non-zero
   let result = '';
   for (let i = 0; i < totalEffects; i++) {
     result += encodeSoundEffect(soundEffects[i]) + '\n';
@@ -552,12 +553,12 @@ function clearSprites() {
 
   createImageBitmap(spriteData).then((bm) => {
     spriteBitmap = bm;
-    repaintSpriteEdit(); // Sprite editor
+    repaintSpriteEdit();
   });
 }
 
 /**
- * Will replace the contents of the source code tab.
+ * Replace the contents of the source code tab.
  * @param {string} text
  */
 function setSourceCode(text) {
@@ -629,7 +630,7 @@ function fillRect(left, top, width, height) {
 
 /**
  * Set the color to be used by subsequent drawLine and fillRect
- * calls. This is invoked as a FORTH word.
+ * calls. Native forth word.
  * @param {number} color Index into palette table, 0-15
  */
 function setColor(color) {
@@ -639,7 +640,7 @@ function setColor(color) {
 }
 
 /**
- * Draw a sprite onto the screen. This is invoked as a FORTH word.
+ * Draw a sprite onto the screen. Native forth word.
  * @param {number} x Horizontal offset, in pixels
  * @param {number} y Vertical offset in pixels .
  * @param {number} index Index into sprite array, in terms of 8x8 pixel blocks,
@@ -675,7 +676,7 @@ function getButtons() {
 function playSoundEffect(index) {
   if (!audioRunning) {
     // The audio context requires an interaction with the page to start.
-    // Resume this lazily to ensure that happens.
+    // Resume lazily to ensure that happens.
     audioContext.resume();
     audioRunning = true;
   }
@@ -691,14 +692,14 @@ let drawFrameTimer = null;
 let drawFrameAddr = null;
 
 /**
- * Called to render a frame to the screen. This invokes the FORTH interpreter
+ * Render a frame to the screen. This invokes the FORTH interpreter
  * to allow the game code to do the actual rendering of the frame, then
  * sets a timer to call itself at the next frame interval.
  */
 function drawFrame() {
   try {
-    // Set the timeout before starting the draw routine so
-    // we get consistent timing.
+    // Set the timeout before starting the draw routine so we get consistent
+    // timing.
     drawFrameTimer = setTimeout(() => {
       drawFrame();
     }, 33);
@@ -710,8 +711,7 @@ function drawFrame() {
   }
 }
 
-// This code is invoked when the game interpreter is created to add
-// any game specific words.
+// Add game specific words.
 const GAME_BUILTINS = `
 ${BUTTON_L} constant BUTTON_L
 ${BUTTON_R} constant BUTTON_R
@@ -739,7 +739,7 @@ ${BUTTON_B} constant BUTTON_B
 `;
 
 /**
- * Called to set up the interpreter and start running code.
+ * Set up the interpreter and start running code.
  */
 function resetInterpreter() {
   try {

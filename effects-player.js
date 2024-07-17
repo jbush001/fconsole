@@ -15,8 +15,8 @@
 // limitations under the License.
 
 //
-// Implements background thread that plays sound effects. The main game
-// thread sends messages to this thread to kick off playback.
+// This module implements background thread that plays sound effects. The main
+// game thread sends messages to this thread to kick off playback.
 // Each sound effect consists of a series of frequencies (each being a byte that
 // indicates a piano note), amplitudes, as well as an overall speed and waveform.
 //
@@ -48,8 +48,7 @@ class EffectsPlayer extends AudioWorkletProcessor {
     this.wavefn = square;
   }
 
-  // @todo: This has a lot of popping and crackling because there are abrupt
-  // transitions.
+  // @bug: This has a lot of popping and crackling because of abrupt transitions.
   process(inputs, outputs, parameters) {
     const outputBuf = outputs[0][0];
     if (this.pitches === null || this.effectIndex == this.pitches.length) {

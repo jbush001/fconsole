@@ -6,7 +6,7 @@ let currentFx = 0;
 let soundTable = null;
 
 /**
- * This is called only once, when the page is first loaded.
+ * This is called once, when the page is first loaded.
  */
 // eslint-disable-next-line no-unused-vars
 function initSoundEditor() {
@@ -57,7 +57,7 @@ function initSoundEditor() {
     setNeedsSave();
   });
 
-  // Create a table
+  // Create a table of volumes and pitches.
   soundTable = document.createElement('table');
   soundTable.style.border = '1px solid black';
   soundTable.style.borderCollapse = 'collapse';
@@ -106,8 +106,7 @@ function initSoundEditor() {
 }
 
 /**
- * Called to update all display values in page whenever underlying values
- * have changed.
+ * Update all display values in page whenever underlying values have changed.
  * @returns nothing
  */
 function updateSfxTableValues() {
