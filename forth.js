@@ -488,7 +488,7 @@ class ForthContext {
   }
 
   /**
-   * Add a new forth words that calls a native Javascript function.
+   * Add a new forth word that calls a native Javascript function.
    * If the callback returns a list, this will push it back onto the stack.
    * (this allows dependency injection to test the interpreter standalone).
    * @param {string} name Dictionary key.

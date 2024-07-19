@@ -16,7 +16,7 @@
 
 let spriteCanvas = null;
 let spriteContext = null;
-// spriteBitmap and spriteData are inherited from main.js
+// spriteBitmap and spriteData are defined in main.js
 
 /**
  * Base class for any UI component.

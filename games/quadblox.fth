@@ -22,7 +22,7 @@ SCREEN_WIDTH WELL_WIDTH BLOCK_SIZE * - 2 / constant WELL_X_OFFS
 4 constant WELL_Y_OFFS
 
 
-\ Each piece consits of four blocks. Each block is stored here
+\ Each piece consists of four blocks. Each block is stored here
 \ as an X and Y offset from the pivot point.
 create pieces
     0 , -1 , 0 , 0 , 0 , 1 , 1 , 1 ,   \ L
@@ -85,7 +85,7 @@ variable next_pattern
 
     apply_rotation
 
-    \ Convert to screen locations
+    \ Convert to screen coordinates
     piece_y @ + BLOCK_SIZE * WELL_Y_OFFS +
     swap
     piece_x @ + BLOCK_SIZE * WELL_X_OFFS +
@@ -94,21 +94,20 @@ variable next_pattern
     cur_pattern @ 1 - 1 1 false false draw_sprite
 ;
 
+( -- )
 : draw_piece
     cur_shape @
-    draw_block 8 +
-    draw_block 8 +
-    draw_block 8 +
-    draw_block
+    4 0 do
+        draw_block 8 +
+    loop
     drop
 ;
 
-\ Given piece addr translate and apply_rotation to
-\ coords in grid
-( piece_addr -- x y )
+\ Given piece addr translate and apply_rotation to coords in grid
+( block_addr -- x y )
 : transform_block_coords
-    dup @      \ Read X
-    over 4 + @ \ Read Y
+    dup @      \ X
+    over 4 + @ \ Y
 
     apply_rotation
 
@@ -119,28 +118,35 @@ variable next_pattern
     swap
 ;
 
-: lock_block
-    transform_block_coords
-
+\ Convert well coordinates to offset in the well array
+( x y -- addr )
+: well_addr
     WELL_WIDTH * + cells \ Convert to array offset
     well_data +
+;
 
+( piece_addr -- )
+: lock_block
+    transform_block_coords
+    well_addr
     cur_pattern @ swap !
 ;
 
-\ When a piece cannot fall any more, copy its blocks
-\ into the well grid.
+\ When a piece cannot fall any more, copy its blocks into the well grid.
+\ ( -- )
 : lock_piece
     cur_shape @
-    lock_block 8 +
-    lock_block 8 +
-    lock_block 8 +
-    lock_block
+    4 0 do
+        lock_block 8 +
+    loop
     drop
 ;
 
 variable collision
 
+\ Check if a block collides with the sides or existing blocks in the
+\ well.
+( block_addr -- )
 : block_collides
     transform_block_coords
 
@@ -173,8 +179,8 @@ variable collision
     then
 
     swap
-    WELL_WIDTH * + cells \ Convert to array offset
-    well_data +
+
+    well_addr
     @  \ Read
     if
         true collision !
@@ -184,14 +190,14 @@ variable collision
 : piece_collides
     false collision !
     cur_shape @
-    block_collides 8 +
-    block_collides 8 +
-    block_collides 8 +
-    block_collides
+    4 0 do
+        block_collides 8 +
+    loop
     drop
     collision @
 ;
 
+( -- )
 : new_piece
     \ Copy next piece to current.
     next_shape @ cur_shape !
@@ -222,6 +228,7 @@ variable blink_state
 variable blink_counter
 create finished_rows WELL_HEIGHT cells allot
 
+( -- )
 : draw_well
     \ Draw the well sides
     C_CYAN set_color
@@ -235,7 +242,7 @@ create finished_rows WELL_HEIGHT cells allot
         blink_state @ and             ( and we are the hide phase )
         0= if
             WELL_WIDTH 0 do
-                j WELL_WIDTH * i + cells well_data + @  \ read well block
+                i j well_addr @  \ read well block
                 dup if
                     i BLOCK_SIZE * WELL_X_OFFS +
                     swap
@@ -253,8 +260,8 @@ create finished_rows WELL_HEIGHT cells allot
 variable finished_row_count
 variable row_is_finished
 
-\ Check if any rows have all of their columns filled and
-\ need to disappear.
+\ Check if any rows have all of their columns filled and need to disappear.
+( -- )
 : check_finished
     finished_rows WELL_HEIGHT erase
 
@@ -262,7 +269,7 @@ variable row_is_finished
     WELL_HEIGHT 0 do
         true row_is_finished !
         WELL_WIDTH 0 do
-            j WELL_WIDTH * i + cells well_data + @
+            i j well_addr @
             0= if
                 false row_is_finished !
             then
@@ -280,6 +287,7 @@ variable row_is_finished
 variable dest_y
 
 \ Copy rows down to fill spaces left by rows that have been completed.
+( -- )
 : remove_finished_rows
     \ Walk from bottom up
     WELL_HEIGHT 1 -
@@ -293,8 +301,8 @@ variable dest_y
         y @ cells finished_rows + @   ( Is this row set as finished )
         0= if
             \ Not eliminated, copy
-            y @ WELL_WIDTH * cells well_data +  \ src
-            dest_y @ WELL_WIDTH * cells well_data +  \ dest
+            0 y @ well_addr   \ src
+            0 dest_y @ well_addr  \ dest
             WELL_WIDTH \ count
             move
             -1 dest_y +!
@@ -311,10 +319,10 @@ variable dest_y
 
 variable button_mask
 
+\ Check which buttons have been pressed since the last time this was called.
+\ This only detects transitions from not pressed to pressed.
+( -- buttons )
 : check_buttons
-    \ We only take action when the button transition
-    \ from not pressed to pressed, so check if the button state
-    \ has changed from the last sample.
     buttons dup                 ( buttons buttons )
     button_mask @ -1 xor and    ( ~button_mask & buttons )
     swap button_mask !          ( update button msak)
@@ -351,10 +359,12 @@ create level_str 4 allot
 \ to restart after a game over, but it's possible they inadvertently
 \ do it if they are mashing buttons.
 variable game_over_delay
+
 variable drop_timer
 variable drop_delay
 variable game_over
 
+( -- )
 : trigger_game_over
     true game_over !
     120 game_over_delay !
@@ -364,11 +374,14 @@ variable game_over
 : try_complete_lines
     2 sfx
     check_finished dup if
+
         3 sfx
         dup total_lines +!
 
-        \ Update score based on number of lines cleared
+        \ Compute score increment based on number of lines cleared.
         cells score_table + 1 - @
+
+        \ Add to score
         score +!
 
         \ Set current level
@@ -383,13 +396,13 @@ variable game_over
 
         update_score_str
 
-        \ Kick off animation. We don't add the new piece here because
-        \ we need to wait for the animation to finish.
+        \ Kick off animation. Don't add the new piece here, but wait for the
+        \ animation to finish.
         1 blink_counter !
     else
         drop \ Clear extra finished line count
 
-        \ carry on
+        \ Start new piece
         new_piece
         piece_collides if
             trigger_game_over
@@ -397,11 +410,22 @@ variable game_over
     then
 ;
 
+( -- )
 : rotate_cw rotation @ 1 + 3 and rotation ! ;
+
+( -- )
 : rotate_ccw rotation @ 3 + 3 and rotation ! ;
+
+( -- )
 : move_left -1 piece_x +! ;
+
+( -- )
 : move_right 1 piece_x +! ;
+
+( -- )
 : move_down 1 piece_y +! ;
+
+( -- )
 : move_up -1 piece_y +! ;
 
 ( -- hit_bottom )
@@ -418,6 +442,7 @@ variable game_over
     then
 ;
 
+( -- )
 : fast_drop_piece
     begin
         try_drop_piece 0=
@@ -428,6 +453,7 @@ variable game_over
 \ We check if the movement is legal by first moving to the new
 \ position and then checking if pieces are either out of bounds
 \ or intersecting existing blocks. If so, we undo the movement.
+( -- )
 : move_piece
     check_buttons
 
@@ -488,6 +514,7 @@ variable game_over
 
 SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
 
+( -- )
 : draw_score
     C_WHITE set_color
 
@@ -507,17 +534,18 @@ SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
     next_pattern @ 1 - 1 1 false false draw_sprite
 ;
 
+( -- )
 : draw_next
     STATUS_AREA_LEFT 72 s" Next" draw_text
 
     next_shape @
-    draw_next_block 8 +
-    draw_next_block 8 +
-    draw_next_block 8 +
-    draw_next_block
+    4 0 do
+        draw_next_block 8 +
+    loop
     drop
 ;
 
+( -- )
 : init_game
     false game_over !
     INIT_DROP_DELAY drop_delay !
@@ -541,6 +569,7 @@ SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
     update_score_str
 ;
 
+( -- )
 : draw_frame
     \ Draw
     1 cls

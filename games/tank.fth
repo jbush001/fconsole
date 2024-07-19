@@ -34,7 +34,7 @@ create yvec -1 , -1 , 0 , 1 , 1 , 1 , 0 , -1 ,
 : draw_frame
     C_BROWN cls
 
-    \ Handle rotation. We use a delay here to limit the rate of spinning.
+    \ Rotate tank. Delay to limit the rate of spinning.
     delay @ 5 > if
         0 delay !
         buttons BUTTON_R and if
