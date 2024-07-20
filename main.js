@@ -702,7 +702,7 @@ function drawFrame() {
     // timing.
     drawFrameTimer = setTimeout(() => {
       drawFrame();
-    }, 33);
+    }, 16);
 
     forthContext.callWord(drawFrameAddr);
   } catch (err) {

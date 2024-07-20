@@ -155,7 +155,7 @@ variable last_button
 
            \ Each enemy can have one bomb on the screen at a time.
             i cells bomb_active + @ if
-                3 i cells bomb_y + +!  \ Move the bomb towards bottom of screen
+                2 i cells bomb_y + +!  \ Move the bomb towards bottom of screen
                 i cells bomb_y + @ SCREEN_HEIGHT >= if
                     \ past bottom of screen
                     false i cells bomb_active + !

@@ -15,7 +15,6 @@
 8 constant BLOCK_SIZE
 10 constant WELL_WIDTH
 15 constant WELL_HEIGHT
-32 constant INIT_DROP_DELAY
 
 SCREEN_WIDTH WELL_WIDTH BLOCK_SIZE * - 2 / constant WELL_X_OFFS
 
@@ -32,6 +31,11 @@ create pieces
     0 , -1 , 1 , -1 , 1 , 0 , 0 , 0 ,  \ O
     -1 , 0 , 0 , 0 , 0 , -1 , 1 , -1 , \ S
     1 , 0 , 0 , 0 , 0 , -1 , -1 , -1 , \ Z
+
+\ Table of drop delays per level
+create level_speed
+    53 , 49 , 45 , 41 , 37 , 33 , 28 , 22 , 17 , 11 , 10 ,
+    9 , 8 , 7 , 6 , 6 , 5 , 5 , 4 , 4 , 3 ,
 
 \ Track which blocks in the well have pieces in them. This only tracks pieces
 \ that have fallen in the well, not the currently dropping pieces.
@@ -371,6 +375,17 @@ variable game_over
 ;
 
 ( -- )
+: set_drop_delay
+    level @ 20 > if
+        \ Max out speed
+        1 drop_delay !
+    else
+        \ Set speed based on level
+        level @ cells level_speed + @ drop_delay !
+    then
+;
+
+( -- )
 : try_complete_lines
     2 sfx
     check_finished dup if
@@ -386,13 +401,9 @@ variable game_over
 
         \ Set current level
         total_lines @ 10 / 1 + level !
-        level @ INIT_DROP_DELAY > if
-            \ Max out speed
-            1 drop_delay !
-        else
-            \ Set speed based on level
-            INIT_DROP_DELAY level @ - drop_delay !
-        then
+
+        \ Update drop delay
+        set_drop_delay
 
         update_score_str
 
@@ -501,7 +512,7 @@ variable game_over
     \ Check down button, which speeds up the descent.
     \ Unlike the others, this can be held
     buttons BUTTON_D and if
-        4 drop_timer +!
+        2 drop_timer +!
     then
 
     \ Handle normal falling
@@ -548,8 +559,12 @@ SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
 ( -- )
 : init_game
     false game_over !
-    INIT_DROP_DELAY drop_delay !
+    0 score !
+    0 total_lines !
+    1 level !
+
     0 drop_timer !
+    set_drop_delay
 
     \ Clear the well data structure
     well_data
@@ -563,9 +578,6 @@ SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
     new_piece
     new_piece
 
-    0 score !
-    0 total_lines !
-    1 level !
     update_score_str
 ;
 

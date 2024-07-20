@@ -27,8 +27,8 @@ variable score
 : init
     SCREEN_WIDTH 2 / 4 - ball_x !
     SCREEN_HEIGHT 2 / 4 - ball_y !
-    2 ball_dx !
-    2 ball_dy !
+    1 ball_dx !
+    1 ball_dy !
     SCREEN_HEIGHT PADDLE_HEIGHT - 2 / paddle_y !
     0 score !
 
@@ -123,7 +123,7 @@ variable digit_y
 
     \ Right side
     ball_x @ COURT_RIGHT >= if
-        -2 ball_dx !
+        -1 ball_dx !
         0 sfx
     then
 
@@ -144,18 +144,18 @@ variable digit_y
     ball_x @ PADDLE_WIDTH <
         paddle_y @ dup PADDLE_HEIGHT + ball_y @ 4 + in_bounds and if
         \ Yes, on the paddle, bounce
-        2 ball_dx !
+        1 ball_dx !
         0 sfx
         1 score +!
     then
 
     \ Move paddle
     buttons BUTTON_U and paddle_y @ 0 > and if
-        -2 paddle_y +!
+        -1 paddle_y +!
     then
 
     buttons BUTTON_D and paddle_y @ SCREEN_HEIGHT PADDLE_HEIGHT - < and if
-        2 paddle_y +!
+        1 paddle_y +!
     then
 ;
 

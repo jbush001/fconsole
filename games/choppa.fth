@@ -22,8 +22,8 @@
 \ * Animate soldiers running out of helicopter when landed at base
 \ * Could probably make the 'xxx_active' arrays be bitmasks using a shift.
 
-\ Locations and speeds are stored as 28.4 fixed point values
-4 constant FRAC_BITS
+\ Locations and speeds are stored as 24.8 fixed point values
+8 constant FRAC_BITS
 
 ( integer -- fixed_point )
 : tofixp FRAC_BITS lshift ;
@@ -38,7 +38,7 @@
 : arraywrite cells + ! ;
 
 SCREEN_HEIGHT 15 - tofixp constant MAX_YLOC_F
-2 tofixp constant MAX_SPEED_F
+1 tofixp constant MAX_SPEED_F
 
 SCREEN_WIDTH 3 / dup constant L_SCROLL_THRESH 2 * constant R_SCROLL_THRESH
 1024 constant MAX_SCROLL_WIDTH
@@ -81,18 +81,18 @@ variable scroll_offset
     else
         buttons BUTTON_L and if
             0 chpr_dir !
-            chpr_xspeed_f @ dup MAX_SPEED_F negate <= if 0 else 1 then - chpr_xspeed_f !
+            chpr_xspeed_f @ dup MAX_SPEED_F negate <= if 0 else 4 then - chpr_xspeed_f !
         else
             buttons BUTTON_R and if
                 1 chpr_dir !
-                chpr_xspeed_f @ dup MAX_SPEED_F >= if 0 else 1 then + chpr_xspeed_f !
+                chpr_xspeed_f @ dup MAX_SPEED_F >= if 0 else 4 then + chpr_xspeed_f !
             else
                 \ no buttons, decelerate
                 chpr_xspeed_f @ 0 > if
-                    -1 chpr_xspeed_f +!
+                    -4 chpr_xspeed_f +!
                 then
                 chpr_xspeed_f @ 0 < if
-                    1 chpr_xspeed_f +!
+                    4 chpr_xspeed_f +!
                 then
             then
         then
@@ -101,19 +101,19 @@ variable scroll_offset
     \ Vertical movement
     buttons BUTTON_U and if
        \ Rise
-       -1 chpr_yspeed_f +!
+       -2 chpr_yspeed_f +!
        false chpr_landed !
     else
         buttons BUTTON_D and if
             \ Descend
-            1 chpr_yspeed_f +!
+            2 chpr_yspeed_f +!
         else
             \ no buttons, decelerate
             chpr_yspeed_f @ 0 > if
-                -1 chpr_yspeed_f +!
+                -2 chpr_yspeed_f +!
             then
             chpr_yspeed_f @ 0 < if
-                1 chpr_yspeed_f +!
+                2 chpr_yspeed_f +!
             then
         then
     then
@@ -159,10 +159,10 @@ variable scroll_offset
     \ Draw
     chpr_xloc_f @ fromfixp toscreen
     chpr_yloc_f @ fromfixp
-    chpr_anim @ if 2 else 0 then
+    chpr_anim @ 2 and if 2 else 0 then
     2 2
     chpr_dir @ false draw_sprite
-    chpr_anim @ 1 xor chpr_anim !
+    1 chpr_anim +!
 ;
 
 ( -- )
@@ -192,7 +192,7 @@ variable p_anim
 ( -- )
 : update_people
     \ animation runs continuously. p_anim is the delay between frames.
-    p_anim @ 10 >= if
+    p_anim @ 16 >= if
         0 p_anim !
     else
         1 p_anim +!
@@ -221,7 +221,7 @@ variable p_anim
                         i cells person_x + +! \ Update player position
                     then
 
-                    p_anim @ 5 < if 9 else 10 then p_sprite ! \ Animate running
+                    p_anim @ 8 < if 9 else 10 then p_sprite ! \ Animate running
                 else
                     8 p_sprite !
                 then
