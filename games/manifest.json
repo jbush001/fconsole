@@ -1,5 +1,6 @@
 [
   "choppa.fth",
+  "font8x8.fth",
   "pong.fth",
   "quadblox.fth",
   "shmup.fth",

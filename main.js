@@ -69,6 +69,11 @@ const soundEffects = [];
 const spriteData = new ImageData(SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT);
 let spriteBitmap = null;
 
+const GLYPH_WIDTH = 8;
+const GLYPH_HEIGHT = 8;
+const fontBitmap = new Image();
+fontBitmap.src = 'font8x8.png';
+
 let outputCanvas = null;
 let outputContext = null;
 let saveFileName = null;
@@ -688,6 +693,17 @@ function playSoundEffect(index) {
   playerNode.port.postMessage(soundEffects[index]);
 }
 
+function drawText(string, x, y) {
+  for (let index = 0; index < string.length; index++) {
+    const code = string.charCodeAt(index);
+    if (code >= 33 && code <= 128) {
+      outputContext.drawImage(fontBitmap,
+        (code - 32) * GLYPH_WIDTH, 0, GLYPH_WIDTH, GLYPH_HEIGHT,
+        x + GLYPH_WIDTH * index, y, GLYPH_WIDTH, GLYPH_HEIGHT);
+    }
+  }
+}
+
 let drawFrameTimer = null;
 let drawFrameAddr = null;
 
@@ -753,13 +769,13 @@ function resetInterpreter() {
     forthContext.createBuiltinWord('draw_line', 4, drawLine);
     forthContext.createBuiltinWord('draw_sprite', 7, drawSprite);
     forthContext.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
+      // Convert from a FORTH string to Javascript string.
       let str = '';
       for (let i = 0; i < length; i++) {
         str += String.fromCharCode(forthContext.fetchByte(ptr + i));
       }
 
-      outputContext.font = '10px monospace';
-      outputContext.fillText(str, x, y + 8);
+      drawText(str, x, y);
     });
     forthContext.createBuiltinWord('fill_rect', 4, fillRect);
     forthContext.createBuiltinWord('.', 1, (val) => {

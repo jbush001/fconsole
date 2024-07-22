@@ -523,7 +523,7 @@ variable game_over
     then
 ;
 
-SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
+SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
 
 ( -- )
 : draw_score
@@ -597,9 +597,9 @@ SCREEN_WIDTH 45 - constant STATUS_AREA_LEFT
 
     game_over @ if
         C_BLACK set_color
-        68 64 58 16 fill_rect
+        60 60 76 16 fill_rect
         C_WHITE set_color
-        70 66 s" Game Over" draw_text
+        62 62 s" Game Over" draw_text
 
         game_over_delay @ if
             -1 game_over_delay +!
