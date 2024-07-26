@@ -33,7 +33,7 @@ function saw(time) {
   return time;
 }
 
-class EffectsPlayer extends AudioWorkletProcessor {
+class SoundEffectsPlayer extends AudioWorkletProcessor {
   constructor(options) {
     super();
     this.port.onmessage = this.handleMessage.bind(this);
@@ -107,4 +107,4 @@ class EffectsPlayer extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('effects-player', EffectsPlayer);
+registerProcessor('sound-fx-player', SoundEffectsPlayer);

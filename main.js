@@ -171,10 +171,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
   });
 
   audioContext = new AudioContext();
-  audioContext.audioWorklet.addModule('effects-player.js', {
+  audioContext.audioWorklet.addModule('sound-fx-player.js', {
     credentials: 'omit',
   }).then(() => {
-    playerNode = new AudioWorkletNode(audioContext, 'effects-player');
+    playerNode = new AudioWorkletNode(audioContext, 'sound-fx-player');
     playerNode.onprocessorerror = (err) => {
       console.log('worklet node encountered error', err);
     };
@@ -690,7 +690,9 @@ function playSoundEffect(index) {
     return;
   }
 
-  playerNode.port.postMessage(soundEffects[index]);
+  if (playerNode) {
+    playerNode.port.postMessage(soundEffects[index]);
+  }
 }
 
 function drawText(string, x, y) {
