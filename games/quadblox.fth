@@ -597,7 +597,7 @@ SCREEN_WIDTH 50 - constant STATUS_AREA_LEFT
 
     game_over @ if
         C_BLACK set_color
-        60 60 76 16 fill_rect
+        60 60 76 12 fill_rect
         C_WHITE set_color
         62 62 s" Game Over" draw_text
 
