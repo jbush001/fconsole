@@ -36,6 +36,7 @@ body, html {
     width: 100%;
     top: 0;
     height: var(--tab-bar-height);
+    user-select: none;
 }
 
 .tabbar button {
@@ -46,6 +47,7 @@ body, html {
     cursor: pointer;
     padding: 14px 16px;
     font-size: 17px;
+    user-select: none;
 }
 
 .tabbar button:hover {
@@ -99,6 +101,7 @@ body, html {
 #instructions {
     display: inline-block;
     vertical-align: top;
+    user-select: none;
 }
 
 #sprite_edit {
