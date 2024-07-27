@@ -317,7 +317,7 @@ variable dest_y
 
     \ Clear rows at top that are now exposed.
     well_data
-    dest_y @ WELL_WIDTH * cells
+    dest_y @ 1 + WELL_WIDTH *
     erase
 ;
 
