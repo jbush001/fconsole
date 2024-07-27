@@ -17,14 +17,41 @@
 8 constant CHAR_WIDTH
 8 constant CHAR_HEIGHT
 
-: draw_frame
-    0 cls
-    16 0 do
-        16 0 do
-            i CHAR_WIDTH * j CHAR_HEIGHT * i j 16 * + 1 1 false false draw_sprite
-        loop
+
+( ptr len x y -- )
+variable strx
+variable stry
+: draw_string
+    stry ! strx !
+    0 do
+        i 8 * strx @ + stry @
+        3 pick i + c@ 32 -
+        1 1 false false draw_sprite
     loop
 ;
+
+
+: draw_frame
+    0 cls
+    \ Draw all characters
+    16 0 do
+        24 0 do
+            i CHAR_WIDTH * j CHAR_HEIGHT * i j 24 * + 1 1 false false draw_sprite
+        loop
+    loop
+
+    \ Draw a test string
+    \ XXX: could use arrow keys to scroll through a much larger selection.
+    s" The quick brown fox" 0 64 draw_string
+    s" jumped over the lazy" 0 72 draw_string
+    s" dog." 0 80 draw_string
+    s" (Lorem ipsum dolor sit)" 0 88 draw_string
+    s" Sed ut perspiciatis" 0 96 draw_string
+       s" 'This above all: to" 0 104 draw_string
+       s" thine own self be true'" 0 112 draw_string
+;
+
+
 
 (
 --SPRITE DATA------
