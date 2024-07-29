@@ -102,9 +102,9 @@ function initSoundEditor() {
 
       cell.addEventListener('focus', () => {
         // Select contents of cell
-        var range = document.createRange();
+        const range = document.createRange();
         range.selectNodeContents(cell);
-        var selection = window.getSelection();
+        const selection = window.getSelection();
         selection.removeAllRanges();
         selection.addRange(range);
         return false;
@@ -122,7 +122,6 @@ function initSoundEditor() {
 
 /**
  * Update all display values in page whenever underlying values have changed.
- * @returns nothing
  */
 function updateSfxTableValues() {
   if (soundEffects[currentFx]=== undefined) {

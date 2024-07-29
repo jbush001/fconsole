@@ -279,10 +279,11 @@ function setNeedsSave() {
 }
 
 /**
- * Prompt the user if they are about to do something that would lose changes (e.g.
- * load a new file) and give them a chance to cancel that operation and save.
- * @returns true if this should perform whatever operation the user attempts and
- *   lose changes. false if the operation should be cancelled.
+ * Prompt the user if they are about to do something that would lose changes
+ * (e.g. load a new file) and give them a chance to cancel that operation and
+ * save.
+ * @return {bool} true if this should perform whatever operation the user
+ *   attempts and lose changes. false if the operation should be cancelled.
  */
 function confirmLoseChanges() {
   if (needsSave) {
@@ -700,8 +701,8 @@ function drawText(string, x, y) {
     const code = string.charCodeAt(index);
     if (code >= 33 && code <= 128) {
       outputContext.drawImage(fontBitmap,
-        (code - 32) * GLYPH_WIDTH, 0, GLYPH_WIDTH, GLYPH_HEIGHT,
-        x + GLYPH_WIDTH * index, y, GLYPH_WIDTH, GLYPH_HEIGHT);
+          (code - 32) * GLYPH_WIDTH, 0, GLYPH_WIDTH, GLYPH_HEIGHT,
+          x + GLYPH_WIDTH * index, y, GLYPH_WIDTH, GLYPH_HEIGHT);
     }
   }
 }

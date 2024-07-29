@@ -20,7 +20,7 @@
 // create the font.
 //
 
-const { PNG } = require('pngjs');
+const {PNG} = require('pngjs');
 const fs = require('fs');
 
 const SRC_PATH = 'games/font8x8.fth';
@@ -43,7 +43,8 @@ if (split1 == -1 || split2 == -1) {
   throw new Error('error loading file: missing sprite data');
 }
 
-const rawSpriteData = fileContents.substring(split1 + SPRITE_DELIMITER.length, split2);
+const rawSpriteData = fileContents.substring(split1 + SPRITE_DELIMITER.length,
+    split2);
 const packedSrc = rawSpriteData.replace(/\s/g, '').padEnd(TOTAL_GLYPHS *
   GLYPH_WIDTH * GLYPH_HEIGHT, '0');
 
@@ -61,7 +62,8 @@ for (let y = 0; y < GLYPH_HEIGHT; y++) {
     const srcRow = Math.floor(glyphIndex / 16);
     const srcCol = Math.floor(glyphIndex % 16);
 
-    const srcOffset = (srcRow * GLYPH_HEIGHT + y) * srcStride + (srcCol * GLYPH_WIDTH);
+    const srcOffset = (srcRow * GLYPH_HEIGHT + y) * srcStride + (srcCol *
+        GLYPH_WIDTH);
     for (let x = 0; x < GLYPH_WIDTH; x++) {
       png.data[destIndex++] = 255;
       png.data[destIndex++] = 255;

@@ -18,7 +18,8 @@
 // This module implements background thread that plays sound effects. The main
 // game thread sends messages to this thread to kick off playback.
 // Each sound effect consists of a series of frequencies (each being a byte that
-// indicates a piano note), amplitudes, as well as an overall speed and waveform.
+// indicates a piano note), amplitudes, as well as an overall speed and
+// waveform.
 //
 
 function square(time) {
@@ -48,7 +49,7 @@ class SoundEffectsPlayer extends AudioWorkletProcessor {
     this.wavefn = square;
   }
 
-  // @bug: This has a lot of popping and crackling because of abrupt transitions.
+  // @bug: This has popping and crackling because of abrupt transitions.
   process(inputs, outputs, parameters) {
     const outputBuf = outputs[0][0];
     if (this.pitches === null || this.effectIndex == this.pitches.length) {
