@@ -402,9 +402,14 @@ class ForthContext {
     };
 
     this.debugInfo = new DebugInfo();
+    this.inputQueue = [];
+    this.currentFile = '';
+    this.interpStr = '';
+    this.interpOffs = 0;
+    this.lineNumber = 1;
     this.currentFile = '';
 
-    this.interpretSource(BASE_WORDS, 'stdlib');
+    this.addToInputQueue(BASE_WORDS, 'stdlib');
   }
 
   /**
@@ -589,7 +594,18 @@ class ForthContext {
    */
   _readChar() {
     if (this.interpOffs == this.interpStr.length) {
-      return '';
+      // Dequeue next from this.inputQueue, if anything is available
+      if (this.inputQueue.length == 0) {
+        return null;
+      }
+
+      const qent = this.inputQueue.shift();
+      this.interpStr = qent[0];
+      this.interpOffs = 0;
+      this.lineNumber = 1;
+      const filename = qent[1];
+      this.debugInfo.startFile(filename);
+      this.currentFile = filename;
     }
 
     const ch = this.interpStr[this.interpOffs++];
@@ -1026,6 +1042,10 @@ class ForthContext {
     this._push(Date.now());
   }
 
+  addToInputQueue(src, filename='<unnamed>') {
+    this.inputQueue.push([src, filename]);
+  }
+
   /**
    * Execute source code. This intepreter doesn't have an actual REPL, so
    * it interprets code out of a string buffer. This implements the so-called
@@ -1034,14 +1054,7 @@ class ForthContext {
    * @param {string} filename Name of source file (for debug info)
    * @throws {ForthError}
   */
-  interpretSource(src, filename='<unnamed>') {
-    this.interpStr = src;
-    this.interpOffs = 0;
-    this.lineNumber = 1;
-
-    this.debugInfo.startFile(filename);
-    this.currentFile = filename;
-
+  runInterpreter() {
     while (true) {
       const tok = this._readWord();
       if (!tok) {

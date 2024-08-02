@@ -28,7 +28,8 @@ function runCode(source) {
   });
 
   const initialStack = ctx.stackPointer;
-  ctx.interpretSource(source, DEBUG_SRC_NAME);
+  ctx.addToInputQueue(source, DEBUG_SRC_NAME);
+  ctx.runInterpreter();
   if (ctx.stackPointer != initialStack) {
     let stackStr = '';
     const stackIndex = ctx.stackPointer >> 2;
@@ -453,7 +454,8 @@ test('invoke native underflow', () => {
   ctx.createBuiltinWord('foo', 1, (val) => {});
 
   const t = () => {
-    ctx.interpretSource('foo');
+    ctx.addToInputQueue('foo');
+    ctx.runInterpreter();
   };
 
   expect(t).toThrow('stack underflow');
@@ -469,7 +471,8 @@ test('invoke native return', () => {
     strval += val.toString() + '\n';
   });
 
-  ctx.interpretSource('17 foo . .');
+  ctx.addToInputQueue('17 foo . .');
+  ctx.runInterpreter();
   expect(strval).toBe('19\n18\n');
 });
 
@@ -863,7 +866,7 @@ test('unterminated quote', () => {
 
 test('lookup word', () => {
   const ctx = new forth.ForthContext();
-  ctx.interpretSource(`
+  ctx.addToInputQueue(`
     : foo
        1234
     ;
@@ -874,6 +877,7 @@ test('lookup word', () => {
 
     variable baz
   `);
+  ctx.runInterpreter();
   expect(ctx.lookupWord('foo')).not.toBe(null);
   expect(ctx.lookupWord('bar')).not.toBe(null);
   expect(ctx.lookupWord('baz')).not.toBe(null);
@@ -887,7 +891,7 @@ test('call word', () => {
     strval = val.toString();
   });
 
-  ctx.interpretSource(`
+  ctx.addToInputQueue(`
     : bar
       8888 .
       777   \\ xxx leak a word so we hit that code path
@@ -897,6 +901,7 @@ test('call word', () => {
       9999 .
     ;
   `);
+  ctx.runInterpreter();
 
   ctx.callWord(ctx.lookupWord('foo'));
   expect(strval).toBe('9999');
@@ -906,7 +911,8 @@ test('call word', () => {
 
 test('read byte', () => {
   const ctx = new forth.ForthContext();
-  ctx.interpretSource('hex create foo 12345678 ,');
+  ctx.addToInputQueue('hex create foo 12345678 ,');
+  ctx.runInterpreter();
   const fooAddr = ctx.lookupWord('foo');
   expect(ctx.fetchByte(fooAddr)).toBe(0x78);
   expect(ctx.fetchByte(fooAddr + 1)).toBe(0x56);

@@ -786,11 +786,12 @@ function resetInterpreter() {
     });
     forthContext.createBuiltinWord('buttons', 0, getButtons);
     forthContext.createBuiltinWord('sfx', 1, playSoundEffect);
-    forthContext.interpretSource(GAME_BUILTINS, 'game-builtins');
-    forthContext.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
+    forthContext.addToInputQueue(GAME_BUILTINS, 'game-builtins');
+    forthContext.addToInputQueue(`${outputCanvas.width} constant SCREEN_WIDTH
     ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
-    forthContext.interpretSource(getSourceCode(),
+    forthContext.addToInputQueue(getSourceCode(),
         saveFileName ? saveFileName : '<game source>');
+    forthContext.runInterpreter();
 
     drawFrameAddr = forthContext.lookupWord('draw_frame');
     if (drawFrameAddr === null) {
