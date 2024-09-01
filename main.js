@@ -204,6 +204,154 @@ document.addEventListener('DOMContentLoaded', (event) => {
   });
 });
 
+
+/**
+ * Reinitialize all interpreter state.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ * - Will stop the game from running if it is already
+ * - Will read and interpret user supplied game source code.
+ * - If there is an error, will stop running and output errors
+ *   to the console before rethrowing.
+ * @throw ForthError is there is a problem with the source code.
+ */
+function resetInterpreter() {
+  try {
+    stopRun();
+
+    document.getElementById('output').textContent = '';
+
+    forthContext = new ForthContext();
+    forthContext.createBuiltinWord('cls', 1, clearScreen);
+    forthContext.createBuiltinWord('set_color', 1, setColor);
+    forthContext.createBuiltinWord('draw_line', 4, drawLine);
+    forthContext.createBuiltinWord('draw_sprite', 7, drawSprite);
+    forthContext.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
+      // Convert from a FORTH string to Javascript string.
+      let str = '';
+      for (let i = 0; i < length; i++) {
+        str += String.fromCharCode(forthContext.fetchByte(ptr + i));
+      }
+
+      drawText(str, x, y);
+    });
+    forthContext.createBuiltinWord('fill_rect', 4, fillRect);
+    forthContext.createBuiltinWord('.', 1, (val) => {
+      writeConsole(val + '\n');
+    });
+    forthContext.createBuiltinWord('buttons', 0, getButtons);
+    forthContext.createBuiltinWord('sfx', 1, playSoundEffect);
+    forthContext.interpretSource(GAME_BUILTINS, 'game-builtins');
+    forthContext.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
+    ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
+    const src = getSourceCode();
+    if (src) {
+      forthContext.interpretSource(src,
+        saveFileName ? saveFileName : '<game source>');
+    }
+
+    drawFrameAddr = forthContext.lookupWord('draw_frame');
+    if (drawFrameAddr === null) {
+      throw new Error('draw_frame not defined');
+    }
+  } catch (err) {
+    stopRun();
+    writeConsole(err + '\n');
+    throw err;
+  }
+}
+
+/**
+ * Pause the game if it is running. If it is not running,
+ * do nothing.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ *  - Update on-screen controls (disable/enable)
+ *  - Stop audio context
+ */
+function stopRun() {
+  if (running) {
+    running = false;
+
+    if (drawFrameTimer != -1) {
+      clearTimeout(drawFrameTimer);
+      drawFrameTimer = -1;
+    }
+
+    if (audioRunning) {
+      audioContext.suspend();
+      audioRunning = false;
+    }
+
+    updateControls();
+  }
+}
+
+/**
+ * Start the game if it is paused. If it is not paused,
+ * do nothing.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ *  - Update on-screen controls (disable/enable)
+ */
+function startRun() {
+  if (!running) {
+    running = true;
+    updateControls();
+    drawFrame();
+  }
+}
+
+/**
+ * Start a new project, clearing out source code, sprites, etc.
+ * Create a small sample program.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ *  - Resets the interpreter
+ *  - Stops the previous game from running if it is.
+ */
+function newProgram() {
+  if (!confirmLoseChanges()) {
+    return;
+  }
+
+  needsSave = false;
+  saveFileName = '';
+  updateTitleBar();
+  setSourceCode(`: draw_frame
+    1 cls
+    2 set_color
+    16 16 112 112 fill_rect
+  ;
+`);
+
+  clearSprites();
+  clearSoundEffects();
+  clearScreen(0);
+  resetInterpreter();
+}
+
+/**
+ * If the game is currently running, pause it, if it is paused,
+ * resume it.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ */
+function playPause() {
+  if (forthContext !== null) {
+    if (running) {
+      stopRun();
+    } else {
+      startRun();
+    }
+  }
+}
+
 /**
  * Load the list of available files from the server, which are stored
  * in a manifest file.
@@ -533,36 +681,6 @@ function encodeSoundEffect(effect) {
   return encoded;
 }
 
-/**
- * Start a new project, clearing out source code, sprites, etc.
- * Create a small sample program.
- * Expected preconditions:
- *  None
- * Side effects:
- *  - Resets the interpreter
- *  - Stops the previous game from running if it is.
- */
-function newProgram() {
-  if (!confirmLoseChanges()) {
-    return;
-  }
-
-  needsSave = false;
-  saveFileName = '';
-  updateTitleBar();
-  setSourceCode(`: draw_frame
-    1 cls
-    2 set_color
-    16 16 112 112 fill_rect
-  ;
-`);
-
-  clearSprites();
-  clearSoundEffects();
-  clearScreen(0);
-  resetInterpreter();
-}
-
 function clearSoundEffects() {
   soundEffects.length = 0;
   for (let i = 0; i < MAX_SOUND_EFFECTS; i++) {
@@ -784,121 +902,6 @@ ${BUTTON_B} constant BUTTON_B
 14 constant C_SALMON
 15 constant C_WHITE
 `;
-
-/**
- * Reinitialize all interpreter state.
- * Expected preconditions:
- *  None
- * Side effects:
- * - Will stop the game from running if it is already
- * - Will read and interpret user supplied game source code.
- * @throw ForthError is there is a problem with the source code.
- */
-function resetInterpreter() {
-  try {
-    stopRun();
-
-    document.getElementById('output').textContent = '';
-
-    forthContext = new ForthContext();
-    forthContext.createBuiltinWord('cls', 1, clearScreen);
-    forthContext.createBuiltinWord('set_color', 1, setColor);
-    forthContext.createBuiltinWord('draw_line', 4, drawLine);
-    forthContext.createBuiltinWord('draw_sprite', 7, drawSprite);
-    forthContext.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
-      // Convert from a FORTH string to Javascript string.
-      let str = '';
-      for (let i = 0; i < length; i++) {
-        str += String.fromCharCode(forthContext.fetchByte(ptr + i));
-      }
-
-      drawText(str, x, y);
-    });
-    forthContext.createBuiltinWord('fill_rect', 4, fillRect);
-    forthContext.createBuiltinWord('.', 1, (val) => {
-      writeConsole(val + '\n');
-    });
-    forthContext.createBuiltinWord('buttons', 0, getButtons);
-    forthContext.createBuiltinWord('sfx', 1, playSoundEffect);
-    forthContext.interpretSource(GAME_BUILTINS, 'game-builtins');
-    forthContext.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
-    ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
-    const src = getSourceCode();
-    if (src) {
-      forthContext.interpretSource(src,
-        saveFileName ? saveFileName : '<game source>');
-    }
-
-    drawFrameAddr = forthContext.lookupWord('draw_frame');
-    if (drawFrameAddr === null) {
-      throw new Error('draw_frame not defined');
-    }
-  } catch (err) {
-    stopRun();
-    writeConsole(err + '\n');
-  }
-}
-
-/**
- * If the game is currently running, pause it, if it is paused,
- * resume it.
- * Expected preconditions:
- *  None
- * Side effects:
- */
-function playPause() {
-  if (forthContext !== null) {
-    if (running) {
-      stopRun();
-    } else {
-      startRun();
-    }
-  }
-}
-
-/**
- * Pause the game if it is running. If it is not running,
- * do nothing.
- * Expected preconditions:
- *  None
- * Side effects:
- *  - Update on-screen controls (disable/enable)
- *  - Stop audio context
- */
-function stopRun() {
-  if (running) {
-    running = false;
-
-    if (drawFrameTimer != -1) {
-      clearTimeout(drawFrameTimer);
-      drawFrameTimer = -1;
-    }
-
-    if (audioRunning) {
-      audioContext.suspend();
-      audioRunning = false;
-    }
-
-    updateControls();
-  }
-}
-
-/**
- * Start the game if it is paused. If it is not paused,
- * do nothing.
- * Expected preconditions:
- *  None
- * Side effects:
- *  - Update on-screen controls (disable/enable)
- */
-function startRun() {
-  if (!running) {
-    running = true;
-    updateControls();
-    drawFrame();
-  }
-}
-
 
 /**
  * Set the stop button and input field to be enabled/disabled depending on the
