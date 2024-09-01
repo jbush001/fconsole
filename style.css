@@ -92,6 +92,17 @@ body, html {
     height: 128px;
 }
 
+#input {
+    width: 100%;
+    border: 1px black solid;
+    white-space: pre;
+    height: 24px;
+}
+
+#input:disabled {
+    background-color: #dddddd;
+}
+
 #screen {
     display: inline-block;
     image-rendering: pixelated;

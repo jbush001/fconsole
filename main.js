@@ -91,10 +91,10 @@ const STATE_NEW = 0;
 const STATE_PAUSED = 1;
 const STATE_RUNNING = 2;
 
-let runState = STATE_NEW;
+let running = false;
 
 
-// Initialize once on page load.
+// Initialize once when the page is loaded.
 document.addEventListener('DOMContentLoaded', (event) => {
   outputCanvas = document.getElementById('screen');
   outputContext = outputCanvas.getContext('2d');
@@ -160,6 +160,25 @@ document.addEventListener('DOMContentLoaded', (event) => {
       (event || window.event).returnValue = confirmationMessage;
       return confirmationMessage;
     }
+  });
+
+  // Handle REPL input
+  const inputElem = document.getElementById('input');
+  inputElem.addEventListener('keypress', (event) => {
+    if (event.key == 'Enter') {
+      try {
+        forthContext.interpretSource(inputElem.value, 'user input');
+      } catch (err) {
+        writeConsole(err + '\n');
+      }
+
+      inputElem.value = '';
+    }
+  });
+
+  document.getElementById('reset_button').addEventListener('click', () => {
+    resetInterpreter();
+    startRun();
   });
 
   // Save keyboard shortcut
@@ -254,10 +273,13 @@ function saveToServer() {
 
 function encodeSaveData() {
   return getSourceCode() +
-  '\n(' + SPRITE_DELIMITER + encodeSprites() +
-  SOUND_DELIMITER + encodeSoundEffects() + '\n)\n';
+    '\n(' + SPRITE_DELIMITER + encodeSprites() +
+    SOUND_DELIMITER + encodeSoundEffects() + '\n)\n';
 }
 
+/**
+ * Draw current file name, and an asterisk if has unsaved changes.
+ */
 function updateTitleBar() {
   // The star indicates it needs saving.
   document.title = (saveFileName ? saveFileName : 'Untitled') +
@@ -316,6 +338,7 @@ function loadFromServer(filename) {
 
     updateTitleBar();
     resetInterpreter();
+    startRun();
   }).catch((error) => {
     alert('Error loading file: ' + error);
   });
@@ -512,10 +535,14 @@ function encodeSoundEffect(effect) {
 
 /**
  * Start a new project, clearing out source code, sprites, etc.
+ * Create a small sample program.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ *  - Resets the interpreter
+ *  - Stops the previous game from running if it is.
  */
 function newProgram() {
-  stopRun();
-
   if (!confirmLoseChanges()) {
     return;
   }
@@ -533,8 +560,7 @@ function newProgram() {
   clearSprites();
   clearSoundEffects();
   clearScreen(0);
-  runState = STATE_NEW;
-  updatePlayPauseButton();
+  resetInterpreter();
 }
 
 function clearSoundEffects() {
@@ -588,7 +614,9 @@ function setSourceCode(text) {
 function getSourceCode() {
   let source = '';
   for (const lineDiv of document.getElementById('source').childNodes) {
-    source += lineDiv.innerText.trimEnd() + '\n';
+    if (lineDiv.innerText) {
+      source += lineDiv.innerText.trimEnd() + '\n';
+    }
   }
 
   return source;
@@ -726,7 +754,7 @@ function drawFrame() {
     forthContext.callWord(drawFrameAddr);
   } catch (err) {
     stopRun();
-    alert(err);
+    writeConsole(err + '\n');
   }
 }
 
@@ -758,7 +786,13 @@ ${BUTTON_B} constant BUTTON_B
 `;
 
 /**
- * Set up the interpreter and start running code.
+ * Reinitialize all interpreter state.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ * - Will stop the game from running if it is already
+ * - Will read and interpret user supplied game source code.
+ * @throw ForthError is there is a problem with the source code.
  */
 function resetInterpreter() {
   try {
@@ -789,24 +823,32 @@ function resetInterpreter() {
     forthContext.interpretSource(GAME_BUILTINS, 'game-builtins');
     forthContext.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
     ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
-    forthContext.interpretSource(getSourceCode(),
+    const src = getSourceCode();
+    if (src) {
+      forthContext.interpretSource(src,
         saveFileName ? saveFileName : '<game source>');
+    }
 
     drawFrameAddr = forthContext.lookupWord('draw_frame');
     if (drawFrameAddr === null) {
       throw new Error('draw_frame not defined');
     }
-
-    startRun();
   } catch (err) {
     stopRun();
-    alert(err);
+    writeConsole(err + '\n');
   }
 }
 
+/**
+ * If the game is currently running, pause it, if it is paused,
+ * resume it.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ */
 function playPause() {
   if (forthContext !== null) {
-    if (runState == STATE_RUNNING) {
+    if (running) {
       stopRun();
     } else {
       startRun();
@@ -814,9 +856,18 @@ function playPause() {
   }
 }
 
+/**
+ * Pause the game if it is running. If it is not running,
+ * do nothing.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ *  - Update on-screen controls (disable/enable)
+ *  - Stop audio context
+ */
 function stopRun() {
-  if (runState == STATE_RUNNING) {
-    runState = STATE_PAUSED;
+  if (running) {
+    running = false;
 
     if (drawFrameTimer != -1) {
       clearTimeout(drawFrameTimer);
@@ -828,32 +879,40 @@ function stopRun() {
       audioRunning = false;
     }
 
-    updatePlayPauseButton();
+    updateControls();
   }
 }
 
+/**
+ * Start the game if it is paused. If it is not paused,
+ * do nothing.
+ * Expected preconditions:
+ *  None
+ * Side effects:
+ *  - Update on-screen controls (disable/enable)
+ */
 function startRun() {
-  if (runState != STATE_RUNNING) {
-    runState = STATE_RUNNING;
-    updatePlayPauseButton();
+  if (!running) {
+    running = true;
+    updateControls();
     drawFrame();
   }
 }
 
 
 /**
- * Set the stop button to be enabled/disabled depending on the state of the
- * game engine.
+ * Set the stop button and input field to be enabled/disabled depending on the
+ * state of the game engine.
  */
-function updatePlayPauseButton() {
+function updateControls() {
+  const inputElem = document.getElementById('input');
   const button = document.getElementById('play_pause_button');
-  if (runState == STATE_NEW) {
+  if (running) {
     button.innerText = 'Pause';
-    button.disabled = true;
+    inputElem.disabled = true;
   } else {
-    button.disabled = false;
-    button.innerText =
-      runState == STATE_RUNNING ? 'Pause' : 'Resume';
+    button.innerText = 'Resume';
+    inputElem.disabled = false;
   }
 }
 
