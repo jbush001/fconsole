@@ -193,14 +193,17 @@ function handleReplInput(event) {
   switch (event.key) {
     case 'Enter':
       try {
-        commandHistory.push(inputElem.value);
+        const command = inputElem.value
+        inputElem.value = '';
+        commandHistory.push(command);
         historyIndex = -1;
-        forthContext.interpretSource(inputElem.value, 'user input');
+        writeConsole(command + '\n');
+        forthContext.interpretSource(command, 'user input');
+        writeConsole('ok\n');
       } catch (err) {
         writeConsole(err + '\n');
       }
 
-      inputElem.value = '';
       break;
 
     case 'ArrowUp':
