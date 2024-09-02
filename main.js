@@ -99,40 +99,28 @@ document.addEventListener('DOMContentLoaded', (event) => {
   outputCanvas = document.getElementById('screen');
   outputContext = outputCanvas.getContext('2d');
 
-  // Intercept tab key so it inserts into the source instead of switching
-  // to a different element in the page.
   const source = document.getElementById('source');
   source.addEventListener('keydown', handleSourceKeyDown);
   source.addEventListener('input', setNeedsSave);
   source.addEventListener('paste', setNeedsSave);
-
   document.addEventListener('keydown', handlePageKeyDown);
   document.addEventListener('keyup', handlePageKeyUp);
+  document.getElementById('fileSelect').addEventListener('change',
+    handleFileSelect);
+  window.addEventListener('beforeunload', handleUnload);
+  document.getElementById('input').addEventListener('keypress',
+    handleReplInput);
+  document.getElementById('reset_button').addEventListener('click', () => {
+    resetInterpreter();
+    startRun();
+  });
 
   openTab('outputtab', document.getElementsByClassName('tablink')[0]);
 
   newProgram();
   initSpriteEditor();
   initSoundEditor();
-
-  // Handle user selecting a file to load from the server using the dorp down.
-  document.getElementById('fileSelect').addEventListener('change',
-    handleFileSelect);
-
   updateFileList();
-
-  // Display a confirmation message if the user attempts to close the browser
-  // with unsaved changes.
-  window.addEventListener('beforeunload', handleUnload);
-
-  document.getElementById('input').addEventListener('keypress',
-    handleReplInput);
-
-  document.getElementById('reset_button').addEventListener('click', () => {
-    resetInterpreter();
-    startRun();
-  });
-
   initAudioContext();
 });
 
@@ -181,7 +169,7 @@ function handleFileSelect(event) {
 
   // Move focus away from this element, otherwise when the user taps
   // keys to interact with the game, it will activate this control again.
-  fileSelect.blur();
+  document.getElementById('fileSelect').blur();
 }
 
 /**
@@ -388,6 +376,7 @@ function updateFileList() {
   fetch('games/manifest.json').then((response) => {
     return response.json();
   }).then((files) => {
+    const fileSelect = document.getElementById('fileSelect');
     fileSelect.innerHTML = '<option value="">Select a file...</option>';
     const selectOptions = files.map((file) =>
       `<option value="${file}">${file}</option>`);
