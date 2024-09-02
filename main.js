@@ -242,6 +242,7 @@ function resetInterpreter() {
     });
     forthContext.createBuiltinWord('buttons', 0, getButtons);
     forthContext.createBuiltinWord('sfx', 1, playSoundEffect);
+    forthContext.createBuiltinWord('words', 0, printWords);
     forthContext.interpretSource(GAME_BUILTINS, 'game-builtins');
     forthContext.interpretSource(`${outputCanvas.width} constant SCREEN_WIDTH
     ${outputCanvas.height} constant SCREEN_HEIGHT`, 'game-builtins');
@@ -333,6 +334,7 @@ function newProgram() {
   clearSoundEffects();
   clearScreen(0);
   resetInterpreter();
+  updateControls();
 }
 
 /**
@@ -842,6 +844,12 @@ function playSoundEffect(index) {
   }
 }
 
+function printWords() {
+  for (const word in forthContext.dictionary) {
+    writeConsole(word + '\n');
+  }
+}
+
 function drawText(string, x, y) {
   for (let index = 0; index < string.length; index++) {
     const code = string.charCodeAt(index);
@@ -913,9 +921,11 @@ function updateControls() {
   if (running) {
     button.innerText = 'Pause';
     inputElem.disabled = true;
+    inputElem.placeholder = 'Unavailable while running';
   } else {
     button.innerText = 'Resume';
     inputElem.disabled = false;
+    inputElem.placeholder = 'enter command';
   }
 }
 
