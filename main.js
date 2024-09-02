@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.getElementById('fileSelect').addEventListener('change',
     handleFileSelect);
   window.addEventListener('beforeunload', handleUnload);
-  document.getElementById('input').addEventListener('keypress',
+  document.getElementById('input').addEventListener('keydown',
     handleReplInput);
   document.getElementById('reset_button').addEventListener('click', () => {
     resetInterpreter();
@@ -185,16 +185,44 @@ function handleUnload(event) {
   }
 }
 
+let commandHistory = [];
+let historyIndex = 0;
+
 function handleReplInput(event) {
   const inputElem = document.getElementById('input');
-  if (event.key == 'Enter') {
-    try {
-      forthContext.interpretSource(inputElem.value, 'user input');
-    } catch (err) {
-      writeConsole(err + '\n');
-    }
+  console.log(event.key);
+  switch (event.key) {
+    case 'Enter':
+      try {
+        commandHistory.push(inputElem.value);
+        historyIndex = -1;
+        forthContext.interpretSource(inputElem.value, 'user input');
+      } catch (err) {
+        writeConsole(err + '\n');
+      }
 
-    inputElem.value = '';
+      inputElem.value = '';
+      break;
+
+    case 'ArrowUp':
+      console.log(historyIndex);
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+        inputElem.value = commandHistory[commandHistory.length - 1 - historyIndex]
+      }
+      break;
+
+    case 'ArrowDown':
+      console.log(historyIndex);
+      if (historyIndex == 0) {
+        historyIndex--;
+        inputElem.value = '';
+      } else if (historyIndex > 0) {
+        historyIndex--;
+        inputElem.value = commandHistory[commandHistory.length - 1 - historyIndex]
+      }
+
+      break;
   }
 }
 
