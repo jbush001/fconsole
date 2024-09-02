@@ -102,32 +102,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
   // Intercept tab key so it inserts into the source instead of switching
   // to a different element in the page.
   const source = document.getElementById('source');
-  source.addEventListener('keydown', (evt) => {
-    if (evt.key === 'Tab') {
-      evt.preventDefault();
-      document.execCommand('insertText', false, '\t');
-    }
-  });
-
+  source.addEventListener('keydown', handleSourceKeyDown);
   source.addEventListener('input', setNeedsSave);
   source.addEventListener('paste', setNeedsSave);
 
-  // Handle virtual gamepad inputs.
-  document.addEventListener('keydown', function(event) {
-    if (event.key in BUTTON_MAP) {
-      buttonMask |= BUTTON_MAP[event.key];
-    }
-
-    if (event.key == 'Escape') {
-      playPause();
-    }
-  });
-
-  document.addEventListener('keyup', function(event) {
-    if (event.key in BUTTON_MAP) {
-      buttonMask &= ~BUTTON_MAP[event.key];
-    }
-  });
+  document.addEventListener('keydown', handlePageKeyDown);
+  document.addEventListener('keyup', handlePageKeyUp);
 
   openTab('outputtab', document.getElementsByClassName('tablink')[0]);
 
@@ -136,59 +116,107 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initSoundEditor();
 
   // Handle user selecting a file to load from the server using the dorp down.
-  const fileSelect = document.getElementById('fileSelect');
-  fileSelect.addEventListener('change', function(event) {
-    if (!confirmLoseChanges()) {
-      return;
-    }
-
-    loadFromServer(event.target.value);
-
-    // Move focus away from this element, otherwise when the user taps
-    // keys to interact with the game, it will activate this control again.
-    fileSelect.blur();
-  });
+  document.getElementById('fileSelect').addEventListener('change',
+    handleFileSelect);
 
   updateFileList();
 
   // Display a confirmation message if the user attempts to close the browser
   // with unsaved changes.
-  window.addEventListener('beforeunload', function(event) {
-    if (needsSave) {
-      const confirmationMessage =
-        'Changes you made may not be saved. Are you sure you want to leave?';
-      (event || window.event).returnValue = confirmationMessage;
-      return confirmationMessage;
-    }
-  });
+  window.addEventListener('beforeunload', handleUnload);
 
-  // Handle REPL input
-  const inputElem = document.getElementById('input');
-  inputElem.addEventListener('keypress', (event) => {
-    if (event.key == 'Enter') {
-      try {
-        forthContext.interpretSource(inputElem.value, 'user input');
-      } catch (err) {
-        writeConsole(err + '\n');
-      }
-
-      inputElem.value = '';
-    }
-  });
+  document.getElementById('input').addEventListener('keypress',
+    handleReplInput);
 
   document.getElementById('reset_button').addEventListener('click', () => {
     resetInterpreter();
     startRun();
   });
 
-  // Save keyboard shortcut
-  document.addEventListener('keydown', function(event) {
-    if ((event.altKey || event.ctrlKey) && event.key === 's') {
-      event.preventDefault();
-      saveToServer();
-    }
-  });
+  initAudioContext();
+});
 
+function handleSourceKeyDown(event) {
+  // The default action for tab is to switch to the next field on the
+  // page. When on the source code tab, instead insert a tab char.
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    document.execCommand('insertText', false, '\t');
+  }
+}
+
+function handlePageKeyDown(event) {
+  if (event.key in BUTTON_MAP) {
+    buttonMask |= BUTTON_MAP[event.key];
+  }
+
+  if (event.key == 'Escape') {
+    playPause();
+  }
+
+  // Save keyboard shortcut
+  if ((event.altKey || event.ctrlKey) && event.key === 's') {
+    event.preventDefault();
+    saveToServer();
+  }
+}
+
+function handlePageKeyUp(event) {
+  if (event.key in BUTTON_MAP) {
+    buttonMask &= ~BUTTON_MAP[event.key];
+  }
+}
+
+/**
+ * Try to load selected file when user picks from drop down.
+ * @param {Event} event
+ * @returns
+ */
+function handleFileSelect(event) {
+  if (!confirmLoseChanges()) {
+    return;
+  }
+
+  loadFromServer(event.target.value);
+
+  // Move focus away from this element, otherwise when the user taps
+  // keys to interact with the game, it will activate this control again.
+  fileSelect.blur();
+}
+
+/**
+ * Prompt user if they have unsaved changes.
+ * This is called when the user attempts to close the browser.
+ */
+function handleUnload(event) {
+  if (needsSave) {
+    const confirmationMessage =
+      'Changes you made may not be saved. Are you sure you want to leave?';
+    (event || window.event).returnValue = confirmationMessage;
+    return confirmationMessage;
+  }
+}
+
+function handleReplInput(event) {
+  const inputElem = document.getElementById('input');
+  if (event.key == 'Enter') {
+    try {
+      forthContext.interpretSource(inputElem.value, 'user input');
+    } catch (err) {
+      writeConsole(err + '\n');
+    }
+
+    inputElem.value = '';
+  }
+}
+
+/**
+ * Create audio context object and sound playback worklet.
+ * Note that the worklet isn't started until the user attempts
+ * to play a sound, both to handle browser requirements for user
+ * input to play a sound, and to save CPU when a game is not running.
+ */
+function initAudioContext() {
   audioContext = new AudioContext();
   audioContext.audioWorklet.addModule('sound-fx-player.js', {
     credentials: 'omit',
@@ -202,13 +230,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
   }).catch((error) => {
     console.log('error initializing audio worklet node', error);
   });
-});
-
+}
 
 /**
  * Reinitialize all interpreter state.
- * Expected preconditions:
- *  None
  * Side effects:
  * - Will stop the game from running if it is already
  * - Will read and interpret user supplied game source code.
@@ -228,13 +253,7 @@ function resetInterpreter() {
     forthContext.createBuiltinWord('draw_line', 4, drawLine);
     forthContext.createBuiltinWord('draw_sprite', 7, drawSprite);
     forthContext.createBuiltinWord('draw_text', 4, (x, y, ptr, length) => {
-      // Convert from a FORTH string to Javascript string.
-      let str = '';
-      for (let i = 0; i < length; i++) {
-        str += String.fromCharCode(forthContext.fetchByte(ptr + i));
-      }
-
-      drawText(str, x, y);
+      drawText(readForthString(ptr, length), x, y);
     });
     forthContext.createBuiltinWord('fill_rect', 4, fillRect);
     forthContext.createBuiltinWord('.', 1, (val) => {
@@ -264,10 +283,7 @@ function resetInterpreter() {
 }
 
 /**
- * Pause the game if it is running. If it is not running,
- * do nothing.
- * Expected preconditions:
- *  None
+ * Pause the game if it is running. If it is not running, do nothing.
  * Side effects:
  *  - Update on-screen controls (disable/enable)
  *  - Stop audio context
@@ -291,10 +307,7 @@ function stopRun() {
 }
 
 /**
- * Start the game if it is paused. If it is not paused,
- * do nothing.
- * Expected preconditions:
- *  None
+ * Start the game if it is paused. If it is not paused, do nothing.
  * Side effects:
  *  - Update on-screen controls (disable/enable)
  */
@@ -309,8 +322,6 @@ function startRun() {
 /**
  * Start a new project, clearing out source code, sprites, etc.
  * Create a small sample program.
- * Expected preconditions:
- *  None
  * Side effects:
  *  - Resets the interpreter
  *  - Stops the previous game from running if it is.
@@ -338,11 +349,7 @@ function newProgram() {
 }
 
 /**
- * If the game is currently running, pause it, if it is paused,
- * resume it.
- * Expected preconditions:
- *  None
- * Side effects:
+ * If the game is currently running, pause it, if it is paused, resume it.
  */
 function playPause() {
   if (forthContext !== null) {
@@ -352,6 +359,22 @@ function playPause() {
       startRun();
     }
   }
+}
+
+/**
+ * Copy a string encoded as a series of bytes in FORTH interpreter
+ * memory into a Javascript string.
+ * @param {number} ptr Byte offset into memory
+ * @param {number} length Number of bytes/characters
+ * @returns {string}
+ */
+function readForthString(ptr, length) {
+  let str = '';
+  for (let i = 0; i < length; i++) {
+    str += String.fromCharCode(forthContext.fetchByte(ptr + i));
+  }
+
+  return str;
 }
 
 /**

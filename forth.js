@@ -946,12 +946,15 @@ class ForthContext {
   }
 
   /**
-   * Return the next input character from the source code string.
+   * Return the next input character from the source code string as a byte.
+   * This uses a single byte unicode encoding. If the character cannot
+   * be represented in a byte, a space is returned instead.
    */
   _key() {
     const val = this._readChar();
     if (val) {
-      this._push(val.charCodeAt(0));
+      const code = val.charCodeAt(0);
+      this._push(code < 256 ? code : 32);
     } else {
       this._push(-1);
     }
