@@ -185,12 +185,11 @@ function handleUnload(event) {
   }
 }
 
-let commandHistory = [];
+const commandHistory = [];
 let historyIndex = 0;
 
 function handleReplInput(event) {
   const inputElem = document.getElementById('input');
-  console.log(event.key);
   switch (event.key) {
     case 'Enter':
       try {
@@ -205,7 +204,6 @@ function handleReplInput(event) {
       break;
 
     case 'ArrowUp':
-      console.log(historyIndex);
       if (historyIndex < commandHistory.length - 1) {
         historyIndex++;
         inputElem.value = commandHistory[commandHistory.length - 1 - historyIndex]
@@ -213,13 +211,24 @@ function handleReplInput(event) {
       break;
 
     case 'ArrowDown':
-      console.log(historyIndex);
       if (historyIndex == 0) {
         historyIndex--;
         inputElem.value = '';
       } else if (historyIndex > 0) {
         historyIndex--;
         inputElem.value = commandHistory[commandHistory.length - 1 - historyIndex]
+      }
+
+      break;
+
+    case 'Tab':
+      event.preventDefault();
+      for (let i = commandHistory.length - 1; i >= 0; i--) {
+        const entry = commandHistory[i];
+        if (entry.startsWith(inputElem.value)) {
+          inputElem.value = entry;
+          break;
+        }
       }
 
       break;
