@@ -512,10 +512,9 @@ async function copyCanvas(model) {
  * The paste could come from an image copied from another area of the
  * sprite editor, or it could be an image copied from another app.
  * The latter case can be useful for reference images or external
- * tools, but adds some complexity.
+ * tools, but adds some complexity, because we need to match palette
+ * and aspect ratio.
  * @bug does not update undo history.
- * @bug does not maintain aspect ratio if copied externally. It
- *    should crop in order to do that.
  */
 async function pasteCanvas(event, model) {
   const items = event.clipboardData.items;
@@ -527,7 +526,20 @@ async function pasteCanvas(event, model) {
 
       const left = model.selectedCol * SPRITE_BLOCK_SIZE;
       const top = model.selectedRow * SPRITE_BLOCK_SIZE;
-      const size = model.spriteSize * SPRITE_BLOCK_SIZE;
+
+
+      // pasteBitmap.width, pasteBitmap.height
+      const srcWidth = pasteBitmap.width;
+      const srcHeight = pasteBitmap.height;
+      let destWidth = model.spriteSize * SPRITE_BLOCK_SIZE;
+      let destHeight = model.spriteSize * SPRITE_BLOCK_SIZE;
+
+      // Adjust aspect ratio if necessary to fit the pasted image.
+      if (srcWidth > srcHeight) {
+        destHeight = Math.floor(srcHeight / srcWidth * destHeight);
+      } else if (srcWidth < srcHeight) {
+        destWidth = Math.floor(srcWidth / srcHeight * destWidth);
+      }
 
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = spriteBitmap.width;
@@ -547,10 +559,10 @@ async function pasteCanvas(event, model) {
       // pixels in the source are copied the destination rather than blending
       // together the source and destinations (which just makes a big mess in
       // most cases).
-      tempContext.clearRect(left, top, size, size);
-      tempContext.drawImage(pasteBitmap, 0, 0,
-          pasteBitmap.width, pasteBitmap.height,
-          left, top, size, size);
+      tempContext.clearRect(left, top, destWidth, destHeight);
+      tempContext.drawImage(pasteBitmap,
+          0, 0, srcWidth, srcHeight,
+          left, top, destWidth, destHeight);
       spriteBitmap = await createImageBitmap(tempCanvas);
       spriteData.data.set(tempContext.getImageData(0, 0,
           tempCanvas.width, tempCanvas.height).data);
