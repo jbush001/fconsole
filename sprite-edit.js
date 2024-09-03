@@ -606,17 +606,16 @@ async function clampToPalette(sourceBitmap) {
 }
 
 /**
- * Find the palette entry that minimizes the euclidean distance to a
- * passed color.
- * This isn't perceptually the most optimal, since the eye weights colors
- * differently.
+ * Find the palette entry that is most similar to a passed RGB color.
  * @param {Array} rgba input color
  * @returns {Array} closest match
  */
 function findNearestPaletteEntry(rgba) {
   let minDistance = Number.POSITIVE_INFINITY;
   let bestColor = [0, 0, 0, 0];
-  for (let i = 0; i < PALETTE.length; i++) {
+
+  // Note: this assumes palette entry 0 is transparent
+  for (let i = 1; i < PALETTE.length; i++) {
     const thisDistance = computeDistance(rgba, PALETTE[i]);
     if (thisDistance < minDistance) {
       minDistance = thisDistance;
@@ -627,6 +626,12 @@ function findNearestPaletteEntry(rgba) {
   return bestColor;
 }
 
+/**
+ * Calculate the perceptual difference between two colors
+ * @param {Array} color1 RGBA
+ * @param {Array}} color2 RGBA
+ * @returns {number} Distance metric, smaller is more similar
+ */
 function computeDistance(color1, color2) {
   // Special case: if these are both transparent, then the color
   // doesn't matter.
@@ -634,14 +639,60 @@ function computeDistance(color1, color2) {
     return 0;
   }
 
-  // Note: this only checks RGB, since we know there's only
-  // one transparent color in our palette.
+  const cie1 = rgbToCielab(color1);
+  const cie2 = rgbToCielab(color2);
+
   let distance = 0;
   for (let i = 0; i < 3; i++) {
-    distance += (color1[i] - color2[i]) ** 2;
+    distance += (cie1[i] - cie2[i]) ** 2;
   }
 
   return distance;
+}
+
+/**
+ * Convert from RGB color space to CIELab, which is more perceptually uniform.
+ * https://en.wikipedia.org/wiki/CIELAB_color_space
+ * This ignores the alpha channel.
+ * @param {Array} tuple Array of red, blue, green, alpha
+ * @returns {Array} L, A, B
+ */
+function rgbToCielab(tuple) {
+  let [red, green, blue, _] = tuple;
+
+  // First convert to CIE 1931 XYZ color space
+  // https://en.wikipedia.org/wiki/CIE_1931_color_space
+  red /= 255;
+  green /= 255;
+  blue /= 255;
+
+  // Gamma correction
+  red = (red > 0.04045) ? Math.pow((red + 0.055) / 1.055, 2.4) : red / 12.92;
+  green = (green > 0.04045) ? Math.pow((green + 0.055) / 1.055, 2.4) : green / 12.92;
+  blue = (blue > 0.04045) ? Math.pow((blue + 0.055) / 1.055, 2.4) : blue / 12.92;
+
+  red *= 100;
+  green *= 100;
+  blue *= 100;
+
+  let x = red * 0.4124564 + green * 0.3575761 + blue * 0.1804375;
+  let y = red * 0.2126729 + green * 0.7151522 + blue * 0.0721750;
+  let z = red * 0.0193339 + green * 0.1191920 + blue * 0.9503041;
+
+  // Convert from XYZ to CieLab
+  x /= 95.047;
+  y /= 100.000;
+  z /= 108.883;
+
+  x = (x > 0.008856) ? Math.pow(x, 1/3) : (7.787 * x) + (16 / 116);
+  y = (y > 0.008856) ? Math.pow(y, 1/3) : (7.787 * y) + (16 / 116);
+  z = (z > 0.008856) ? Math.pow(z, 1/3) : (7.787 * z) + (16 / 116);
+
+  const l = (116 * y) - 16;
+  const a = 500 * (x - y);
+  const b = 200 * (y - z);
+
+  return [ l, a, b ];
 }
 
 /**
