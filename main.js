@@ -672,9 +672,8 @@ function encodeSprites() {
     const index = INVERSE_PALETTE.get(spriteData.data.slice(i, i + 4).
         toString());
     if (index === undefined) {
-      // This can happen if a pasted image has colors not in the
-      // palette (or if there is some sort of bug). For now, just
-      // encode as transparent.
+      // This shouldn't happen normally.
+      console.log('invalid color in sprite data');
       result += '0';
     } else {
       result += index.toString(16);

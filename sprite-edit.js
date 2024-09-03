@@ -506,18 +506,25 @@ async function copyCanvas(model) {
   });
 }
 
-// Copy clipboard content into editor area in response to user paste
-// request.
-// @bug does not update undo history.
-// @bug This does not clamp the source image to the palette first,
-//   so, if the user pastes an image from external source, colors
-//   not in palette will be transparent.
+/**
+ * Copy clipboard content into editor area in response to user paste
+ * request.
+ * The paste could come from an image copied from another area of the
+ * sprite editor, or it could be an image copied from another app.
+ * The latter case can be useful for reference images or external
+ * tools, but adds some complexity.
+ * @bug does not update undo history.
+ * @bug does not maintain aspect ratio if copied externally. It
+ *    should crop in order to do that.
+ */
 async function pasteCanvas(event, model) {
   const items = event.clipboardData.items;
   for (const item of items) {
     if (item.type === 'image/png' || item.type === 'image/jpeg') {
       const blob = item.getAsFile();
-      const pasteBitmap = await createImageBitmap(blob);
+      const sourceBitmap = await createImageBitmap(blob);
+      const pasteBitmap = await clampToPalette(sourceBitmap);
+
       const left = model.selectedCol * SPRITE_BLOCK_SIZE;
       const top = model.selectedRow * SPRITE_BLOCK_SIZE;
       const size = model.spriteSize * SPRITE_BLOCK_SIZE;
@@ -552,6 +559,77 @@ async function pasteCanvas(event, model) {
       break;
     }
   }
+}
+
+/**
+ * Ensure all colors in the bitmap are in the palette.
+ * This will always be the case if images were copied from within the
+ * sprite editor, but will not if they were taken from an external
+ * source.
+ * @param {ImageBitmap} sourceBitmap
+ * @returns {ImageBitmap}
+ */
+async function clampToPalette(sourceBitmap) {
+  const canvas = document.createElement('canvas');
+  canvas.width = sourceBitmap.width;
+  canvas.height = sourceBitmap.height;
+  const context = canvas.getContext('2d');
+  context.drawImage(sourceBitmap, 0, 0);
+
+  const imageData = context.getImageData(0, 0,
+    sourceBitmap.width, sourceBitmap.height);
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const rgba = imageData.data.slice(i, i + 4);
+    if (!INVERSE_PALETTE.has(rgba.toString())) {
+      const newRgba = findNearestPaletteEntry(rgba);
+      imageData.data[i] = newRgba[0];
+      imageData.data[i + 1] = newRgba[1];
+      imageData.data[i + 2] = newRgba[2];
+      imageData.data[i + 3] = newRgba[3];
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+  return createImageBitmap(canvas);
+}
+
+/**
+ * Find the palette entry that minimizes the euclidean distance to a
+ * passed color.
+ * This isn't perceptually the most optimal, since the eye weights colors
+ * differently.
+ * @param {Array} rgba input color
+ * @returns {Array} closest match
+ */
+function findNearestPaletteEntry(rgba) {
+  let minDistance = Number.POSITIVE_INFINITY;
+  let bestColor = [0, 0, 0, 0];
+  for (let i = 0; i < PALETTE.length; i++) {
+    const thisDistance = computeDistance(rgba, PALETTE[i]);
+    if (thisDistance < minDistance) {
+      minDistance = thisDistance;
+      bestColor = PALETTE[i];
+    }
+  }
+
+  return bestColor;
+}
+
+function computeDistance(color1, color2) {
+  // Special case: if these are both transparent, then the color
+  // doesn't matter.
+  if (color1[3] == 0 && color2[3] == 0) {
+    return 0;
+  }
+
+  // Note: this only checks RGB, since we know there's only
+  // one transparent color in our palette.
+  let distance = 0;
+  for (let i = 0; i < 3; i++) {
+    distance += (color1[i] - color2[i]) ** 2;
+  }
+
+  return distance;
 }
 
 /**
