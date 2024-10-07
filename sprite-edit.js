@@ -514,6 +514,8 @@ async function copyCanvas(model) {
  * The latter case can be useful for reference images or external
  * tools, but adds some complexity, because we need to match palette
  * and aspect ratio.
+ * @param {ClipboardEvent} event Native event passed to the paste callback
+ * @param {SpriteEditorModel} model the data model for sprites
  * @bug does not update undo history.
  */
 async function pasteCanvas(event, model) {
@@ -579,7 +581,7 @@ async function pasteCanvas(event, model) {
  * sprite editor, but will not if they were taken from an external
  * source.
  * @param {ImageBitmap} sourceBitmap
- * @returns {ImageBitmap}
+ * @return {ImageBitmap}
  */
 async function clampToPalette(sourceBitmap) {
   const canvas = document.createElement('canvas');
@@ -589,7 +591,7 @@ async function clampToPalette(sourceBitmap) {
   context.drawImage(sourceBitmap, 0, 0);
 
   const imageData = context.getImageData(0, 0,
-    sourceBitmap.width, sourceBitmap.height);
+      sourceBitmap.width, sourceBitmap.height);
   for (let i = 0; i < imageData.data.length; i += 4) {
     const rgba = imageData.data.slice(i, i + 4);
     if (!INVERSE_PALETTE.has(rgba.toString())) {
@@ -608,7 +610,7 @@ async function clampToPalette(sourceBitmap) {
 /**
  * Find the palette entry that is most similar to a passed RGB color.
  * @param {Array} rgba input color
- * @returns {Array} closest match
+ * @return {Array} closest match
  */
 function findNearestPaletteEntry(rgba) {
   let minDistance = Number.POSITIVE_INFINITY;
@@ -629,8 +631,8 @@ function findNearestPaletteEntry(rgba) {
 /**
  * Calculate the perceptual difference between two colors
  * @param {Array} color1 RGBA
- * @param {Array}} color2 RGBA
- * @returns {number} Distance metric, smaller is more similar
+ * @param {Array} color2 RGBA
+ * @return {number} Distance metric, smaller is more similar
  */
 function computeDistance(color1, color2) {
   // Special case: if these are both transparent, then the color
@@ -655,7 +657,7 @@ function computeDistance(color1, color2) {
  * https://en.wikipedia.org/wiki/CIELAB_color_space
  * This ignores the alpha channel.
  * @param {Array} tuple Array of red, blue, green, alpha
- * @returns {Array} L, A, B
+ * @return {Array} L, A, B
  */
 function rgbToCielab(tuple) {
   let [red, green, blue, _] = tuple;
@@ -668,8 +670,10 @@ function rgbToCielab(tuple) {
 
   // Gamma correction
   red = (red > 0.04045) ? Math.pow((red + 0.055) / 1.055, 2.4) : red / 12.92;
-  green = (green > 0.04045) ? Math.pow((green + 0.055) / 1.055, 2.4) : green / 12.92;
-  blue = (blue > 0.04045) ? Math.pow((blue + 0.055) / 1.055, 2.4) : blue / 12.92;
+  green = (green > 0.04045) ? Math.pow((green + 0.055) / 1.055, 2.4) :
+      green / 12.92;
+  blue = (blue > 0.04045) ? Math.pow((blue + 0.055) / 1.055, 2.4) :
+      blue / 12.92;
 
   red *= 100;
   green *= 100;
@@ -692,7 +696,7 @@ function rgbToCielab(tuple) {
   const a = 500 * (x - y);
   const b = 200 * (y - z);
 
-  return [ l, a, b ];
+  return [l, a, b];
 }
 
 /**

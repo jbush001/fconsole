@@ -87,10 +87,6 @@ let playerNode = null;
 
 let forthContext = null;
 
-const STATE_NEW = 0;
-const STATE_PAUSED = 1;
-const STATE_RUNNING = 2;
-
 let running = false;
 
 
@@ -106,10 +102,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.addEventListener('keydown', handlePageKeyDown);
   document.addEventListener('keyup', handlePageKeyUp);
   document.getElementById('fileSelect').addEventListener('change',
-    handleFileSelect);
+      handleFileSelect);
   window.addEventListener('beforeunload', handleUnload);
   document.getElementById('input').addEventListener('keydown',
-    handleReplInput);
+      handleReplInput);
   document.getElementById('reset_button').addEventListener('click', () => {
     resetInterpreter();
     startRun();
@@ -158,7 +154,6 @@ function handlePageKeyUp(event) {
 /**
  * Try to load selected file when user picks from drop down.
  * @param {Event} event
- * @returns
  */
 function handleFileSelect(event) {
   if (!confirmLoseChanges()) {
@@ -175,6 +170,8 @@ function handleFileSelect(event) {
 /**
  * Prompt user if they have unsaved changes.
  * This is called when the user attempts to close the browser.
+ * @param {BeforeUnloadEvent} event
+ * @return {str} confirmation message
  */
 function handleUnload(event) {
   if (needsSave) {
@@ -209,7 +206,8 @@ function handleReplInput(event) {
     case 'ArrowUp':
       if (historyIndex < commandHistory.length - 1) {
         historyIndex++;
-        inputElem.value = commandHistory[commandHistory.length - 1 - historyIndex]
+        inputElem.value = commandHistory[commandHistory.length - 1 -
+            historyIndex];
       }
       break;
 
@@ -219,7 +217,8 @@ function handleReplInput(event) {
         inputElem.value = '';
       } else if (historyIndex > 0) {
         historyIndex--;
-        inputElem.value = commandHistory[commandHistory.length - 1 - historyIndex]
+        inputElem.value = commandHistory[commandHistory.length - 1 -
+            historyIndex];
       }
 
       break;
@@ -394,7 +393,7 @@ function playPause() {
  * memory into a Javascript string.
  * @param {number} ptr Byte offset into memory
  * @param {number} length Number of bytes/characters
- * @returns {string}
+ * @return {string}
  */
 function readForthString(ptr, length) {
   let str = '';
