@@ -42,25 +42,28 @@ class View {
   draw(context) {}
 }
 
-let root = null;
+let rootView = null;
 
 function repaint() {
   spriteContext.fillStyle = 'white';
   spriteContext.fillRect(0, 0, spriteCanvas.width, spriteCanvas.height);
 
-  function recurse(view) {
+  function paintChildren(view) {
     spriteContext.save();
     spriteContext.translate(view.xoffs, view.yoffs);
     view.draw(spriteContext);
     for (const child of view.children) {
-      recurse(child);
+      paintChildren(child);
     }
     spriteContext.restore();
   }
 
-  recurse(root);
+  paintChildren(rootView);
 }
 
+/**
+ * Schedule a repaint in the event loop.
+ */
 function repaintSpriteEdit() {
   setTimeout(repaint, 0);
 }
@@ -94,7 +97,7 @@ function dispatchMouse(event, callback) {
   const rect = event.target.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
-  recurse(root, x, y);
+  recurse(rootView, x, y);
 }
 
 function handleMouseDown(event) {
@@ -529,14 +532,13 @@ async function pasteCanvas(event, model) {
       const left = model.selectedCol * SPRITE_BLOCK_SIZE;
       const top = model.selectedRow * SPRITE_BLOCK_SIZE;
 
-
-      // pasteBitmap.width, pasteBitmap.height
       const srcWidth = pasteBitmap.width;
       const srcHeight = pasteBitmap.height;
       let destWidth = model.spriteSize * SPRITE_BLOCK_SIZE;
       let destHeight = model.spriteSize * SPRITE_BLOCK_SIZE;
 
-      // Adjust aspect ratio if necessary to fit the pasted image.
+      // Adjust aspect ratio if necessary to fix. We always paste into
+      // the full editor area, which is square.
       if (srcWidth > srcHeight) {
         destHeight = Math.floor(srcHeight / srcWidth * destHeight);
       } else if (srcWidth < srcHeight) {
@@ -548,13 +550,16 @@ async function pasteCanvas(event, model) {
       tempCanvas.height = spriteBitmap.height;
       const tempContext = tempCanvas.getContext('2d');
 
-      // This resizes to the destination size when pasting. Without
-      // this flag, it will perform smoothing, which will create many
-      // colors that are not in the palette.
+      // If the paste source doesn't match the destination size, this will
+      // resize it. Without this flag, it will perform smoothing, which
+      // will create many colors that are not in the palette. That's not what
+      // we want, so keep it pixelated.
       tempContext.imageSmoothingEnabled = false;
 
-      // Copy existing sprite sheet first, since we're only updating the
-      // sprite we are currently editing.
+      // Copy existing sprite sheet into this context first, since we're only
+      // updating the sprite we are currently editing (The browser doesn't
+      // allow modifying an existing bitmap; we must create a new one with a
+      // new context).
       tempContext.drawImage(spriteBitmap, 0, 0);
 
       // Clear the destination image to (0, 0, 0, 0) first so any transparent
@@ -629,7 +634,11 @@ function findNearestPaletteEntry(rgba) {
 }
 
 /**
- * Calculate the perceptual difference between two colors
+ * Calculate the difference between two colors. Used to find the closest
+ * pallete match. Originally I just directly compared the euclidean
+ * distance between the two RGB triples, but, given the limited palette,
+ * it would pick some odd looking colors. Now it converts into CIELab color
+ * space, which makes the images look much better.
  * @param {Array} color1 RGBA
  * @param {Array} color2 RGBA
  * @return {number} Distance metric, smaller is more similar
@@ -713,14 +722,14 @@ function initSpriteEditor() {
   spriteCanvas.addEventListener('mousedown', handleMouseDown);
   spriteCanvas.addEventListener('mouseup', handleMouseUp);
   spriteCanvas.addEventListener('mousemove', handleMouseMoved);
-  root = new View(spriteCanvas.width, spriteCanvas.height);
+  rootView = new View(spriteCanvas.width, spriteCanvas.height);
   const model = new SpriteEditorModel();
 
-  root.addChild(new EditView(320, 320, model), 30, 32);
-  root.addChild(new SpriteMapView(512, 512, model), 380, 24);
-  root.addChild(new ColorPicker(320, 32, model), 30, 360);
-  root.addChild(new SpriteSizeControl(64, 32, model), 30, 400);
-  root.addChild(new SpriteIndexView(32, 16, model), 148, 12);
+  rootView.addChild(new EditView(320, 320, model), 30, 32);
+  rootView.addChild(new SpriteMapView(512, 512, model), 380, 24);
+  rootView.addChild(new ColorPicker(320, 32, model), 30, 360);
+  rootView.addChild(new SpriteSizeControl(64, 32, model), 30, 400);
+  rootView.addChild(new SpriteIndexView(32, 16, model), 148, 12);
   repaint();
 
   const tab = document.getElementById('spritestab');

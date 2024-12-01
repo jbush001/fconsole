@@ -13,6 +13,8 @@
 \ limitations under the License.
 
 \ This file is used to edit the built-in system font.
+\ The utility mkfont.js reads this file and creates the .PNG file that contains
+\ the font glyphs.
 
 8 constant CHAR_WIDTH
 8 constant CHAR_HEIGHT

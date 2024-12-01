@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Local web server, which allows saving games from the web app.
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');

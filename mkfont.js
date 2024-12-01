@@ -15,9 +15,9 @@
 // limitations under the License.
 
 //
-// Used to generate the .png file with all of the font glyphs.
-// Reads from gams/font8x8.fth, as I used the sprite editor to
-// create the font.
+// This is a standalone command line utility that is used to generate the
+// .png file with all of the font glyphs. It reads from games/font8x8.fth,
+// as I used the sprite editor to create the font.
 //
 
 const {PNG} = require('pngjs');
